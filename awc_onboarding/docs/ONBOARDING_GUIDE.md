@@ -25,7 +25,15 @@ python -m onboarding.cli blueprint --file examples/dataspark/blueprint.input.yam
 
 Examples: `examples/dataspark/` (3 engines), `examples/phoenixai-suite/` (own engine + CAI, CDE, CDF).
 
-## 3. With an AI agent (MCP)
+## 3. Web UI (no AI needed)
+```
+python -m web.app            # then open http://127.0.0.1:8765
+```
+Three tabs: guided questions (with dependency form), paste `input.yaml`, and the
+multi-engine Blueprint composer. Results show validation, each generated file, and a .zip download.
+The CLI above and this UI are fully standalone; AI is optional.
+
+## 4. With an AI agent (MCP, optional)
 ```
 python -m mcp_server.server
 ```

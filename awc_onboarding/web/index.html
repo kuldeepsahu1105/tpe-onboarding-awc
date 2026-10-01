@@ -1,0 +1,114 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>AWC Onboarding</title>
+<style>
+:root{--b:#f96702;--bg:#f6f7f9;--t:#1b2430}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--t)}
+header{background:#1b2430;color:#fff;padding:14px 24px;font-size:18px}header b{color:var(--b)}
+nav{display:flex;gap:4px;padding:0 24px;background:#fff;border-bottom:1px solid #ddd}
+nav button{border:0;background:none;padding:12px 16px;cursor:pointer;font-size:15px;border-bottom:3px solid transparent}
+nav button.on{border-color:var(--b);font-weight:600}
+main{max-width:1000px;margin:20px auto;padding:0 24px}
+.card{background:#fff;border:1px solid #e1e4e8;border-radius:8px;padding:18px;margin-bottom:16px}
+input,select,textarea{width:100%;padding:8px;border:1px solid #bbb;border-radius:6px;font:inherit}
+textarea{font-family:ui-monospace,monospace;font-size:13px;min-height:260px}
+button.p{background:var(--b);color:#fff;border:0;padding:9px 18px;border-radius:6px;cursor:pointer;font-size:15px}
+button.s{background:#fff;border:1px solid #999;padding:8px 14px;border-radius:6px;cursor:pointer}
+.row{display:flex;gap:10px;align-items:center;margin-top:12px}.hide{display:none}
+.bar{height:8px;background:#e5e7eb;border-radius:4px}.bar>div{height:100%;background:var(--b);border-radius:4px}
+.help{color:#667;font-size:13px;margin:6px 0}
+.err{color:#b00020}.ok{color:#0a7d33}.warn{color:#9a6700}
+pre{background:#0d1117;color:#e6edf3;padding:12px;border-radius:6px;overflow:auto;max-height:420px;font-size:12.5px}
+.tabs button{margin:0 4px 4px 0}.tabs button.on{background:#1b2430;color:#fff}
+label{font-weight:600;display:block;margin-top:10px}
+</style></head><body>
+<header><b>AWC</b> Engine &amp; Blueprint Onboarding</header>
+<nav id="nav">
+ <button data-t="guided" class="on">Guided questions</button>
+ <button data-t="yaml">Paste input.yaml</button>
+ <button data-t="bp">Blueprint (multi-engine)</button>
+</nav>
+<main>
+<section id="guided" class="card">
+ <div class="row" style="margin-top:0"><label style="margin:0">Session name</label>
+  <input id="sid" value="my-engine" style="max-width:240px">
+  <button class="s" onclick="loadQ()">Start / resume</button>
+  <button class="s" onclick="resetS()">Reset</button></div>
+ <div class="bar" style="margin-top:14px"><div id="prog" style="width:0"></div></div>
+ <div id="qbox"></div>
+</section>
+<section id="yaml" class="card hide">
+ <div class="row" style="margin-top:0"><select id="exsel" onchange="loadEx('yamlta',this)"></select></div>
+ <p class="help">Only the fields you know are needed; everything optional gets a default.</p>
+ <textarea id="yamlta" placeholder="partner: {id: myengine}"></textarea>
+ <div class="row"><button class="p" onclick="runYaml()">Generate &amp; validate</button></div>
+</section>
+<section id="bp" class="card hide">
+ <p class="help">One Blueprint = one app. List your engines (each its own input.yaml) and/or existing engines already on the cluster.</p>
+ <label>blueprint.input.yaml</label><textarea id="bpta" style="min-height:200px"></textarea>
+ <label>Engine input files referenced above</label><div id="engs"></div>
+ <div class="row"><button class="s" onclick="addEng()">+ Add engine file</button>
+ <button class="s" onclick="loadBpEx()">Load DataSpark example</button>
+ <button class="p" onclick="runBp()">Compose &amp; validate</button></div>
+</section>
+<section id="result" class="card hide"></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{});return r.json()};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x==b));
+ ['guided','yaml','bp'].forEach(t=>$(t).classList.toggle('hide',t!=b.dataset.t));$('result').classList.add('hide')});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let cur=null;
+async function loadQ(){
+ const r=await api('/api/question?session='+encodeURIComponent($('sid').value));
+ $('prog').style.width=(r.total?100*r.answered/r.total:0)+'%';
+ if(r.done){$('qbox').innerHTML='<p class="ok">All questions answered.</p><button class="p" onclick="runSession()">Generate &amp; validate</button>';return}
+ cur=r.question;let f;
+ if(cur.kind==='choice')f='<select id="ans">'+cur.choices.map(c=>`<option ${c==cur.default?'selected':''}>${esc(c)}</option>`).join('')+'</select>';
+ else if(cur.kind==='bool')f=`<select id="ans"><option ${cur.default!==false?'selected':''}>yes</option><option ${cur.default===false?'selected':''}>no</option></select>`;
+ else f=`<input id="ans" value="${esc(Array.isArray(cur.default)?cur.default.join(', '):(cur.default??''))}" onkeydown="if(event.key==='Enter')submitQ()">`;
+ $('qbox').innerHTML=`<h3>${esc(cur.prompt)}</h3>${cur.help?`<div class="help">${esc(cur.help)}</div>`:''}${f}<div id="qe" class="err"></div><div class="row"><button class="p" onclick="submitQ()">Next</button></div>`;
+ $('ans').focus()}
+async function submitQ(){
+ let v=$('ans').value;if(cur.kind==='bool')v=v==='yes';
+ if(cur.required&&v===''){$('qe').textContent='This question requires an answer.';return}
+ const r=await api('/api/answer',{session:$('sid').value,id:cur.id,value:v});
+ if(r.error){$('qe').textContent=r.error;return}
+ if(cur.id==='dependencies.hasAny'&&v===true)return depForm();
+ loadQ()}
+function depForm(){
+ $('qbox').innerHTML=`<h3>Dependencies on other engines</h3><div class="help">Internal, Cloudera-native (CDE, CAI, CDF...) or third-party engines. auto = private; optional/ref = wired in the Blueprint.</div>
+ <label>Name (key used in templates)</label><input id="dn"><label>Engine resource name</label><input id="de" placeholder="cde-ace-engine">
+ <label>Type</label><select id="dt"><option>auto</option><option>optional</option><option>ref</option></select>
+ <label>Target instance (optional/ref only)</label><input id="di"><div id="dl" class="help"></div>
+ <div class="row"><button class="s" onclick="addDep()">Add dependency</button><button class="p" onclick="loadQ()">Done</button></div>`}
+async function addDep(){
+ const r=await api('/api/dependency',{session:$('sid').value,name:$('dn').value,engine:$('de').value,type:$('dt').value,instance:$('di').value||null});
+ $('dl').textContent='Added: '+r.entries.map(e=>e.name+' → '+e.engine).join(', ');['dn','de','di'].forEach(i=>$(i).value='')}
+async function resetS(){await api('/api/reset',{session:$('sid').value});loadQ()}
+async function runSession(){show(await api('/api/run-session',{session:$('sid').value}))}
+async function runYaml(){show(await api('/api/run-yaml',{yaml:$('yamlta').value}))}
+function addEng(name='',text=''){const d=document.createElement('div');d.className='card';
+ d.innerHTML=`<input placeholder="file name e.g. db.input.yaml" value="${esc(name)}"><textarea style="min-height:120px;margin-top:6px">${esc(text)}</textarea>`;$('engs').appendChild(d)}
+async function loadBpEx(){$('engs').innerHTML='';
+ $('bpta').value=(await api('/api/example?name=dataspark/blueprint.input.yaml')).text;
+ for(const n of ['db','auth','api'])addEng(n+'.input.yaml',(await api('/api/example?name=dataspark/'+n+'.input.yaml')).text)}
+async function runBp(){const engines={};$('engs').querySelectorAll('.card').forEach(c=>{const i=c.querySelector('input'),t=c.querySelector('textarea');if(i.value)engines[i.value]=t.value});
+ show(await api('/api/run-blueprint',{blueprint:$('bpta').value,engines}))}
+function show(r){const el=$('result');el.classList.remove('hide');
+ if(r.error){el.innerHTML='<h3 class="err">'+esc(r.error)+'</h3>';return}
+ const v=r.validation||{},reports=v.ok!==undefined?{bundle:v}:v;let h='<h3>Validation</h3>';
+ for(const[k,x]of Object.entries(reports)){h+=`<div><b>${esc(k)}</b>: <span class="${x.ok?'ok':'err'}">${x.ok?'OK':'FAILED'}</span></div>`;
+  (x.errors||[]).forEach(e=>h+=`<div class="err">✖ ${esc(e.file)}: ${esc(e.message)}</div>`);
+  (x.warnings||[]).forEach(e=>h+=`<div class="warn">⚠ ${esc(e.file)}: ${esc(e.message)}</div>`)}
+ const names=Object.keys(r.files);
+ h+='<h3>Files</h3><div class="tabs">'+names.map((n,i)=>`<button class="s ${i?'':'on'}" onclick="tab(${i})">${esc(n)}</button>`).join('')+'</div><pre id="fv"></pre>'+
+  '<div class="row"><button class="p" onclick="dl()">Download .zip</button></div>';
+ el.innerHTML=h;window._f=r.files;window._z=r.zip;window._n=names;tab(0);el.scrollIntoView()}
+function tab(i){$('fv').textContent=window._f[window._n[i]];document.querySelectorAll('.tabs button').forEach((b,j)=>b.classList.toggle('on',i==j))}
+function dl(){const b=atob(window._z),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);
+ const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([a],{type:'application/zip'}));l.download='awc-bundle.zip';l.click()}
+async function loadEx(t,sel){if(sel.value)$(t).value=(await api('/api/example?name='+encodeURIComponent(sel.value))).text}
+(async()=>{const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')&&!e.includes('/')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
+</script></body></html>
