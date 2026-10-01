@@ -1,0 +1,11 @@
+partner: {id: puppygraph, owner: "PuppyGraph"}
+engine: {displayName: "PuppyGraph", description: "Zero-ETL graph query engine over existing relational/lakehouse data.", template: helm-simple}
+helm: {repoUrl: "https://puppygraph.github.io/charts", chart: puppygraph, version: "0.70.0"}
+service: {port: 8081, hasLandingPage: true}
+dependencies:
+  hasAny: true
+  entries:
+    - {name: catalog, engine: hive-metastore-engine, type: ref, instance: hive-metastore}
+blueprint: {needed: true, outcome: "Zero-ETL graph queries"}
+cluster: {minCpu: "4", minMemory: "16Gi"}
+publish: {destinationRegistry: "registry.partner-corp.example.com", namespace: puppygraph}

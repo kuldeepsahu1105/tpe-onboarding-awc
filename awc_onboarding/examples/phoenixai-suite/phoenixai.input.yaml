@@ -1,0 +1,13 @@
+partner: {id: phoenixai, owner: "PhoenixAI"}
+engine: {displayName: "PhoenixAI", description: "AI model-serving platform.", template: native-k8s}
+helm: {imageRepository: phoenixai/server, imageTag: "2.1.0"}
+service: {port: 8000, hasLandingPage: true}
+dependencies:
+  hasAny: true
+  entries:
+    # Wired to engines that already exist (deployed Cloudera experiences).
+    - {name: workbench, engine: cai-ace-engine, type: ref, instance: cai}
+    - {name: etl, engine: cde-ace-engine, type: optional, instance: cde}
+    - {name: streams, engine: cdf-ace-engine, type: optional, instance: cdf}
+cluster: {minCpu: "8", minMemory: "32Gi", hasGPU: true}
+publish: {destinationRegistry: "registry.example.invalid", namespace: phoenixai}

@@ -1,0 +1,167 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: Engine
+metadata:
+  name: [[ engine.name ]]
+  annotations:
+    ecosystem.awc.cloudera.com/requires-embedded-registry: "true"
+spec:
+  displayName: "[[ engine.displayName ]]"
+  description: "[[ engine.description ]]"
+  # Multi-role chart: [[ engine.roles | map(attribute='name') | join(', ') ]].
+  # Add/remove roles below and in configSchema/template to match your chart's
+  # real values.yaml role keys (e.g. controlplane/compute, FE/BE, leader/worker).
+
+  versionCatalog:
+    - displayName: "[[ engine.version ]]"
+      imageCatalog: [[ imageCatalogName ]]
+      chartCatalog: [[ chartCatalogName ]]
+      metadata:
+        buildVersion: "[[ engine.version ]]"
+
+[% if dependencies.entries %]
+  dependencies:
+[% for dep in dependencies.entries %]
+    - name: [[ dep.name ]]
+      engine: [[ dep.engine ]]
+      type: [[ dep.type ]]
+[% endfor %]
+
+[% endif %]
+  configSchema:
+    type: object
+    properties:
+[% for role in engine.roles %]
+      [[ role.name ]]Replicas:
+        type: integer
+        default: [[ role.replicas ]]
+        minimum: 1
+        description: "Number of [[ role.name ]] replicas"
+      [[ role.name ]]Cpu:
+        type: string
+        default: "[[ cluster.minCpu ]]"
+        description: "CPU request/limit per [[ role.name ]] pod"
+      [[ role.name ]]Memory:
+        type: string
+        default: "[[ cluster.minMemory ]]"
+        description: "Memory request/limit per [[ role.name ]] pod"
+      [[ role.name ]]StorageSize:
+        type: string
+        default: "[[ cluster.diskDefault ]]"
+        description: "Persistent volume size per [[ role.name ]] pod"
+[% endfor %]
+
+  provides:
+[% if service.hasLandingPage %]
+    - name: landingPage
+      capability: landing-page
+      value: |
+        url: "https://[[ partner.id ]]-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+[% endif %]
+[% if capability.exportsStructuredData %]
+    - name: connection
+      capability: [[ capability.name ]]
+      value: |
+[% for f in capability.fields %]
+        [[ f.name ]]: "{{ .Metadata.Name }}"
+[% endfor %]
+[% else %]
+    - name: endpoint
+      capability: service
+      value: |
+        host: "{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local"
+        port: [[ service.port ]]
+[% endif %]
+
+  healthChecks:
+    - resource:
+        apiVersion: helm.toolkit.fluxcd.io/v2
+        kind: HelmRelease
+        name: "{{ .Metadata.Name }}"
+      condition:
+        type: Ready
+        status: "True"
+
+  template: |
+    apiVersion: security.awc.cloudera.com/v1alpha1
+    kind: AuthConfig
+    metadata:
+      name: default
+      namespace: "{{ .Metadata.Namespace }}"
+    spec:
+      meshMode: Ambient
+      enableAWCAuth: false
+    ---
+    apiVersion: source.toolkit.fluxcd.io/v1
+    kind: HelmRepository
+    metadata:
+      name: "{{ .Metadata.Name }}-repo"
+    spec:
+      interval: 5m
+      type: oci
+      url: oci://{{ .Chart.[[ helm.chartId ]].registry }}/{{ dir .Chart.[[ helm.chartId ]].repository }}
+    ---
+    apiVersion: helm.toolkit.fluxcd.io/v2
+    kind: HelmRelease
+    metadata:
+      name: "{{ .Metadata.Name }}"
+    spec:
+      interval: 1m
+      timeout: 20m
+      install:
+        createNamespace: true
+        timeout: 15m
+        remediation:
+          retries: 3
+      targetNamespace: "{{ .Metadata.Namespace }}"
+      chart:
+        spec:
+          chart: "{{ base .Chart.[[ helm.chartId ]].repository }}"
+          version: "{{ .Chart.[[ helm.chartId ]].version }}"
+          sourceRef:
+            kind: HelmRepository
+            name: "{{ .Metadata.Name }}-repo"
+            namespace: "{{ .Metadata.Namespace }}"
+      values:
+        nameOverride: "{{ .Metadata.Name }}"
+        image:
+          repository: "{{ .Image.[[ helm.imageId ]].registry }}/{{ .Image.[[ helm.imageId ]].repository }}"
+          tag: "{{ .Image.[[ helm.imageId ]].tag }}"
+[% for role in engine.roles %]
+        [[ role.name ]]:
+          replicas: "{{ .Config.[[ role.name ]]Replicas }}"
+          resources:
+            requests:
+              cpu: "{{ .Config.[[ role.name ]]Cpu }}"
+              memory: "{{ .Config.[[ role.name ]]Memory }}"
+            limits:
+              cpu: "{{ .Config.[[ role.name ]]Cpu }}"
+              memory: "{{ .Config.[[ role.name ]]Memory }}"
+          storage:
+            size: "{{ .Config.[[ role.name ]]StorageSize }}"
+[% endfor %]
+        service:
+          port: [[ service.port ]]
+[% if service.hasLandingPage %]
+    ---
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+      name: "{{ .Metadata.Name }}-landing"
+    spec:
+      hostnames:
+        - "[[ partner.id ]]-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+      parentRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: default-awc
+          namespace: istio-ingress
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - kind: Service
+              name: "{{ .Metadata.Name }}"
+              port: [[ service.landingPort ]]
+[% endif %]

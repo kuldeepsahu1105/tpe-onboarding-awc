@@ -1,0 +1,11 @@
+partner: {id: dataspark-api, owner: "DataSpark, Inc."}
+engine: {displayName: "DataSpark API", description: "DataSpark analytics API.", template: native-k8s}
+helm: {imageRepository: dataspark/api, imageTag: "1.0.0"}
+service: {port: 8080, hasLandingPage: true}
+dependencies:
+  hasAny: true
+  entries:
+    - {name: db, engine: dataspark-db-ace-engine, type: auto}
+    - {name: auth, engine: dataspark-auth-ace-engine, type: optional}
+cluster: {minCpu: "4", minMemory: "16Gi"}
+publish: {destinationRegistry: "registry.partner-corp.example.com", namespace: dataspark}

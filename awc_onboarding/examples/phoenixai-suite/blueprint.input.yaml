@@ -1,0 +1,12 @@
+blueprint:
+  name: phoenixai-suite
+  owner: "PhoenixAI"
+  displayName: "PhoenixAI Suite"
+  description: "PhoenixAI bundled with CAI, CDE and CDF in one Blueprint."
+  version: "1.0.0"
+engines:
+  - input: phoenixai.input.yaml
+  # Existing Cloudera engines pulled into this Blueprint:
+  - existing: {engine: cai-ace-engine, instance: cai, version: "1.0"}
+  - existing: {engine: cde-ace-engine, instance: cde, version: "1.0"}
+  - existing: {engine: cdf-ace-engine, instance: cdf, version: "1.0"}

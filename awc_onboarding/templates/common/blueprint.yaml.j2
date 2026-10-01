@@ -1,0 +1,60 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: Blueprint
+metadata:
+  name: [[ blueprint.name ]]
+spec:
+  owner: "[[ partner.owner ]]"
+  displayName: "[[ engine.displayName ]]"
+  description: "[[ blueprint.description ]]"
+[% if blueprint.outcome %]
+  outcome: "[[ blueprint.outcome ]]"
+[% endif %]
+
+  versionMatrix:
+    - displayVersion: "[[ engine.version ]]"
+      instances:
+        - name: "[[ blueprint.instanceName ]]"
+          version: "[[ engine.version ]]"
+
+  instances:
+    - name: "[[ blueprint.instanceName ]]"
+      engine: "[[ engine.name ]]"
+[% set blueprintDeps = dependencies.entries | selectattr("type", "ne", "auto") | list %]
+[% if blueprintDeps %]
+      # "auto" dependencies (private, same-lifecycle) are intentionally NOT
+      # listed here -- the operator creates/owns that child EngineInstance
+      # automatically and it is invisible to the Console. Only "optional"/
+      # "ref" dependencies are Console-wireable and belong in a Blueprint.
+      dependencies:
+[% for dep in blueprintDeps %]
+        - name: "[[ dep.name ]]"
+          instance: "[[ dep.instance ]]"
+[% endfor %]
+[% endif %]
+
+  cluster:
+    kubernetesVersion: "[[ cluster.kubernetesVersion ]]"
+    networkStorage:
+      default: "[[ cluster.diskDefault ]]"
+      minimum: "[[ cluster.diskMinimum ]]"
+      hint: "Shared storage for [[ engine.displayName ]]"
+    nodeGroups:
+      - id: "[[ blueprint.nodeGroupId ]]"
+        category: "worker"
+        displayName: "[[ blueprint.nodeGroupDisplayName ]]"
+        nodeCount:
+          default: [[ cluster.workerCountDefault ]]
+          minimum: [[ cluster.workerCountMinimum ]]
+        resources:
+          minimum:
+            cpu: "[[ cluster.minCpu ]]"
+            memory: "[[ cluster.minMemory ]]"
+            hasGPU: [[ cluster.hasGPU | lower ]]
+          recommended:
+            cpu: "[[ cluster.recommendedCpu ]]"
+            memory: "[[ cluster.recommendedMemory ]]"
+            hasGPU: [[ cluster.hasGPU | lower ]]
+        storage:
+          disk:
+            default: "[[ cluster.diskDefault ]]"
+            minimum: "[[ cluster.diskMinimum ]]"

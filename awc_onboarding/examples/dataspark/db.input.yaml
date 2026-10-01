@@ -1,0 +1,8 @@
+partner: {id: dataspark-db, owner: "DataSpark, Inc."}
+engine: {displayName: "DataSpark DB", description: "DataSpark metadata database.", template: native-k8s}
+helm: {imageRepository: dataspark/db, imageTag: "1.0.0"}
+service: {port: 5432, hasLandingPage: false}
+capability: {exportsStructuredData: true, name: dataspark-db-connection, fields: "host:string, port:integer"}
+dependencies: {hasAny: false}
+cluster: {minCpu: "2", minMemory: "4Gi"}
+publish: {destinationRegistry: "registry.partner-corp.example.com", namespace: dataspark}

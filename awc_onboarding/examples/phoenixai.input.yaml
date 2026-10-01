@@ -1,0 +1,9 @@
+partner: {id: phoenixai, owner: "PhoenixAI"}
+engine: {displayName: "PhoenixAI", description: "Operator-managed AI/ML model-serving platform.", template: helm-operator}
+helm: {repoUrl: "https://charts.example.invalid/replace-me", chart: phoenixai, version: "2.1.0"}
+operator: {chartRepoUrl: "oci://registry.example.invalid/replace-me", chartName: phoenixai-operator, chartVersion: "2.1.0"}
+service: {port: 8000, hasLandingPage: true}
+dependencies: {hasAny: false}
+blueprint: {needed: true, outcome: "AI model serving"}
+cluster: {minCpu: "8", minMemory: "32Gi", hasGPU: true}
+publish: {destinationRegistry: "registry.example.invalid", namespace: phoenixai}

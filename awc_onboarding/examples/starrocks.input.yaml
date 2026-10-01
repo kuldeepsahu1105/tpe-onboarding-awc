@@ -1,0 +1,8 @@
+partner: {id: starrocks, owner: "StarRocks"}
+engine: {displayName: "StarRocks", description: "Blazing-fast OLAP analytics engine.", template: helm-multi-role, roles: [{name: fe, replicas: 1}, {name: be, replicas: 2}]}
+helm: {repoUrl: "oci://ghcr.io/starrocks/charts", chart: starrocks, version: "1.9.4"}
+service: {port: 9030, hasLandingPage: true, landingPort: 8030}
+dependencies: {hasAny: false}
+blueprint: {needed: true, outcome: "OLAP analytics"}
+cluster: {minCpu: "8", minMemory: "32Gi"}
+publish: {destinationRegistry: "registry.partner-corp.example.com", namespace: starrocks}

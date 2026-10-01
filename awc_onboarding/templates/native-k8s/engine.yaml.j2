@@ -1,0 +1,156 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: Engine
+metadata:
+  name: [[ engine.name ]]
+  annotations:
+    ecosystem.awc.cloudera.com/requires-embedded-registry: "true"
+spec:
+  displayName: "[[ engine.displayName ]]"
+  description: "[[ engine.description ]]"
+
+  versionCatalog:
+    - displayName: "[[ engine.version ]]"
+      imageCatalog: [[ imageCatalogName ]]
+
+[% if dependencies.entries %]
+  dependencies:
+[% for dep in dependencies.entries %]
+    - name: [[ dep.name ]]
+      engine: [[ dep.engine ]]
+      type: [[ dep.type ]]
+[% endfor %]
+
+[% endif %]
+  configSchema:
+    type: object
+    properties:
+      replicas:
+        type: integer
+        default: 1
+        minimum: 1
+        description: "Number of [[ engine.displayName ]] replicas"
+      storageSize:
+        type: string
+        default: "[[ cluster.diskDefault ]]"
+        description: "Persistent volume size"
+      logLevel:
+        type: string
+        default: "info"
+        enum: [debug, info, warn, error]
+
+  provides:
+[% if service.hasLandingPage %]
+    - name: landingPage
+      capability: landing-page
+      value: |
+        url: "https://[[ partner.id ]]-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+[% endif %]
+[% if capability.exportsStructuredData %]
+    - name: connection
+      capability: [[ capability.name ]]
+      value: |
+[% for f in capability.fields %]
+        [[ f.name ]]: "{{ .Metadata.Name }}"
+[% endfor %]
+[% else %]
+    - name: endpoint
+      capability: service
+      value: |
+        host: "{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local"
+        port: [[ service.port ]]
+[% endif %]
+
+  healthChecks:
+    - resource:
+        apiVersion: apps/v1
+        kind: Deployment
+        name: "{{ .Metadata.Name }}-server"
+      condition:
+        type: Available
+        status: "True"
+
+  template: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: "{{ .Metadata.Name }}-server"
+    spec:
+      replicas: "{{ .Config.replicas }}"
+      selector:
+        matchLabels:
+          app: "{{ .Metadata.Name }}"
+      template:
+        metadata:
+          labels:
+            app: "{{ .Metadata.Name }}"
+        spec:
+          containers:
+            - name: [[ partner.id ]]
+              image: "{{ .Image.[[ helm.imageId ]].registry }}/{{ .Image.[[ helm.imageId ]].repository }}:{{ .Image.[[ helm.imageId ]].tag }}"
+              ports:
+                - containerPort: [[ service.port ]]
+              env:
+                - name: LOG_LEVEL
+                  value: "{{ .Config.logLevel }}"
+[% for dep in dependencies.entries %]
+[% if dep.type == "optional" %]
+                {{- if .Dependencies.[[ dep.name ]] }}
+[% endif %]
+                - name: [[ dep.name.upper() ]]_HOST
+                  value: "{{ .Dependencies.[[ dep.name ]].connection.host }}"
+[% if dep.type == "optional" %]
+                {{- end }}
+[% endif %]
+[% endfor %]
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: "{{ .Metadata.Name }}-data"
+    ---
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: "{{ .Metadata.Name }}-data"
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: "{{ .Config.storageSize }}"
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: "{{ .Metadata.Name }}"
+    spec:
+      selector:
+        app: "{{ .Metadata.Name }}"
+      ports:
+        - port: [[ service.port ]]
+          targetPort: [[ service.port ]]
+[% if service.hasLandingPage %]
+    ---
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+      name: "{{ .Metadata.Name }}-landing"
+    spec:
+      hostnames:
+        - "[[ partner.id ]]-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+      parentRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: default-awc
+          namespace: istio-ingress
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - kind: Service
+              name: "{{ .Metadata.Name }}"
+              port: [[ service.landingPort ]]
+[% endif %]

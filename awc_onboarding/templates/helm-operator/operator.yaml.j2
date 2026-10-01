@@ -1,0 +1,16 @@
+# Installs the [[ operator.chartName ]] operator distribution via Helm chart,
+# rendered and applied with Server-Side Apply (no Helm release state kept).
+# The target namespace must already exist -- the Anywhere Cloud Ecosystem
+# does not create it.
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: Operator
+metadata:
+  name: [[ partner.id ]]-operator
+spec:
+  chartCatalog: [[ chartCatalogName ]]
+  imageCatalog: [[ imageCatalogName ]]
+  releases:
+    - chartID: [[ operator.chartId ]]
+      namespace: [[ operator.namespace ]]
+      values: |
+        replicaCount: 1

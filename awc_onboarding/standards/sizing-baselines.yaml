@@ -1,0 +1,21 @@
+# Minimum worker sizing floors per template class, used to flag
+# under-provisioned ClusterRequirements/Blueprint hardware tiers.
+defaults:
+  minCpu: "4"
+  minMemory: "16Gi"
+
+helm-simple:
+  minCpu: "4"
+  minMemory: "8Gi"
+
+helm-multi-role:
+  minCpu: "8"
+  minMemory: "32Gi"
+
+helm-operator:
+  minCpu: "8"
+  minMemory: "32Gi"
+
+native-k8s:
+  minCpu: "2"
+  minMemory: "4Gi"

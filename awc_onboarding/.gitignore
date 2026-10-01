@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+# Session state is runtime scratch (answers-in-progress); not committed.
+sessions/*.json
+!sessions/.gitkeep
+# Default local output location for generated bundles.
+/out/

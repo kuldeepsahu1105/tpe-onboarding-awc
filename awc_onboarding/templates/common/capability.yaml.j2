@@ -1,0 +1,16 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: Capability
+metadata:
+  name: [[ capability.name ]]
+spec:
+  schema:
+    type: object
+    required:
+[% for f in capability.fields %]
+      - [[ f.name ]]
+[% endfor %]
+    properties:
+[% for f in capability.fields %]
+      [[ f.name ]]:
+        type: [[ f.type ]]
+[% endfor %]
