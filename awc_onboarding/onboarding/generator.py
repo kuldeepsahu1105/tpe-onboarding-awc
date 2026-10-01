@@ -43,8 +43,13 @@ _COMMON_CONDITIONAL_FILES = {
     "clusterrequirements.yaml.j2": ("clusterrequirements.yaml", lambda m: True),
     "mirror.yaml.j2": (
         "mirror.yaml",
-        lambda m: m["engine"]["template"] != "native-k8s" and not m["mirror"].get("skip"),
+        lambda m: not m["mirror"].get("skip"),
     ),
+    "mirror.sh.j2": (
+        "mirror.sh",
+        lambda m: not m["mirror"].get("skip"),
+    ),
+    "publish.sh.j2": ("publish.sh", lambda m: True),
     "imagecatalog.yaml.j2": ("imagecatalog.yaml", lambda m: True),
     "chartcatalog.yaml.j2": (
         "chartcatalog.yaml",
@@ -116,6 +121,8 @@ def render_bundle(manifest: Manifest, output_dir: Path) -> dict[str, str]:
 
     for out_name, content in rendered.items():
         (output_dir / out_name).write_text(content)
+        if out_name.endswith(".sh"):
+            (output_dir / out_name).chmod(0o755)
 
     return rendered
 

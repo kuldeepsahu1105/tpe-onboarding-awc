@@ -41,6 +41,32 @@ Tools: `start_session`, `get_next_question`, `answer_question`, `add_dependency`
 `load_answers`, `generate_bundle`, `validate_bundle`, `onboard_engine`,
 `compose_blueprint`, `list_examples`, `get_example`, docs tools.
 
+## Charts, images, mirroring and publishing
+Declare every image the app needs under `images:` (strings like
+`docker.io/starrocks/fe-ubuntu:3.4.3` or `{id, ref}`). Don't know them? Discover them:
+
+```bash
+python -m onboarding.cli discover-images --repo-url https://helm.neo4j.com/neo4j \
+  --chart neo4j --version 5.26.0 --set neo4j.name=neo4j --set volumes.data.mode=defaultStorageClass
+# add --write input.yaml to store the result
+```
+
+Generated bundle (besides the ACE YAML):
+
+| File | Purpose | Needs |
+|---|---|---|
+| `mirror.yaml` | Plan: charts and images, source -> destination | - |
+| `mirror.sh` | `helm pull/push` charts and `skopeo copy --all` images into your registry | helm, skopeo, registry logins |
+| `publish.sh` | `awc-marketplace validate` + `publish` engine + Blueprint (+ `catalog fetch`). Dry run by default; `--push` pushes | awc-marketplace CLI |
+
+Flow: `mirror.sh` -> `publish.sh` (dry run) -> `publish.sh --push`. For a composed
+multi-engine Blueprint, `publish.sh` publishes each engine then the one Blueprint;
+run each `engines/<id>/mirror.sh` first. Set `mirror: {skip: true}` if artifacts are
+already in your registry.
+
+Not covered: building images from source or writing Dockerfiles, and the
+reference repos' staged pipeline (approval gates, smoke tests, JSON reports).
+
 ## Before publishing
 Fix every validator error; review warnings (e.g. `<TODO>` placeholders in `helm-operator`
 scaffolds, Go-template control flow that could not be parsed statically).

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Copies every chart and image listed in mirror.yaml into your internal OCI
+# registry. Requires: helm, skopeo, and `helm registry login` / `skopeo login`
+# for [[ publish.destinationRegistry ]].
+set -euo pipefail
+WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
+DEST_CHARTS="oci://[[ publish.destinationRegistry ]]/[[ publish.namespace ]]/charts"
+
+[% macro chart(repo, name, version) %]
+[% if repo.startswith("oci://") %]
+helm pull "[[ repo ]]/[[ name ]]" --version "[[ version ]]" --destination "$WORK"
+[% else %]
+helm pull "[[ name ]]" --repo "[[ repo ]]" --version "[[ version ]]" --destination "$WORK"
+[% endif %]
+[% endmacro %]
+[% if engine.template != "native-k8s" %]
+[[ chart(mirror.chart.repoUrl, mirror.chart.name, mirror.chart.version) ]]
+[% endif %]
+[% if engine.template == "helm-operator" %]
+[[ chart(operator.chartRepoUrl, operator.chartName, operator.chartVersion) ]]
+[% endif %]
+for f in "$WORK"/*.tgz; do [ -e "$f" ] && helm push "$f" "$DEST_CHARTS"; done
+
+[% for img in images %]
+skopeo copy --all "docker://[[ img.source ]]/[[ img.repository ]]:[[ img.tag ]]" \
+  "docker://[[ publish.destinationRegistry ]]/[[ publish.namespace ]]/[[ img.repository ]]:[[ img.tag ]]"
+[% endfor %]
+echo "Mirroring complete."

@@ -166,5 +166,41 @@ def compose_blueprint(spec_path: Path, out_root: Path) -> dict[str, Any]:
     }
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "blueprint.yaml").write_text(yaml.safe_dump(blueprint, sort_keys=False))
+    _write_publish_script(out_dir, bp, version, instances, manifests)
     ok = all(r["ok"] for r in reports.values())
     return {"out_dir": str(out_dir), "engines": sorted(reports), "validation": reports, "ok": ok}
+
+
+def _write_publish_script(out_dir: Path, bp: dict, version: str, instances: list, manifests: list) -> None:
+    pub = manifests[0]["publish"] if manifests else {}
+    engines = [(m["partner"]["id"], m["engine"]["name"], str(m["engine"]["version"])) for m in manifests]
+    inst_args = " ".join(f'--instance "{i["name"]}={i["engine"]}:{i["version"]}"' for i in instances)
+    lines = [
+        "#!/usr/bin/env bash",
+        "# Publishes every engine, then the single Blueprint, with awc-marketplace.",
+        "#   ./publish.sh          dry run     ./publish.sh --push   real push",
+        "# Run each engines/<id>/mirror.sh first to copy charts and images.",
+        "set -euo pipefail",
+        'DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"',
+        'AWC="${AWC_MARKETPLACE:-awc-marketplace}"',
+        f'REGISTRY="${{REGISTRY:-{pub.get("destinationRegistry", "<registry>")}}}"',
+        f'NAMESPACE="${{NAMESPACE:-{pub.get("namespace", "<namespace>")}}}"',
+        'SCHEMA_VERSION="${SCHEMA_VERSION:-1}"',
+        "PUSH=(); if [ \"${1:-}\" = \"--push\" ]; then PUSH=(--push); fi",
+    ]
+    for pid, _name, ver in engines:
+        lines += [
+            f'echo "==> Engine {pid}"',
+            f'"$AWC" validate "$DIR/engines/{pid}"',
+            f'"$AWC" publish --version "{ver}" --namespace "$NAMESPACE" --destination-registry "$REGISTRY" '
+            f'--schema-version "$SCHEMA_VERSION" --skip-images --skip-charts ${{PUSH[@]+\"${{PUSH[@]}}\"}} --force "$DIR/engines/{pid}"',
+        ]
+    lines += [
+        'echo "==> Blueprint ' + bp["name"] + '"',
+        '"$AWC" validate --blueprint "$DIR/blueprint.yaml"',
+        f'"$AWC" publish --version "{version}" --namespace "$NAMESPACE" --destination-registry "$REGISTRY" '
+        f'--schema-version "$SCHEMA_VERSION" --blueprint "$DIR/blueprint.yaml" {inst_args} ${{PUSH[@]+\"${{PUSH[@]}}\"}} --force',
+    ]
+    path = out_dir / "publish.sh"
+    path.write_text("\n".join(lines) + "\n")
+    path.chmod(0o755)

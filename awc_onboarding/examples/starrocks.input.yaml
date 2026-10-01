@@ -1,6 +1,12 @@
+# StarRocks (FE + BE) via the kube-starrocks chart, which also installs the operator.
+# Three images are mirrored: operator, FE, BE.
 partner: {id: starrocks, owner: "StarRocks"}
-engine: {displayName: "StarRocks", description: "Blazing-fast OLAP analytics engine.", template: helm-multi-role, roles: [{name: fe, replicas: 1}, {name: be, replicas: 2}]}
-helm: {repoUrl: "oci://ghcr.io/starrocks/charts", chart: starrocks, version: "1.9.4"}
+engine: {displayName: "StarRocks", description: "Blazing-fast OLAP analytics engine (1 FE + BE) via kube-starrocks.", template: helm-simple, version: "1.11.4"}
+helm: {repoUrl: "https://starrocks.github.io/starrocks-kubernetes-operator", chart: kube-starrocks, version: "1.11.4"}
+images:
+  - {id: starrocksOperator, ref: "docker.io/starrocks/operator:v1.11.4"}
+  - {id: fe, ref: "docker.io/starrocks/fe-ubuntu:3.4.3"}
+  - {id: be, ref: "docker.io/starrocks/be-ubuntu:3.4.3"}
 service: {port: 9030, hasLandingPage: true, landingPort: 8030}
 dependencies: {hasAny: false}
 blueprint: {needed: true, outcome: "OLAP analytics"}
