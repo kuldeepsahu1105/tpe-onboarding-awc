@@ -4,7 +4,9 @@ metadata:
   name: [[ imageCatalogName ]]
 spec:
   images:
-    - id: [[ helm.imageId ]]
+[% for img in images %]
+    - id: [[ img.id ]]
       registry: [[ publish.destinationRegistry ]]
-      repository: [[ publish.namespace ]]/[[ helm.imageRepository | default(partner.id) ]]
-      tag: "[[ helm.imageTag ]]"
+      repository: [[ publish.namespace ]]/[[ img.repository ]]
+      tag: "[[ img.tag ]]"
+[% endfor %]

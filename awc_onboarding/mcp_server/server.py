@@ -251,6 +251,20 @@ def compose_blueprint(blueprint_yaml_path: str, out_dir: Optional[str] = None) -
 
 
 @mcp.tool()
+def discover_images(
+    repo_url: str, chart: str, version: str, set_values: Optional[list[str]] = None
+) -> list[dict]:
+    """Run `helm template` on an upstream chart and return every container
+    image it deploys ({source, repository, tag}). Paste the result under
+    `images:` in the engine input.yaml so mirror.sh/imagecatalog cover all of
+    them. Pass required chart values as set_values, e.g. ["neo4j.name=x"].
+    Needs `helm` on PATH."""
+    from onboarding.discover import discover_images as _d
+
+    return _d(repo_url, chart, version, None, set_values)
+
+
+@mcp.tool()
 def list_examples() -> list[str]:
     """List the bundled golden-example input.yaml files (DataSpark, Neo4j,
     StarRocks, PuppyGraph, PhoenixAI) covering every template class, as a

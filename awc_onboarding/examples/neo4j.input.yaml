@@ -1,6 +1,12 @@
+# Neo4j Community on AWC. Chart + image are public, so mirror.sh copies both.
+# Re-discover images any time:
+#   python -m onboarding.cli discover-images --repo-url https://helm.neo4j.com/neo4j --chart neo4j \
+#     --version 5.26.0 --set neo4j.name=neo4j --set volumes.data.mode=defaultStorageClass
 partner: {id: neo4j, owner: "Neo4j, Inc."}
-engine: {displayName: "Neo4j", description: "Native graph database and analytics platform.", template: helm-simple}
-helm: {repoUrl: "https://helm.neo4j.com/neo4j", chart: neo4j, version: "5.24.0"}
+engine: {displayName: "Neo4j", description: "Native graph database (Community) with Browser UI and Bolt.", template: helm-simple, version: "5.26.0"}
+helm: {repoUrl: "https://helm.neo4j.com/neo4j", chart: neo4j, version: "5.26.0"}
+images:
+  - {id: neo4j, ref: "docker.io/neo4j:5.26.0-community"}
 service: {port: 7687, hasLandingPage: true, landingPort: 7474}
 capability: {exportsStructuredData: true, name: neo4j-connection, fields: "host:string, boltPort:integer, credentialsSecret:string"}
 dependencies: {hasAny: false}

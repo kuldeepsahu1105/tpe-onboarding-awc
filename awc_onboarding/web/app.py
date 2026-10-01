@@ -42,7 +42,7 @@ def _qpayload(question, answers):
 
 
 def _bundle_result(directory: Path, validation: dict, extra: dict | None = None) -> dict:
-    files = {str(p.relative_to(directory)): p.read_text() for p in sorted(directory.rglob("*.yaml"))}
+    files = {str(p.relative_to(directory)): p.read_text() for p in sorted(directory.rglob("*")) if p.is_file() and p.suffix in (".yaml", ".sh")}
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         for name, text in files.items():

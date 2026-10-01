@@ -110,6 +110,24 @@ def cmd_blueprint(args: argparse.Namespace) -> int:
     return 0 if result["ok"] else 1
 
 
+def cmd_discover(args: argparse.Namespace) -> int:
+    from .discover import discover_images, write_into_input
+
+    try:
+        images = discover_images(
+            args.repo_url or "", args.chart or "", args.version or "",
+            args.values, args.set, args.rendered,
+        )
+    except (RuntimeError, OSError) as exc:
+        print(f"Error: {exc}")
+        return 1
+    print(yaml.safe_dump({"images": images}, sort_keys=False))
+    if args.write:
+        write_into_input(Path(args.write), images)
+        print(f"Wrote {len(images)} image(s) into {args.write}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="awc-onboard", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -142,6 +160,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_bp.add_argument("--file", required=True)
     p_bp.add_argument("--out")
     p_bp.set_defaults(func=cmd_blueprint)
+
+    p_d = sub.add_parser("discover-images", help="List images a Helm chart needs (runs helm template)")
+    p_d.add_argument("--repo-url")
+    p_d.add_argument("--chart")
+    p_d.add_argument("--version")
+    p_d.add_argument("--values", action="append", help="values file (repeatable)")
+    p_d.add_argument("--set", action="append", help="key=value override (repeatable)")
+    p_d.add_argument("--rendered", help="pre-rendered manifest instead of running helm")
+    p_d.add_argument("--write", help="merge result into this input.yaml under 'images:'")
+    p_d.set_defaults(func=cmd_discover)
 
     return parser
 

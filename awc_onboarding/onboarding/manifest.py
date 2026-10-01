@@ -66,6 +66,11 @@ def normalize(answers: Manifest) -> Manifest:
     _set(engine, "version", m.get("helm", {}).get("version", "1.0.0"))
 
     helm = m.setdefault("helm", {})
+    images = _normalize_images(m.get("images"), m.get("publish", {}))
+    if images and helm.get("imageRepository") is None:
+        # The first image is the primary one (referenced as .Image.<id> in the Engine).
+        helm["imageRepository"] = images[0]["repository"]
+        helm["imageTag"] = helm.get("imageTag") or images[0]["tag"]
     if engine["template"].startswith("helm"):
         _set(helm, "chart", partner_id)
         _set(helm, "chartId", _camel(helm["chart"]))
@@ -166,6 +171,12 @@ def normalize(answers: Manifest) -> Manifest:
         _set(mi, "repository", helm.get("imageRepository") or partner_id)
         _set(mi, "tag", helm.get("imageTag"))
 
+    if not images:
+        images = _normalize_images(
+            [{"repository": helm["imageRepository"], "tag": helm["imageTag"]}], publish
+        )
+    m["images"] = images
+
     test = m.setdefault("test", {})
     _set(test, "landingUrl", "")
 
@@ -176,6 +187,41 @@ def normalize(answers: Manifest) -> Manifest:
     m["rolePrefix"] = engine["name"]
 
     return m
+
+
+def split_image_ref(ref: str) -> dict[str, str]:
+    """'quay.io/org/app:1.2' -> {source, repository, tag}. A registry host is
+    the first path segment when it contains '.' or ':' or is 'localhost'."""
+    ref = str(ref).split("@", 1)[0]
+    tag = "latest"
+    last = ref.rsplit("/", 1)[-1]
+    if ":" in last:
+        ref, tag = ref.rsplit(":", 1)
+    parts = ref.split("/")
+    source = "docker.io"
+    if len(parts) > 1 and ("." in parts[0] or ":" in parts[0] or parts[0] == "localhost"):
+        source, parts = parts[0], parts[1:]
+    return {"source": source, "repository": "/".join(parts), "tag": tag}
+
+
+def _normalize_images(raw: Any, publish: dict) -> list[dict]:
+    """Each image: repository, tag, source registry (default docker.io), id.
+    Accepts dicts or plain 'registry/repo:tag' strings."""
+    out, seen = [], set()
+    for item in raw or []:
+        img = split_image_ref(item) if isinstance(item, str) else dict(item)
+        if isinstance(item, dict) and "ref" in item:
+            img = {**split_image_ref(item["ref"]), **{k: v for k, v in item.items() if k != "ref"}}
+        img.setdefault("source", "docker.io")
+        img.setdefault("tag", "latest")
+        base = img.get("id") or _camel(img["repository"].rsplit("/", 1)[-1])
+        img_id, n = base, 2
+        while img_id in seen:
+            img_id, n = f"{base}{n}", n + 1
+        seen.add(img_id)
+        img["id"] = img_id
+        out.append(img)
+    return out
 
 
 def _camel(value: str) -> str:

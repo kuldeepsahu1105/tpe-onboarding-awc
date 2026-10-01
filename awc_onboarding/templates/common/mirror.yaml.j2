@@ -2,6 +2,9 @@
 # registry before publishing the Engine bundle. Not an ACE CRD -- consumed by
 # whatever internal mirroring tooling your organization uses (the pattern
 # mirrors Cloudera's own charts.yaml / images.yaml convention).
+[% if engine.template == "native-k8s" %]
+charts: []
+[% else %]
 charts:
   - repository: "[[ mirror.chart.repoUrl ]]"
     name: "[[ mirror.chart.name ]]"
@@ -13,8 +16,10 @@ charts:
     version: "[[ operator.chartVersion ]]"
     destination: "oci://[[ publish.destinationRegistry ]]/[[ publish.namespace ]]/charts"
 [% endif %]
+[% endif %]
 
 images:
-  - repository: "[[ mirror.image.repository ]]"
-    tag: "[[ mirror.image.tag ]]"
-    destination: "[[ publish.destinationRegistry ]]/[[ publish.namespace ]]/[[ mirror.image.repository ]]:[[ mirror.image.tag ]]"
+[% for img in images %]
+  - source: "[[ img.source ]]/[[ img.repository ]]:[[ img.tag ]]"
+    destination: "[[ publish.destinationRegistry ]]/[[ publish.namespace ]]/[[ img.repository ]]:[[ img.tag ]]"
+[% endfor %]
