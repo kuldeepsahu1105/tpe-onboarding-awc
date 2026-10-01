@@ -1,0 +1,7 @@
+partner: {id: dataspark-auth, owner: "DataSpark, Inc."}
+engine: {displayName: "DataSpark Auth", description: "DataSpark authentication service.", template: native-k8s}
+helm: {imageRepository: dataspark/auth, imageTag: "1.0.0"}
+service: {port: 8443, hasLandingPage: false}
+dependencies: {hasAny: false}
+cluster: {minCpu: "2", minMemory: "4Gi"}
+publish: {destinationRegistry: "registry.partner-corp.example.com", namespace: dataspark}

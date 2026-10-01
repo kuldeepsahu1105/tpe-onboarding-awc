@@ -1,0 +1,16 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: ChartCatalog
+metadata:
+  name: [[ chartCatalogName ]]
+spec:
+  charts:
+    - id: [[ helm.chartId ]]
+      registry: [[ publish.destinationRegistry ]]
+      repository: [[ publish.namespace ]]/charts/[[ helm.chart ]]
+      version: "[[ helm.version ]]"
+[% if engine.template == "helm-operator" %]
+    - id: [[ operator.chartId ]]
+      registry: [[ publish.destinationRegistry ]]
+      repository: [[ publish.namespace ]]/charts/[[ operator.chartName ]]
+      version: "[[ operator.chartVersion ]]"
+[% endif %]

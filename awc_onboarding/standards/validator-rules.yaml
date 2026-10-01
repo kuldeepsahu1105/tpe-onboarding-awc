@@ -1,0 +1,42 @@
+# House policy for the Validate stage. Extend/trim for your own organization.
+schemaVersion: 1
+
+requiredFilesByTemplate:
+  helm-simple: [engine.yaml, chartcatalog.yaml, imagecatalog.yaml, role.yaml, blueprint.yaml]
+  helm-multi-role: [engine.yaml, chartcatalog.yaml, imagecatalog.yaml, role.yaml, blueprint.yaml]
+  helm-operator: [engine.yaml, operator.yaml, chartcatalog.yaml, imagecatalog.yaml, role.yaml, blueprint.yaml]
+  native-k8s: [engine.yaml, imagecatalog.yaml, role.yaml, blueprint.yaml]
+
+requiredEngineFields:
+  - spec.displayName
+  - spec.description
+  - spec.versionCatalog
+  - spec.provides
+  - spec.healthChecks
+  - spec.template
+
+requiredBlueprintFields:
+  - spec.owner
+  - spec.displayName
+  - spec.versionMatrix
+  - spec.instances
+  - spec.cluster
+
+forbiddenRegistryHosts:
+  - docker-private.infra.cloudera.com
+
+# Any apiVersion/kind pair rendered inside an Engine's spec.template must be
+# one of these (or a CRD group explicitly declared via helm-operator's
+# operator.yaml). Keeps generated bundles from silently drifting onto
+# unsupported object kinds.
+allowedTemplateKinds:
+  - "v1/Secret"
+  - "v1/ConfigMap"
+  - "v1/Service"
+  - "v1/PersistentVolumeClaim"
+  - "apps/v1/Deployment"
+  - "apps/v1/StatefulSet"
+  - "source.toolkit.fluxcd.io/v1/HelmRepository"
+  - "helm.toolkit.fluxcd.io/v2/HelmRelease"
+  - "gateway.networking.k8s.io/v1/HTTPRoute"
+  - "security.awc.cloudera.com/v1alpha1/AuthConfig"

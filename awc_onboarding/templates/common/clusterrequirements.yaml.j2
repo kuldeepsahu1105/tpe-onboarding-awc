@@ -1,0 +1,36 @@
+# Infra sizing metadata. Only consumed by the Anywhere Cloud Console when this
+# product is part of a Blueprint; otherwise purely documentation for anyone
+# deploying the EngineInstance manually (Path B).
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: ClusterRequirements
+metadata:
+  name: [[ partner.id ]]-requirements
+spec:
+  kubernetesVersion: "[[ cluster.kubernetesVersion ]]"
+
+  networkStorage:
+    default: "[[ cluster.diskDefault ]]"
+    minimum: "[[ cluster.diskMinimum ]]"
+    hint: "Shared storage for [[ engine.displayName ]] data"
+
+  nodeGroups:
+    - id: "[[ blueprint.nodeGroupId ]]"
+      category: "worker"
+      displayName: "[[ blueprint.nodeGroupDisplayName ]]"
+      description: "Nodes for [[ engine.displayName ]] workloads"
+      nodeCount:
+        default: [[ cluster.workerCountDefault ]]
+        minimum: [[ cluster.workerCountMinimum ]]
+      resources:
+        minimum:
+          cpu: "[[ cluster.minCpu ]]"
+          memory: "[[ cluster.minMemory ]]"
+          hasGPU: [[ cluster.hasGPU | lower ]]
+        recommended:
+          cpu: "[[ cluster.recommendedCpu ]]"
+          memory: "[[ cluster.recommendedMemory ]]"
+          hasGPU: [[ cluster.hasGPU | lower ]]
+      storage:
+        disk:
+          default: "[[ cluster.diskDefault ]]"
+          minimum: "[[ cluster.diskMinimum ]]"

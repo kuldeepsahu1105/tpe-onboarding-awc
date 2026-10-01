@@ -1,0 +1,20 @@
+# Mirror plan: what to pull from upstream and push into your internal OCI
+# registry before publishing the Engine bundle. Not an ACE CRD -- consumed by
+# whatever internal mirroring tooling your organization uses (the pattern
+# mirrors Cloudera's own charts.yaml / images.yaml convention).
+charts:
+  - repository: "[[ mirror.chart.repoUrl ]]"
+    name: "[[ mirror.chart.name ]]"
+    version: "[[ mirror.chart.version ]]"
+    destination: "oci://[[ publish.destinationRegistry ]]/[[ publish.namespace ]]/charts"
+[% if engine.template == "helm-operator" %]
+  - repository: "[[ operator.chartRepoUrl ]]"
+    name: "[[ operator.chartName ]]"
+    version: "[[ operator.chartVersion ]]"
+    destination: "oci://[[ publish.destinationRegistry ]]/[[ publish.namespace ]]/charts"
+[% endif %]
+
+images:
+  - repository: "[[ mirror.image.repository ]]"
+    tag: "[[ mirror.image.tag ]]"
+    destination: "[[ publish.destinationRegistry ]]/[[ publish.namespace ]]/[[ mirror.image.repository ]]:[[ mirror.image.tag ]]"

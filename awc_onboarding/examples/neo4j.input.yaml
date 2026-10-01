@@ -1,0 +1,9 @@
+partner: {id: neo4j, owner: "Neo4j, Inc."}
+engine: {displayName: "Neo4j", description: "Native graph database and analytics platform.", template: helm-simple}
+helm: {repoUrl: "https://helm.neo4j.com/neo4j", chart: neo4j, version: "5.24.0"}
+service: {port: 7687, hasLandingPage: true, landingPort: 7474}
+capability: {exportsStructuredData: true, name: neo4j-connection, fields: "host:string, boltPort:integer, credentialsSecret:string"}
+dependencies: {hasAny: false}
+blueprint: {needed: true, outcome: "Graph database"}
+cluster: {minCpu: "4", minMemory: "16Gi"}
+publish: {destinationRegistry: "registry.partner-corp.example.com", namespace: neo4j}

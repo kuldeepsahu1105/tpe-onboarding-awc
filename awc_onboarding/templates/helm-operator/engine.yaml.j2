@@ -1,0 +1,105 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: Engine
+metadata:
+  name: [[ engine.name ]]
+  annotations:
+    ecosystem.awc.cloudera.com/requires-embedded-registry: "true"
+spec:
+  displayName: "[[ engine.displayName ]]"
+  description: "[[ engine.description ]]"
+  # IMPORTANT: this Engine renders the Custom Resource(s) that the
+  # [[ operator.chartName ]] Operator (installed via operator.yaml, see
+  # operator.yaml in this bundle) reconciles. Replace <operator.group/vX> and
+  # <OperatorKind> below with the real CRD this operator exposes, and replace
+  # the health check with a CEL `expression:` if the CR does not populate
+  # status.conditions[] (see docs/AWC_CONCEPTS.md#cel-health-checks).
+
+  versionCatalog:
+    - displayName: "[[ engine.version ]]"
+      imageCatalog: [[ imageCatalogName ]]
+      chartCatalog: [[ chartCatalogName ]]
+      metadata:
+        buildVersion: "[[ engine.version ]]"
+
+[% if dependencies.entries %]
+  dependencies:
+[% for dep in dependencies.entries %]
+    - name: [[ dep.name ]]
+      engine: [[ dep.engine ]]
+      type: [[ dep.type ]]
+[% endfor %]
+
+[% endif %]
+  configSchema:
+    type: object
+    properties:
+      replicas:
+        type: integer
+        default: 1
+        minimum: 1
+        description: "Number of [[ engine.displayName ]] replicas"
+      storageSize:
+        type: string
+        default: "[[ cluster.diskDefault ]]"
+        description: "Persistent volume size"
+
+  provides:
+[% if service.hasLandingPage %]
+    - name: landingPage
+      capability: landing-page
+      value: |
+        url: "https://[[ partner.id ]]-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+[% endif %]
+    - name: endpoint
+      capability: service
+      value: |
+        host: "{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local"
+        port: [[ service.port ]]
+
+  healthChecks:
+    # CNPG-style example using a CEL expression. Swap for `condition:` if your
+    # operator's CR populates status.conditions[] instead.
+    - resource:
+        apiVersion: "<operator.group>/v1"
+        kind: "<OperatorKind>"
+        name: "{{ .Metadata.Name }}"
+      expression: >-
+        has(resource.status) &&
+        has(resource.status.phase) &&
+        resource.status.phase == "Ready"
+
+  template: |
+    apiVersion: <operator.group>/v1
+    kind: <OperatorKind>
+    metadata:
+      name: "{{ .Metadata.Name }}"
+      namespace: "{{ .Metadata.Namespace }}"
+    spec:
+      # TODO: map .Config.* / .Dependencies.* into the fields this CR expects.
+      instances: "{{ .Config.replicas }}"
+      storage:
+        size: "{{ .Config.storageSize }}"
+[% if service.hasLandingPage %]
+    ---
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+      name: "{{ .Metadata.Name }}-landing"
+    spec:
+      hostnames:
+        - "[[ partner.id ]]-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+      parentRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: default-awc
+          namespace: istio-ingress
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - kind: Service
+              name: "{{ .Metadata.Name }}"
+              port: [[ service.landingPort ]]
+[% endif %]
