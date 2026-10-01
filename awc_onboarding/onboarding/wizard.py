@@ -19,9 +19,14 @@ def run_wizard(session: Session) -> None:
         if question is None:
             break
         answered, total = session.progress()
-        _ask(session, question, answered, total)
-        if question.id == "dependencies.hasAny" and session.answers["dependencies"]["hasAny"]:
-            _collect_dependencies(session)
+        try:
+            _ask(session, question, answered, total)
+            if question.id == "dependencies.hasAny" and session.answers["dependencies"]["hasAny"]:
+                _collect_dependencies(session)
+        except (EOFError, KeyboardInterrupt):
+            session.save()
+            print(f"\nStopped. Progress saved; resume with: wizard --session {session.session_id}")
+            return
 
     print("\nAll questions answered. Run:")
     print(f"  python -m onboarding.cli generate --session {session.session_id}")
