@@ -26,6 +26,9 @@ case "${1:-help}" in
   blueprint) ensure_env; py -m onboarding.cli blueprint --file "${2:?usage: ./awc blueprint <blueprint.input.yaml>}" --out "${3:-output}" ;;
   images)   ensure_env; shift; [ $# -ge 3 ] || { echo "usage: ./awc images <repoUrl> <chart> <version> [--set k=v ...]"; exit 1; }
             r="$1"; c="$2"; v="$3"; shift 3; py -m onboarding.cli discover-images --repo-url "$r" --chart "$c" --version "$v" "$@" ;;
+  mcp)      ensure_env; if [ "${2:-}" = "config" ]; then
+              printf '{\n  "mcpServers": {\n    "awc-onboarding": {\n      "command": "%s/bin/python",\n      "args": ["-m", "mcp_server.server"],\n      "cwd": "%s"\n    }\n  }\n}\n' "$VENV" "$ROOT"
+            else py -m mcp_server.server; fi ;;
   examples) ls examples/*.input.yaml examples/*/blueprint.input.yaml; echo; echo "Pre-built output: examples/bundles/" ;;
   doctor)   for t in python3 helm skopeo awc-marketplace kubectl; do
               if command -v $t >/dev/null; then echo "  ok       $t"; else echo "  missing  $t  $(case $t in
@@ -41,10 +44,11 @@ AWC onboarding toolkit
   ./awc build <file>           generate + validate the bundle from that file
   ./awc blueprint <file>       combine several engines into ONE Blueprint
   ./awc images <repo> <chart> <version>   list the images a Helm chart needs
+  ./awc mcp                    start the MCP server for AI assistants (./awc mcp config prints client JSON)
   ./awc examples               list ready-made examples
   ./awc doctor                 check which optional tools you have
 
-Docs: README.md
+Docs: README.md, docs/USAGE.md
 USAGE
   ;;
 esac

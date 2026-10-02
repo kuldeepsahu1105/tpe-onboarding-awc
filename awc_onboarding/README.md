@@ -63,6 +63,8 @@ write one input file per engine plus a `blueprint.input.yaml`, then `./awc bluep
 See `examples/dataspark/` and `examples/phoenixai-suite/`.
 
 ## Using AI (optional)
+Full step-by-step for UI, CLI and AI: **[docs/USAGE.md](docs/USAGE.md)**. Quick: `./awc mcp config` prints the MCP client config.
+
 `mcp_server/` is an MCP server so an AI assistant (Copilot, Claude, ...) can ask the same
 questions and generate the bundle for you. Start it with `python -m mcp_server.server`.
 Everything above works without it.
