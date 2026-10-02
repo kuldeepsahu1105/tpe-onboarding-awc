@@ -1,0 +1,18 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: ImageCatalog
+metadata:
+  name: starrocks-images-1-11-4
+spec:
+  images:
+    - id: starrocksOperator
+      registry: registry.partner-corp.example.com
+      repository: starrocks/starrocks/operator
+      tag: "v1.11.4"
+    - id: fe
+      registry: registry.partner-corp.example.com
+      repository: starrocks/starrocks/fe-ubuntu
+      tag: "3.4.3"
+    - id: be
+      registry: registry.partner-corp.example.com
+      repository: starrocks/starrocks/be-ubuntu
+      tag: "3.4.3"

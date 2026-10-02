@@ -1,0 +1,13 @@
+# Apply on an AWC cluster to deploy this engine directly (no Blueprint).
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: EngineInstance
+metadata:
+  name: neo4j
+spec:
+  engine: neo4j-ace-engine
+  version: 5.26.0
+  config:
+    replicas: 1
+    storageSize: 100Gi
+    cpu: '4'
+    memory: 16Gi

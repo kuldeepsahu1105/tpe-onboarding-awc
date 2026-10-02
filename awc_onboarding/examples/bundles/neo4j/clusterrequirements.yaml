@@ -1,0 +1,36 @@
+# Infra sizing metadata. Only consumed by the Anywhere Cloud Console when this
+# product is part of a Blueprint; otherwise purely documentation for anyone
+# deploying the EngineInstance manually (Path B).
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: ClusterRequirements
+metadata:
+  name: neo4j-requirements
+spec:
+  kubernetesVersion: ">= 1.28.0"
+
+  networkStorage:
+    default: "100Gi"
+    minimum: "50Gi"
+    hint: "Shared storage for Neo4j data"
+
+  nodeGroups:
+    - id: "neo4j-nodes"
+      category: "worker"
+      displayName: "Neo4j Nodes"
+      description: "Nodes for Neo4j workloads"
+      nodeCount:
+        default: 1
+        minimum: 1
+      resources:
+        minimum:
+          cpu: "4"
+          memory: "16Gi"
+          hasGPU: false
+        recommended:
+          cpu: "8"
+          memory: "32Gi"
+          hasGPU: false
+      storage:
+        disk:
+          default: "100Gi"
+          minimum: "50Gi"

@@ -1,0 +1,17 @@
+# Mirror plan: what to pull from upstream and push into your internal OCI
+# registry before publishing the Engine bundle. Not an ACE CRD -- consumed by
+# whatever internal mirroring tooling your organization uses (the pattern
+# mirrors Cloudera's own charts.yaml / images.yaml convention).
+charts:
+  - repository: "https://starrocks.github.io/starrocks-kubernetes-operator"
+    name: "kube-starrocks"
+    version: "1.11.4"
+    destination: "oci://registry.partner-corp.example.com/starrocks/charts"
+
+images:
+  - source: "docker.io/starrocks/operator:v1.11.4"
+    destination: "registry.partner-corp.example.com/starrocks/starrocks/operator:v1.11.4"
+  - source: "docker.io/starrocks/fe-ubuntu:3.4.3"
+    destination: "registry.partner-corp.example.com/starrocks/starrocks/fe-ubuntu:3.4.3"
+  - source: "docker.io/starrocks/be-ubuntu:3.4.3"
+    destination: "registry.partner-corp.example.com/starrocks/starrocks/be-ubuntu:3.4.3"
