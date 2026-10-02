@@ -15,6 +15,8 @@ checks them, and gives you scripts to copy your charts/images to your registry a
 | **Image** | The container (Docker) image the chart runs |
 | **Registry** | Where charts and images are stored (e.g. `registry.example.com`) |
 
+**How does it work?** Inputs → processing → generated files: see [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md).
+
 ## Quick start (5 minutes)
 
 ```bash

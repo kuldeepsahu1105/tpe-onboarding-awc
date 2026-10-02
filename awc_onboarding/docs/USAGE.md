@@ -1,5 +1,7 @@
 # How to use the toolkit — step by step (UI, CLI, AI/MCP)
 
+(Want the big picture first? See `HOW_IT_WORKS.md`.)
+
 All three methods use the same engine and produce the same bundle (Engine, Blueprint, catalogs,
 Role, `publish.sh`, `mirror.sh`, `examples/instance.yaml`, `examples/smoke-test.sh`).
 Pick whichever you like. **Requirements:** Python 3.10+. Optional: `helm` (image discovery),
