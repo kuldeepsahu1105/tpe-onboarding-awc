@@ -1,0 +1,18 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: Capability
+metadata:
+  name: neo4j-connection
+spec:
+  schema:
+    type: object
+    required:
+      - host
+      - boltPort
+      - credentialsSecret
+    properties:
+      host:
+        type: string
+      boltPort:
+        type: integer
+      credentialsSecret:
+        type: string

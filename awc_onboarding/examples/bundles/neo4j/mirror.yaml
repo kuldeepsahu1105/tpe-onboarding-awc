@@ -1,0 +1,13 @@
+# Mirror plan: what to pull from upstream and push into your internal OCI
+# registry before publishing the Engine bundle. Not an ACE CRD -- consumed by
+# whatever internal mirroring tooling your organization uses (the pattern
+# mirrors Cloudera's own charts.yaml / images.yaml convention).
+charts:
+  - repository: "https://helm.neo4j.com/neo4j"
+    name: "neo4j"
+    version: "5.26.0"
+    destination: "oci://registry.partner-corp.example.com/neo4j/charts"
+
+images:
+  - source: "docker.io/neo4j:5.26.0-community"
+    destination: "registry.partner-corp.example.com/neo4j/neo4j:5.26.0-community"

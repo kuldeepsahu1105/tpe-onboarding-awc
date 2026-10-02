@@ -1,0 +1,17 @@
+# Apply on an AWC cluster to deploy this engine directly (no Blueprint).
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: EngineInstance
+metadata:
+  name: starrocks
+spec:
+  engine: starrocks-ace-engine
+  version: 1.11.4
+  config:
+    feReplicas: 1
+    feCpu: '8'
+    feMemory: 32Gi
+    feStorageSize: 100Gi
+    beReplicas: 1
+    beCpu: '8'
+    beMemory: 32Gi
+    beStorageSize: 100Gi

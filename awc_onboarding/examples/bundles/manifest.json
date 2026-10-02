@@ -1,0 +1,98 @@
+{
+  "partner": {
+    "id": "puppygraph",
+    "owner": "PuppyGraph"
+  },
+  "engine": {
+    "displayName": "PuppyGraph",
+    "description": "Zero-ETL graph query engine over existing relational/lakehouse data.",
+    "template": "helm-multi-role",
+    "roles": [
+      {
+        "name": "controlplane",
+        "replicas": 1
+      },
+      {
+        "name": "leader",
+        "replicas": 1
+      },
+      {
+        "name": "compute",
+        "replicas": 1
+      }
+    ],
+    "version": "1.1.0",
+    "name": "puppygraph-ace-engine"
+  },
+  "helm": {
+    "repoUrl": "oci://registry.partner-corp.example.com/puppygraph/charts",
+    "chart": "puppygraph",
+    "version": "1.0.0",
+    "imageRepository": "puppygraph/puppygraph",
+    "imageTag": "1.0.0",
+    "chartId": "puppygraph",
+    "imageId": "puppygraphPuppygraph"
+  },
+  "images": [
+    {
+      "source": "docker.io",
+      "repository": "puppygraph/puppygraph",
+      "tag": "1.1.0",
+      "id": "puppygraph"
+    }
+  ],
+  "service": {
+    "port": 8081,
+    "hasLandingPage": true,
+    "landingPort": 8081
+  },
+  "dependencies": {
+    "hasAny": true,
+    "entries": [
+      {
+        "name": "catalog",
+        "engine": "hive-metastore-engine",
+        "type": "ref",
+        "instance": "hive-metastore"
+      }
+    ]
+  },
+  "blueprint": {
+    "needed": true,
+    "outcome": "Zero-ETL graph queries",
+    "name": "puppygraph",
+    "description": "Zero-ETL graph query engine over existing relational/lakehouse data.",
+    "instanceName": "puppygraph",
+    "nodeGroupId": "puppygraph-nodes",
+    "nodeGroupDisplayName": "PuppyGraph Nodes"
+  },
+  "cluster": {
+    "minCpu": "8",
+    "minMemory": "32Gi",
+    "kubernetesVersion": ">= 1.28.0",
+    "workerCountDefault": 1,
+    "workerCountMinimum": 1,
+    "recommendedCpu": "16",
+    "recommendedMemory": "32Gi",
+    "diskDefault": "100Gi",
+    "diskMinimum": "50Gi",
+    "hasGPU": false
+  },
+  "mirror": {
+    "skip": true
+  },
+  "publish": {
+    "destinationRegistry": "registry.partner-corp.example.com",
+    "namespace": "puppygraph"
+  },
+  "capability": {
+    "exportsStructuredData": false
+  },
+  "operator": {},
+  "test": {
+    "landingUrl": ""
+  },
+  "imageCatalogName": "puppygraph-images-1-1-0",
+  "chartCatalogName": "puppygraph-charts-1-0-0",
+  "rolePrefix": "puppygraph-ace-engine"
+}

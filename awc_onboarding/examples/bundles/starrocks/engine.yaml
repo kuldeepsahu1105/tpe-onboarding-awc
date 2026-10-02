@@ -1,0 +1,169 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: Engine
+metadata:
+  name: starrocks-ace-engine
+  annotations:
+    ecosystem.awc.cloudera.com/requires-embedded-registry: "true"
+spec:
+  displayName: "StarRocks"
+  description: "Blazing-fast OLAP analytics engine (1 FE + BE) via kube-starrocks."
+  # Multi-role chart: fe, be.
+  # Add/remove roles below and in configSchema/template to match your chart's
+  # real values.yaml role keys (e.g. controlplane/compute, FE/BE, leader/worker).
+
+  versionCatalog:
+    - displayName: "1.11.4"
+      imageCatalog: starrocks-images-1-11-4
+      chartCatalog: starrocks-charts-1-11-4
+      metadata:
+        buildVersion: "1.11.4"
+
+  configSchema:
+    type: object
+    properties:
+      feReplicas:
+        type: integer
+        default: 1
+        minimum: 1
+        description: "Number of fe replicas"
+      feCpu:
+        type: string
+        default: "8"
+        description: "CPU request/limit per fe pod"
+      feMemory:
+        type: string
+        default: "32Gi"
+        description: "Memory request/limit per fe pod"
+      feStorageSize:
+        type: string
+        default: "100Gi"
+        description: "Persistent volume size per fe pod"
+      beReplicas:
+        type: integer
+        default: 1
+        minimum: 1
+        description: "Number of be replicas"
+      beCpu:
+        type: string
+        default: "8"
+        description: "CPU request/limit per be pod"
+      beMemory:
+        type: string
+        default: "32Gi"
+        description: "Memory request/limit per be pod"
+      beStorageSize:
+        type: string
+        default: "100Gi"
+        description: "Persistent volume size per be pod"
+
+  provides:
+    - name: landingPage
+      capability: landing-page
+      value: |
+        url: "https://starrocks-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+    - name: endpoint
+      capability: service
+      value: |
+        host: "{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local"
+        port: 9030
+
+  healthChecks:
+    - resource:
+        apiVersion: helm.toolkit.fluxcd.io/v2
+        kind: HelmRelease
+        name: "{{ .Metadata.Name }}"
+      condition:
+        type: Ready
+        status: "True"
+
+  template: |
+    apiVersion: security.awc.cloudera.com/v1alpha1
+    kind: AuthConfig
+    metadata:
+      name: default
+      namespace: "{{ .Metadata.Namespace }}"
+    spec:
+      meshMode: Ambient
+      enableAWCAuth: false
+    ---
+    apiVersion: source.toolkit.fluxcd.io/v1
+    kind: HelmRepository
+    metadata:
+      name: "{{ .Metadata.Name }}-repo"
+    spec:
+      interval: 5m
+      type: oci
+      url: oci://{{ .Chart.kubeStarrocks.registry }}/{{ dir .Chart.kubeStarrocks.repository }}
+    ---
+    apiVersion: helm.toolkit.fluxcd.io/v2
+    kind: HelmRelease
+    metadata:
+      name: "{{ .Metadata.Name }}"
+    spec:
+      interval: 1m
+      timeout: 20m
+      install:
+        createNamespace: true
+        timeout: 15m
+        remediation:
+          retries: 3
+      targetNamespace: "{{ .Metadata.Namespace }}"
+      chart:
+        spec:
+          chart: "{{ base .Chart.kubeStarrocks.repository }}"
+          version: "{{ .Chart.kubeStarrocks.version }}"
+          sourceRef:
+            kind: HelmRepository
+            name: "{{ .Metadata.Name }}-repo"
+            namespace: "{{ .Metadata.Namespace }}"
+      values:
+        nameOverride: "{{ .Metadata.Name }}"
+        image:
+          repository: "{{ .Image.starrocksOperator.registry }}/{{ .Image.starrocksOperator.repository }}"
+          tag: "{{ .Image.starrocksOperator.tag }}"
+        fe:
+          replicas: "{{ .Config.feReplicas }}"
+          resources:
+            requests:
+              cpu: "{{ .Config.feCpu }}"
+              memory: "{{ .Config.feMemory }}"
+            limits:
+              cpu: "{{ .Config.feCpu }}"
+              memory: "{{ .Config.feMemory }}"
+          storage:
+            size: "{{ .Config.feStorageSize }}"
+        be:
+          replicas: "{{ .Config.beReplicas }}"
+          resources:
+            requests:
+              cpu: "{{ .Config.beCpu }}"
+              memory: "{{ .Config.beMemory }}"
+            limits:
+              cpu: "{{ .Config.beCpu }}"
+              memory: "{{ .Config.beMemory }}"
+          storage:
+            size: "{{ .Config.beStorageSize }}"
+        service:
+          port: 9030
+    ---
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+      name: "{{ .Metadata.Name }}-landing"
+    spec:
+      hostnames:
+        - "starrocks-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+      parentRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: default-awc
+          namespace: istio-ingress
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - kind: Service
+              name: "{{ .Metadata.Name }}"
+              port: 8030

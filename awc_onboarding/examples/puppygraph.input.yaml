@@ -13,6 +13,6 @@ dependencies:
   entries:
     - {name: catalog, engine: hive-metastore-engine, type: ref, instance: hive-metastore}
 blueprint: {needed: true, outcome: "Zero-ETL graph queries"}
-cluster: {minCpu: "4", minMemory: "16Gi"}
+cluster: {minCpu: "8", minMemory: "32Gi"}
 mirror: {skip: true}
 publish: {destinationRegistry: "registry.partner-corp.example.com", namespace: puppygraph}

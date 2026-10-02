@@ -1,0 +1,46 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: Blueprint
+metadata:
+  name: starrocks
+spec:
+  owner: "StarRocks"
+  displayName: "StarRocks"
+  description: "Blazing-fast OLAP analytics engine (1 FE + BE) via kube-starrocks."
+  outcome: "OLAP analytics"
+
+  versionMatrix:
+    - displayVersion: "1.11.4"
+      instances:
+        - name: "starrocks"
+          version: "1.11.4"
+
+  instances:
+    - name: "starrocks"
+      engine: "starrocks-ace-engine"
+
+  cluster:
+    kubernetesVersion: ">= 1.28.0"
+    networkStorage:
+      default: "100Gi"
+      minimum: "50Gi"
+      hint: "Shared storage for StarRocks"
+    nodeGroups:
+      - id: "starrocks-nodes"
+        category: "worker"
+        displayName: "StarRocks Nodes"
+        nodeCount:
+          default: 1
+          minimum: 1
+        resources:
+          minimum:
+            cpu: "8"
+            memory: "32Gi"
+            hasGPU: false
+          recommended:
+            cpu: "16"
+            memory: "32Gi"
+            hasGPU: false
+        storage:
+          disk:
+            default: "100Gi"
+            minimum: "50Gi"

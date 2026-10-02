@@ -1,0 +1,202 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: Engine
+metadata:
+  name: puppygraph-ace-engine
+  annotations:
+    ecosystem.awc.cloudera.com/requires-embedded-registry: "true"
+spec:
+  displayName: "PuppyGraph"
+  description: "Zero-ETL graph query engine over existing relational/lakehouse data."
+  # Multi-role chart: controlplane, leader, compute.
+  # Add/remove roles below and in configSchema/template to match your chart's
+  # real values.yaml role keys (e.g. controlplane/compute, FE/BE, leader/worker).
+
+  versionCatalog:
+    - displayName: "1.1.0"
+      imageCatalog: puppygraph-images-1-1-0
+      chartCatalog: puppygraph-charts-1-0-0
+      metadata:
+        buildVersion: "1.1.0"
+
+  dependencies:
+    - name: catalog
+      engine: hive-metastore-engine
+      type: ref
+
+  configSchema:
+    type: object
+    properties:
+      controlplaneReplicas:
+        type: integer
+        default: 1
+        minimum: 1
+        description: "Number of controlplane replicas"
+      controlplaneCpu:
+        type: string
+        default: "8"
+        description: "CPU request/limit per controlplane pod"
+      controlplaneMemory:
+        type: string
+        default: "32Gi"
+        description: "Memory request/limit per controlplane pod"
+      controlplaneStorageSize:
+        type: string
+        default: "100Gi"
+        description: "Persistent volume size per controlplane pod"
+      leaderReplicas:
+        type: integer
+        default: 1
+        minimum: 1
+        description: "Number of leader replicas"
+      leaderCpu:
+        type: string
+        default: "8"
+        description: "CPU request/limit per leader pod"
+      leaderMemory:
+        type: string
+        default: "32Gi"
+        description: "Memory request/limit per leader pod"
+      leaderStorageSize:
+        type: string
+        default: "100Gi"
+        description: "Persistent volume size per leader pod"
+      computeReplicas:
+        type: integer
+        default: 1
+        minimum: 1
+        description: "Number of compute replicas"
+      computeCpu:
+        type: string
+        default: "8"
+        description: "CPU request/limit per compute pod"
+      computeMemory:
+        type: string
+        default: "32Gi"
+        description: "Memory request/limit per compute pod"
+      computeStorageSize:
+        type: string
+        default: "100Gi"
+        description: "Persistent volume size per compute pod"
+
+  provides:
+    - name: landingPage
+      capability: landing-page
+      value: |
+        url: "https://puppygraph-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+    - name: endpoint
+      capability: service
+      value: |
+        host: "{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local"
+        port: 8081
+
+  healthChecks:
+    - resource:
+        apiVersion: helm.toolkit.fluxcd.io/v2
+        kind: HelmRelease
+        name: "{{ .Metadata.Name }}"
+      condition:
+        type: Ready
+        status: "True"
+
+  template: |
+    apiVersion: security.awc.cloudera.com/v1alpha1
+    kind: AuthConfig
+    metadata:
+      name: default
+      namespace: "{{ .Metadata.Namespace }}"
+    spec:
+      meshMode: Ambient
+      enableAWCAuth: false
+    ---
+    apiVersion: source.toolkit.fluxcd.io/v1
+    kind: HelmRepository
+    metadata:
+      name: "{{ .Metadata.Name }}-repo"
+    spec:
+      interval: 5m
+      type: oci
+      url: oci://{{ .Chart.puppygraph.registry }}/{{ dir .Chart.puppygraph.repository }}
+    ---
+    apiVersion: helm.toolkit.fluxcd.io/v2
+    kind: HelmRelease
+    metadata:
+      name: "{{ .Metadata.Name }}"
+    spec:
+      interval: 1m
+      timeout: 20m
+      install:
+        createNamespace: true
+        timeout: 15m
+        remediation:
+          retries: 3
+      targetNamespace: "{{ .Metadata.Namespace }}"
+      chart:
+        spec:
+          chart: "{{ base .Chart.puppygraph.repository }}"
+          version: "{{ .Chart.puppygraph.version }}"
+          sourceRef:
+            kind: HelmRepository
+            name: "{{ .Metadata.Name }}-repo"
+            namespace: "{{ .Metadata.Namespace }}"
+      values:
+        nameOverride: "{{ .Metadata.Name }}"
+        image:
+          repository: "{{ .Image.puppygraphPuppygraph.registry }}/{{ .Image.puppygraphPuppygraph.repository }}"
+          tag: "{{ .Image.puppygraphPuppygraph.tag }}"
+        controlplane:
+          replicas: "{{ .Config.controlplaneReplicas }}"
+          resources:
+            requests:
+              cpu: "{{ .Config.controlplaneCpu }}"
+              memory: "{{ .Config.controlplaneMemory }}"
+            limits:
+              cpu: "{{ .Config.controlplaneCpu }}"
+              memory: "{{ .Config.controlplaneMemory }}"
+          storage:
+            size: "{{ .Config.controlplaneStorageSize }}"
+        leader:
+          replicas: "{{ .Config.leaderReplicas }}"
+          resources:
+            requests:
+              cpu: "{{ .Config.leaderCpu }}"
+              memory: "{{ .Config.leaderMemory }}"
+            limits:
+              cpu: "{{ .Config.leaderCpu }}"
+              memory: "{{ .Config.leaderMemory }}"
+          storage:
+            size: "{{ .Config.leaderStorageSize }}"
+        compute:
+          replicas: "{{ .Config.computeReplicas }}"
+          resources:
+            requests:
+              cpu: "{{ .Config.computeCpu }}"
+              memory: "{{ .Config.computeMemory }}"
+            limits:
+              cpu: "{{ .Config.computeCpu }}"
+              memory: "{{ .Config.computeMemory }}"
+          storage:
+            size: "{{ .Config.computeStorageSize }}"
+        service:
+          port: 8081
+    ---
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+      name: "{{ .Metadata.Name }}-landing"
+    spec:
+      hostnames:
+        - "puppygraph-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+      parentRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: default-awc
+          namespace: istio-ingress
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - kind: Service
+              name: "{{ .Metadata.Name }}"
+              port: 8081
