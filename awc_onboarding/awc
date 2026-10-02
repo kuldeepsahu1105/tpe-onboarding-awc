@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# One entry point for the AWC onboarding toolkit. No AI needed.
+#   ./awc            show help
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV="$ROOT/.venv"
+cd "$ROOT"
+
+ensure_env() {
+  command -v python3 >/dev/null || { echo "Python 3.10+ is required."; exit 1; }
+  if [ ! -x "$VENV/bin/python" ]; then
+    echo "First run: setting up (one time)..."
+    python3 -m venv "$VENV"
+    "$VENV/bin/pip" install -q -r requirements.txt
+  fi
+}
+py() { "$VENV/bin/python" "$@"; }
+
+case "${1:-help}" in
+  ui)       ensure_env; echo "Opening http://127.0.0.1:8765  (Ctrl-C to stop)"; py -m web.app ;;
+  wizard)   ensure_env; py -m onboarding.cli wizard ;;
+  new)      name="${2:?usage: ./awc new <name>}"; cp examples/starter.input.yaml "$name.input.yaml"
+            echo "Created $name.input.yaml - edit it, then run: ./awc build $name.input.yaml" ;;
+  build)    ensure_env; f="${2:?usage: ./awc build <file.input.yaml> [outdir]}"
+            py -m onboarding.cli all --file "$f" --out "${3:-output/$(basename "$f" .input.yaml)}" ;;
+  blueprint) ensure_env; py -m onboarding.cli blueprint --file "${2:?usage: ./awc blueprint <blueprint.input.yaml>}" --out "${3:-output}" ;;
+  images)   ensure_env; shift; [ $# -ge 3 ] || { echo "usage: ./awc images <repoUrl> <chart> <version> [--set k=v ...]"; exit 1; }
+            r="$1"; c="$2"; v="$3"; shift 3; py -m onboarding.cli discover-images --repo-url "$r" --chart "$c" --version "$v" "$@" ;;
+  examples) ls examples/*.input.yaml examples/*/blueprint.input.yaml; echo; echo "Pre-built output: examples/bundles/" ;;
+  doctor)   for t in python3 helm skopeo awc-marketplace kubectl; do
+              if command -v $t >/dev/null; then echo "  ok       $t"; else echo "  missing  $t  $(case $t in
+                helm) echo '(only for ./awc images)';; skopeo) echo '(only for mirror.sh)';;
+                awc-marketplace) echo '(only for publish.sh)';; kubectl) echo '(only for smoke-test.sh)';; esac)"; fi
+            done ;;
+  *) cat <<USAGE
+AWC onboarding toolkit
+
+  ./awc ui                     web interface (easiest; start here)
+  ./awc wizard                 answer questions in the terminal
+  ./awc new <name>             create a commented starter file to edit
+  ./awc build <file>           generate + validate the bundle from that file
+  ./awc blueprint <file>       combine several engines into ONE Blueprint
+  ./awc images <repo> <chart> <version>   list the images a Helm chart needs
+  ./awc examples               list ready-made examples
+  ./awc doctor                 check which optional tools you have
+
+Docs: README.md
+USAGE
+  ;;
+esac
