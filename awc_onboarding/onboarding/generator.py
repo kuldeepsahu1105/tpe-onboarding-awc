@@ -119,12 +119,58 @@ def render_bundle(manifest: Manifest, output_dir: Path) -> dict[str, str]:
         if predicate(manifest):
             rendered[out_name] = _render_one(env, tpl_name, manifest)
 
+    rendered["examples/instance.yaml"] = _instance_example(manifest, rendered["engine.yaml"])
+    rendered["examples/smoke-test.sh"] = _smoke_test(manifest)
+
     for out_name, content in rendered.items():
+        (output_dir / out_name).parent.mkdir(parents=True, exist_ok=True)
         (output_dir / out_name).write_text(content)
         if out_name.endswith(".sh"):
             (output_dir / out_name).chmod(0o755)
 
     return rendered
+
+
+def _instance_example(manifest: Manifest, engine_text: str) -> str:
+    """Ready-to-apply EngineInstance whose config comes from configSchema defaults."""
+    import yaml
+
+    doc = next(d for d in yaml.safe_load_all(engine_text) if d and d.get("kind") == "Engine")
+    props = (doc["spec"].get("configSchema") or {}).get("properties") or {}
+    config = {k: v["default"] for k, v in props.items() if isinstance(v, dict) and "default" in v}
+    inst = {
+        "apiVersion": "ecosystem.awc.cloudera.com/v1alpha9",
+        "kind": "EngineInstance",
+        "metadata": {"name": manifest["blueprint"]["instanceName"]},
+        "spec": {
+            "engine": manifest["engine"]["name"],
+            "version": str(manifest["engine"]["version"]),
+            "config": config,
+        },
+    }
+    return "# Apply on an AWC cluster to deploy this engine directly (no Blueprint).\n" + yaml.safe_dump(
+        inst, sort_keys=False
+    )
+
+
+def _smoke_test(manifest: Manifest) -> str:
+    port = manifest["service"].get("landingPort") or manifest["service"].get("port")
+    name = manifest["blueprint"]["instanceName"]
+    return f"""#!/usr/bin/env bash
+# Post-deploy smoke test: waits for the EngineInstance and probes its service.
+#   ./smoke-test.sh [namespace]   (needs kubectl access to the AWC cluster)
+set -euo pipefail
+NS="${{1:-default}}"
+echo "==> EngineInstance {name}"
+kubectl -n "$NS" get engineinstance {name}
+echo "==> Pods"
+kubectl -n "$NS" get pods
+echo "==> Port-forward probe on {port}"
+SVC="$(kubectl -n "$NS" get svc -o name | grep -i '{name}' | head -1)"
+kubectl -n "$NS" port-forward "$SVC" {port}:{port} >/dev/null 2>&1 &
+PF=$!; trap 'kill $PF' EXIT; sleep 5
+curl -fsS -o /dev/null -m 10 "http://127.0.0.1:{port}/" && echo "service reachable" || echo "TCP up, non-HTTP protocol (OK for bolt/mysql)"
+"""
 
 
 def _render_one(env: Environment, template_name: str, manifest: Manifest) -> str:

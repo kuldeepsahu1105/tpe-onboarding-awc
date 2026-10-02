@@ -3,7 +3,7 @@
 # partner registry in the reference repo, so mirror is skipped here; remove
 # `mirror.skip` and set helm.repoUrl to your upstream chart repo to mirror it.
 partner: {id: puppygraph, owner: "PuppyGraph"}
-engine: {displayName: "PuppyGraph", description: "Zero-ETL graph query engine over existing relational/lakehouse data.", template: helm-simple, version: "1.1.0"}
+engine: {displayName: "PuppyGraph", description: "Zero-ETL graph query engine over existing relational/lakehouse data.", template: helm-multi-role, roles: [{name: controlplane, replicas: 1}, {name: leader, replicas: 1}, {name: compute, replicas: 1}], version: "1.1.0"}
 helm: {repoUrl: "oci://registry.partner-corp.example.com/puppygraph/charts", chart: puppygraph, version: "1.0.0"}
 images:
   - {id: puppygraph, ref: "docker.io/puppygraph/puppygraph:1.1.0"}

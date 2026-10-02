@@ -59,6 +59,11 @@ Generated bundle (besides the ACE YAML):
 | `mirror.sh` | `helm pull/push` charts and `skopeo copy --all` images into your registry | helm, skopeo, registry logins |
 | `publish.sh` | `awc-marketplace validate` + `publish` engine + Blueprint (+ `catalog fetch`). Dry run by default; `--push` pushes | awc-marketplace CLI |
 
+Also generated: `examples/instance.yaml` (ready-to-apply EngineInstance with config defaults)
+and `examples/smoke-test.sh` (kubectl + port-forward probe). Ready-made, pre-rendered bundles
+for Neo4j, StarRocks (FE/BE) and PuppyGraph (controlplane/leader/compute) are in
+`examples/bundles/<name>/`; their sources are `examples/<name>.input.yaml`.
+
 Flow: `mirror.sh` -> `publish.sh` (dry run) -> `publish.sh --push`. For a composed
 multi-engine Blueprint, `publish.sh` publishes each engine then the one Blueprint;
 run each `engines/<id>/mirror.sh` first. Set `mirror: {skip: true}` if artifacts are
