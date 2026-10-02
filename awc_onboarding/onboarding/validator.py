@@ -101,6 +101,13 @@ def validate_bundle(bundle_dir: Path, manifest: dict[str, Any]) -> ValidationRes
         if not (bundle_dir / fname).is_file():
             result.add("error", fname, "Required file is missing from the bundle.")
 
+    for img in manifest.get("images", []):
+        ref = f'{img["source"]}/{img["repository"]}:{img["tag"]}'
+        if img["tag"] == "latest":
+            result.add("warning", "imagecatalog.yaml", f"Image {ref} uses ':latest'; pin an exact tag.")
+        if "docker-private.infra.cloudera.com" in ref:
+            result.add("error", "imagecatalog.yaml", f"Image {ref} is from a private registry that partner AWC cannot pull.")
+
     if not (bundle_dir / "engine.yaml").is_file():
         return result  # nothing else to check meaningfully
 

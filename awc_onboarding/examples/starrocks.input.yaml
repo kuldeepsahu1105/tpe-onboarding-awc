@@ -1,7 +1,7 @@
 # StarRocks (FE + BE) via the kube-starrocks chart, which also installs the operator.
 # Three images are mirrored: operator, FE, BE.
 partner: {id: starrocks, owner: "StarRocks"}
-engine: {displayName: "StarRocks", description: "Blazing-fast OLAP analytics engine (1 FE + BE) via kube-starrocks.", template: helm-simple, version: "1.11.4"}
+engine: {displayName: "StarRocks", description: "Blazing-fast OLAP analytics engine (1 FE + BE) via kube-starrocks.", template: helm-multi-role, roles: [{name: fe, replicas: 1}, {name: be, replicas: 1}], version: "1.11.4"}
 helm: {repoUrl: "https://starrocks.github.io/starrocks-kubernetes-operator", chart: kube-starrocks, version: "1.11.4"}
 images:
   - {id: starrocksOperator, ref: "docker.io/starrocks/operator:v1.11.4"}
