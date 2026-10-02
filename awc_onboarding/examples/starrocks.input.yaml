@@ -1,13 +1,108 @@
 # StarRocks (FE + BE) via the kube-starrocks chart, which also installs the operator.
-# Three images are mirrored: operator, FE, BE.
+# Mirrors agupta-git/starrocks-ace-engine: nested chart values, per-role config fields,
+# a landing page and a structured 'starrocks-cluster' capability.
 partner: {id: starrocks, owner: "StarRocks"}
-engine: {displayName: "StarRocks", description: "Blazing-fast OLAP analytics engine (1 FE + BE) via kube-starrocks.", template: helm-multi-role, roles: [{name: fe, replicas: 1}, {name: be, replicas: 1}], version: "1.11.4"}
-helm: {repoUrl: "https://starrocks.github.io/starrocks-kubernetes-operator", chart: kube-starrocks, version: "1.11.4"}
+engine:
+  displayName: "StarRocks"
+  description: "Blazing-fast OLAP analytics engine (FE + BE) via the kube-starrocks chart."
+  template: helm-multi-role
+  version: "1.11.4"
+  roles: [{name: fe, replicas: 1}, {name: be, replicas: 1}]
+  configFromRoles: false
+helm:
+  repoUrl: "https://starrocks.github.io/starrocks-kubernetes-operator"
+  chart: kube-starrocks
+  version: "1.11.4"
+  valuesTemplate: |
+    operator:
+      nameOverride: "{{ .Metadata.Name }}"
+      starrocksOperator:
+        enabled: true
+        image:
+          repository: "{{ .Image.starrocksOperator.registry }}/{{ .Image.starrocksOperator.repository }}"
+          tag: "{{ .Image.starrocksOperator.tag }}"
+    starrocks:
+      nameOverride: "{{ .Metadata.Name }}"
+      starrocksCluster:
+        name: "{{ .Metadata.Name }}"
+      starrocksFESpec:
+        replicas: {{ .Config.feReplicas }}
+        image:
+          repository: "{{ .Image.fe.registry }}/{{ .Image.fe.repository }}"
+          tag: "{{ .Image.fe.tag }}"
+        resources:
+          requests: {cpu: "{{ .Config.feCpu }}", memory: "{{ .Config.feMemory }}"}
+          limits: {cpu: "{{ .Config.feCpu }}", memory: "{{ .Config.feMemory }}"}
+        storageSpec:
+          name: fe
+          storageSize: "{{ .Config.feMetaStorageSize }}"
+          logStorageSize: "{{ .Config.feLogStorageSize }}"
+      starrocksBeSpec:
+        replicas: {{ .Config.beReplicas }}
+        image:
+          repository: "{{ .Image.be.registry }}/{{ .Image.be.repository }}"
+          tag: "{{ .Image.be.tag }}"
+        resources:
+          requests: {cpu: "{{ .Config.beCpu }}", memory: "{{ .Config.beMemory }}"}
+          limits: {cpu: "{{ .Config.beCpu }}", memory: "{{ .Config.beMemory }}"}
+        storageSpec:
+          name: be
+          storageSize: "{{ .Config.beStorageSize }}"
+          logStorageSize: "{{ .Config.beLogStorageSize }}"
 images:
   - {id: starrocksOperator, ref: "docker.io/starrocks/operator:v1.11.4"}
   - {id: fe, ref: "docker.io/starrocks/fe-ubuntu:3.4.3"}
   - {id: be, ref: "docker.io/starrocks/be-ubuntu:3.4.3"}
-service: {port: 9030, hasLandingPage: true, landingPort: 8030}
+config:
+  extras:
+    - {name: feReplicas, type: integer, minimum: 1, default: 1, title: "FE Replicas", description: "Number of FE (Frontend) replicas"}
+    - {name: beReplicas, type: integer, minimum: 1, default: 1, title: "BE Replicas", description: "Number of BE (Backend) replicas"}
+    - {name: feCpu, type: string, default: "2", title: "FE CPU", description: "CPU request and limit for each FE pod"}
+    - {name: feMemory, type: string, default: "4Gi", title: "FE Memory", description: "Memory request and limit for each FE pod"}
+    - {name: feMetaStorageSize, type: string, default: "10Gi", title: "FE Meta Storage", description: "FE metadata PVC size"}
+    - {name: feLogStorageSize, type: string, default: "5Gi", title: "FE Log Storage", description: "FE log PVC size"}
+    - {name: beCpu, type: string, default: "2", title: "BE CPU", description: "CPU request and limit for each BE pod"}
+    - {name: beMemory, type: string, default: "4Gi", title: "BE Memory", description: "Memory request and limit for each BE pod"}
+    - {name: beStorageSize, type: string, default: "20Gi", title: "BE Storage", description: "BE data PVC size"}
+    - {name: beLogStorageSize, type: string, default: "1Gi", title: "BE Log Storage", description: "BE log PVC size"}
+service:
+  port: 9030
+  hasLandingPage: true
+  landingPort: 8030
+  landingHost: "{{ .Metadata.Name }}.{{ .Cluster.DomainName }}"
+  landingBackend: "{{ .Metadata.Name }}-fe-service"
+capability:
+  exportsStructuredData: true
+  name: starrocks-cluster
+  fields: []
+  schema:
+    type: object
+    required: [queryEndpoint, httpEndpoint]
+    properties:
+      queryEndpoint:
+        type: object
+        description: "MySQL-compatible query endpoint (port 9030)"
+        required: [host, port]
+        properties: {host: {type: string}, port: {type: integer}}
+      httpEndpoint:
+        type: object
+        description: "HTTP API endpoint (port 8030)"
+        required: [host, port]
+        properties: {host: {type: string}, port: {type: integer}}
+provides:
+  - name: starrocksLandingPage
+    capability: landing-page
+    value: |
+      url: "https://{{ .Metadata.Name }}.{{ .Cluster.DomainName }}"
+  - name: starrocksCluster
+    capability: starrocks-cluster
+    value: |
+      queryEndpoint:
+        host: "{{ .Metadata.Name }}-fe-service.{{ .Metadata.Namespace }}.svc.cluster.local"
+        port: 9030
+      httpEndpoint:
+        host: "{{ .Metadata.Name }}-fe-service.{{ .Metadata.Namespace }}.svc.cluster.local"
+        port: 8030
 dependencies: {hasAny: false}
 blueprint: {needed: true, outcome: "OLAP analytics"}
 cluster: {minCpu: "8", minMemory: "32Gi"}

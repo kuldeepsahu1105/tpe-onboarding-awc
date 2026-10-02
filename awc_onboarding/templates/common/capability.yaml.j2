@@ -1,9 +1,12 @@
-apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+apiVersion: [[ apiVersion ]]
 kind: Capability
 metadata:
   name: [[ capability.name ]]
 spec:
   schema:
+[% if capability.schema %]
+[[ capability.schema | toyaml | indent(4, true) ]]
+[% else %]
     type: object
     required:
 [% for f in capability.fields %]
@@ -14,3 +17,4 @@ spec:
       [[ f.name ]]:
         type: [[ f.type ]]
 [% endfor %]
+[% endif %]

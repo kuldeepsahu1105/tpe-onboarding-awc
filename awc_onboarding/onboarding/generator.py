@@ -89,6 +89,9 @@ def _build_env(template_class: str) -> Environment:
         undefined=StrictUndefined,
         keep_trailing_newline=True,
     )
+    import yaml as _yaml
+
+    env.filters["toyaml"] = lambda d: _yaml.safe_dump(d, default_flow_style=False, sort_keys=False).rstrip("\n")
     return env
 
 
@@ -139,7 +142,7 @@ def _instance_example(manifest: Manifest, engine_text: str) -> str:
     props = (doc["spec"].get("configSchema") or {}).get("properties") or {}
     config = {k: v["default"] for k, v in props.items() if isinstance(v, dict) and "default" in v}
     inst = {
-        "apiVersion": "ecosystem.awc.cloudera.com/v1alpha9",
+        "apiVersion": manifest["apiVersion"],
         "kind": "EngineInstance",
         "metadata": {"name": manifest["blueprint"]["instanceName"]},
         "spec": {

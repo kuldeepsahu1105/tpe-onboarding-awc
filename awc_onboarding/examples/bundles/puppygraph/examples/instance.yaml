@@ -1,5 +1,5 @@
 # Apply on an AWC cluster to deploy this engine directly (no Blueprint).
-apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
 kind: EngineInstance
 metadata:
   name: puppygraph
@@ -8,14 +8,13 @@ spec:
   version: 1.1.0
   config:
     controlplaneReplicas: 1
-    controlplaneCpu: '8'
-    controlplaneMemory: 32Gi
-    controlplaneStorageSize: 100Gi
     leaderReplicas: 1
-    leaderCpu: '8'
-    leaderMemory: 32Gi
-    leaderStorageSize: 100Gi
+    leaderCpu: '2'
+    leaderMemory: 8Gi
     computeReplicas: 1
-    computeCpu: '8'
-    computeMemory: 32Gi
-    computeStorageSize: 100Gi
+    computeCpu: '6'
+    computeMemory: 24Gi
+    storageSize: 200Gi
+    priorityIpCidr: ''
+    username: puppygraph
+    password: changeme

@@ -59,6 +59,46 @@ Quick tips: if values.yaml has sections like 'fe:' and 'be:' it is multi-role. I
 guide has two steps (install operator, then apply a CR) it is operator. When unsure, pick
 helm-simple; you can switch later by changing one line. Full guide: docs/CHOOSING_A_TEMPLATE.md"""
 
+# Example values shown as placeholders in the web UI / wizard (id -> example).
+EXAMPLES = {
+    "partner.id": "neo4j",
+    "partner.owner": "Neo4j, Inc.",
+    "engine.displayName": "Neo4j Graph Database",
+    "engine.description": "Native graph database with a Browser UI and Bolt protocol.",
+    "engine.template": "helm-simple",
+    "helm.repoUrl": "https://helm.neo4j.com/neo4j   or   oci://ghcr.io/starrocks/charts",
+    "helm.chart": "neo4j",
+    "helm.version": "5.26.0",
+    "helm.imageRepository": "neo4j",
+    "helm.imageTag": "5.26.0-community",
+    "operator.chartRepoUrl": "oci://ghcr.io/cloudnative-pg/charts",
+    "operator.chartName": "cloudnative-pg",
+    "operator.chartVersion": "0.22.0",
+    "operator.namespace": "ace-operators",
+    "service.port": "7687 (Neo4j Bolt), 9030 (StarRocks MySQL), 8081 (PuppyGraph)",
+    "service.hasLandingPage": "yes for Neo4j Browser / Grafana; no for a pure database",
+    "service.landingPort": "7474 (Neo4j Browser), 8030 (StarRocks FE UI)",
+    "capability.exportsStructuredData": "yes if other engines should consume connection details",
+    "capability.name": "neo4j-connection",
+    "capability.fields": "host:string, boltPort:integer, credentialsSecret:string",
+    "dependencies.hasAny": "no for Neo4j; yes if it needs e.g. a Hive Metastore",
+    "blueprint.needed": "yes for anything users should see in the Marketplace",
+    "blueprint.outcome": "Graph database",
+    "cluster.kubernetesVersion": ">= 1.28.0",
+    "cluster.workerCountDefault": "3",
+    "cluster.workerCountMinimum": "1",
+    "cluster.minCpu": "4",
+    "cluster.minMemory": "16Gi",
+    "cluster.recommendedCpu": "8",
+    "cluster.recommendedMemory": "32Gi",
+    "cluster.diskDefault": "100Gi",
+    "cluster.diskMinimum": "50Gi",
+    "cluster.hasGPU": "no (yes only for ML/GPU engines)",
+    "publish.destinationRegistry": "registry.example.com",
+    "publish.namespace": "my-company",
+    "mirror.skip": "no = copy upstream chart/images; yes = already in your registry",
+}
+
 
 @dataclass
 class Question:

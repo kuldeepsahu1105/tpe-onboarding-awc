@@ -1,18 +1,39 @@
-# PuppyGraph: zero-ETL graph over lakehouse data. Depends on an existing
-# Hive Metastore engine instance (type: ref). Chart/image already in the
-# partner registry in the reference repo, so mirror is skipped here; remove
-# `mirror.skip` and set helm.repoUrl to your upstream chart repo to mirror it.
+# PuppyGraph, aligned with Nijjwol23/awc-partner-engine-agents golden bundle
+# (examples/reference/puppygraph-nijjwol/): same config fields, Helm values,
+# landing host and endpoint. Only the registry is yours (publish.*).
 partner: {id: puppygraph, owner: "PuppyGraph"}
-engine: {displayName: "PuppyGraph", description: "Zero-ETL graph query engine over existing relational/lakehouse data.", template: helm-multi-role, roles: [{name: controlplane, replicas: 1}, {name: leader, replicas: 1}, {name: compute, replicas: 1}], version: "1.1.0"}
-helm: {repoUrl: "oci://registry.partner-corp.example.com/puppygraph/charts", chart: puppygraph, version: "1.0.0"}
+engine:
+  displayName: "PuppyGraph"
+  description: "PuppyGraph 1.x graph query engine deployed via Flux HelmRelease."
+  template: helm-multi-role
+  version: "1.1.0"
+  apiVersion: v1alpha10        # the reference targets v1alpha10
+  roleStorage: false           # one shared storageSize (below) instead of per-role disks
+  roles:
+    - {name: controlplane, replicas: 1, resources: false}
+    - {name: leader, replicas: 1, cpu: "2", memory: "8Gi"}
+    - {name: compute, replicas: 1, cpu: "6", memory: "24Gi"}
+helm: {repoUrl: "oci://registry.partner-corp.example.com/puppygraph/charts", chart: puppygraph, version: "1.0.0", pullPolicy: Always,
+       values: {secrets: {create: true}, service: {controlplane: {type: ClusterIP}, query: {type: ClusterIP}}}}
 images:
   - {id: puppygraph, ref: "docker.io/puppygraph/puppygraph:1.1.0"}
-service: {port: 8081, hasLandingPage: true}
-dependencies:
-  hasAny: true
-  entries:
-    - {name: catalog, engine: hive-metastore-engine, type: ref, instance: hive-metastore}
-blueprint: {needed: true, outcome: "Zero-ETL graph queries"}
-cluster: {minCpu: "8", minMemory: "32Gi"}
+config:
+  extras:
+    - {name: storageSize, default: "200Gi", description: "PVC size for PuppyGraph storage", valuesPath: storage.size}
+    - {name: priorityIpCidr, default: "", description: "Cluster node IP CIDR for env.common.PRIORITY_IP_CIDR (recommended)", valuesPath: env.common.PRIORITY_IP_CIDR}
+    - {name: username, default: "puppygraph", description: "Initial PuppyGraph UI username", valuesPath: secrets.PUPPYGRAPH_USERNAME}
+    - {name: password, default: "changeme", description: "Initial PuppyGraph UI password (override in production)", valuesPath: secrets.PUPPYGRAPH_PASSWORD}
+service:
+  port: 8081
+  hasLandingPage: true
+  landingPort: 8081
+  landingHostPrefix: puppygraph
+  domainPrefix: "apps."
+  landingBackend: "{{ .Metadata.Name }}-controlplane-service"
+  endpointHost: "{{ .Metadata.Name }}-controlplane-service"
+  endpointUrl: true
+dependencies: {hasAny: false}
+blueprint: {needed: true, outcome: "Zero-ETL graph queries", description: "Zero ETL graph on lakehouse data via Helm on AWC."}
+cluster: {minCpu: "8", minMemory: "32Gi", workerCountDefault: 2, diskDefault: "200Gi", diskMinimum: "100Gi"}
 mirror: {skip: true}
 publish: {destinationRegistry: "registry.partner-corp.example.com", namespace: puppygraph}

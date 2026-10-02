@@ -38,6 +38,7 @@ def _qpayload(question, answers):
         "id": question.id, "prompt": question.prompt, "kind": question.kind,
         "help": question.help, "choices": question.choices,
         "required": question.required, "default": default,
+        "example": q.EXAMPLES.get(question.id, ""),
     }
 
 
@@ -117,6 +118,21 @@ class Handler(BaseHTTPRequestHandler):
             s = Session.load(d["session"])
             s.answer(d["id"], d["value"])
             return {"ok": True}
+        if path == "/api/back":
+            s = Session.load(d["session"])
+            last = None
+            for item in q.QUESTIONS:
+                if item.is_applicable(s.answers) and q._get(s.answers, item.id, q._SENTINEL) is not q._SENTINEL:
+                    last = item
+            if last is None:
+                return {"id": None}
+            parts = last.id.split(".")
+            cur = s.answers
+            for part in parts[:-1]:
+                cur = cur[part]
+            value = cur.pop(parts[-1])
+            s.save()
+            return {"id": last.id, "value": value}
         if path == "/api/dependency":
             s = Session.load(d["session"])
             entries = q._get(s.answers, "dependencies.entries") or []

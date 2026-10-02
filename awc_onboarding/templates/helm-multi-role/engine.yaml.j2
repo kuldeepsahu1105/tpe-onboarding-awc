@@ -1,4 +1,4 @@
-apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+apiVersion: [[ apiVersion ]]
 kind: Engine
 metadata:
   name: [[ engine.name ]]
@@ -30,32 +30,56 @@ spec:
   configSchema:
     type: object
     properties:
-[% for role in engine.roles %]
+[% for role in (engine.roles if engine.configFromRoles else []) %]
       [[ role.name ]]Replicas:
         type: integer
         default: [[ role.replicas ]]
         minimum: 1
         description: "Number of [[ role.name ]] replicas"
+[% if role.resources | default(true) %]
       [[ role.name ]]Cpu:
         type: string
-        default: "[[ cluster.minCpu ]]"
+        default: "[[ role.cpu | default(cluster.minCpu) ]]"
         description: "CPU request/limit per [[ role.name ]] pod"
       [[ role.name ]]Memory:
         type: string
-        default: "[[ cluster.minMemory ]]"
+        default: "[[ role.memory | default(cluster.minMemory) ]]"
         description: "Memory request/limit per [[ role.name ]] pod"
+[% endif %]
+[% if engine.roleStorage %]
       [[ role.name ]]StorageSize:
         type: string
         default: "[[ cluster.diskDefault ]]"
         description: "Persistent volume size per [[ role.name ]] pod"
+[% endif %]
+[% endfor %]
+[% for e in config.extras %]
+      [[ e.name ]]:
+        type: [[ e.type ]]
+[% if e.minimum is defined %]
+        minimum: [[ e.minimum ]]
+[% endif %]
+        default: [[ e.default | tojson ]]
+        description: "[[ e.description ]]"
+[% if e.title is defined %]
+        title: "[[ e.title ]]"
+[% endif %]
 [% endfor %]
 
   provides:
+[% if provides %]
+[% for pr in provides %]
+    - name: [[ pr.name ]]
+      capability: [[ pr.capability ]]
+      value: |
+[[ pr.value | indent(8, true) ]]
+[% endfor %]
+[% else %]
 [% if service.hasLandingPage %]
     - name: landingPage
       capability: landing-page
       value: |
-        url: "https://[[ partner.id ]]-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+        url: "https://[[ service.landingHost ]]"
 [% endif %]
 [% if capability.exportsStructuredData %]
     - name: connection
@@ -64,12 +88,18 @@ spec:
 [% for f in capability.fields %]
         [[ f.name ]]: "{{ .Metadata.Name }}"
 [% endfor %]
+[% elif service.endpointUrl %]
+    - name: endpoint
+      capability: endpoint
+      value: |
+        url: "http://[[ service.endpointHost ]].{{ .Metadata.Namespace }}.svc.cluster.local:[[ service.port ]]"
 [% else %]
     - name: endpoint
       capability: service
       value: |
-        host: "{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local"
+        host: "[[ service.endpointHost ]].{{ .Metadata.Namespace }}.svc.cluster.local"
         port: [[ service.port ]]
+[% endif %]
 [% endif %]
 
   healthChecks:
@@ -122,13 +152,20 @@ spec:
             name: "{{ .Metadata.Name }}-repo"
             namespace: "{{ .Metadata.Namespace }}"
       values:
+[% if helm.valuesTemplate %]
+[[ helm.valuesTemplate | indent(8, true) ]]
+[% else %]
         nameOverride: "{{ .Metadata.Name }}"
         image:
           repository: "{{ .Image.[[ helm.imageId ]].registry }}/{{ .Image.[[ helm.imageId ]].repository }}"
           tag: "{{ .Image.[[ helm.imageId ]].tag }}"
-[% for role in engine.roles %]
+[% if helm.pullPolicy %]
+          pullPolicy: [[ helm.pullPolicy ]]
+[% endif %]
+[% for role in (engine.roles if engine.configFromRoles else []) %]
         [[ role.name ]]:
           replicas: "{{ .Config.[[ role.name ]]Replicas }}"
+[% if role.resources | default(true) %]
           resources:
             requests:
               cpu: "{{ .Config.[[ role.name ]]Cpu }}"
@@ -136,11 +173,17 @@ spec:
             limits:
               cpu: "{{ .Config.[[ role.name ]]Cpu }}"
               memory: "{{ .Config.[[ role.name ]]Memory }}"
+[% endif %]
+[% if engine.roleStorage %]
           storage:
             size: "{{ .Config.[[ role.name ]]StorageSize }}"
+[% endif %]
 [% endfor %]
-        service:
-          port: [[ service.port ]]
+[% if extraValues %]
+[[ extraValues | toyaml | indent(8, true) ]]
+[% endif %]
+
+[% endif %]
 [% if service.hasLandingPage %]
     ---
     apiVersion: gateway.networking.k8s.io/v1
@@ -149,7 +192,7 @@ spec:
       name: "{{ .Metadata.Name }}-landing"
     spec:
       hostnames:
-        - "[[ partner.id ]]-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+        - "[[ service.landingHost ]]"
       parentRefs:
         - group: gateway.networking.k8s.io
           kind: Gateway
@@ -162,6 +205,6 @@ spec:
                 value: /
           backendRefs:
             - kind: Service
-              name: "{{ .Metadata.Name }}"
+              name: "[[ service.landingBackend ]]"
               port: [[ service.landingPort ]]
 [% endif %]

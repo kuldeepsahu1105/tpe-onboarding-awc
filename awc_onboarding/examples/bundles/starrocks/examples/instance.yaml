@@ -8,10 +8,12 @@ spec:
   version: 1.11.4
   config:
     feReplicas: 1
-    feCpu: '8'
-    feMemory: 32Gi
-    feStorageSize: 100Gi
     beReplicas: 1
-    beCpu: '8'
-    beMemory: 32Gi
-    beStorageSize: 100Gi
+    feCpu: '2'
+    feMemory: 4Gi
+    feMetaStorageSize: 10Gi
+    feLogStorageSize: 5Gi
+    beCpu: '2'
+    beMemory: 4Gi
+    beStorageSize: 20Gi
+    beLogStorageSize: 1Gi
