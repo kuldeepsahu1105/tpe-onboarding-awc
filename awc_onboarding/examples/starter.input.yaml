@@ -1,0 +1,44 @@
+# STARTER: copy this (./awc new my-app), then edit the values below.
+# Every line has a comment. Delete what you don't need; the tool fills defaults.
+
+partner:
+  id: my-app                      # short lowercase name, no spaces
+  owner: "My Company"             # who owns/supports the app
+
+engine:
+  displayName: "My App"           # name shown in the AWC marketplace
+  description: "One sentence on what My App does."
+  version: "1.0.0"
+  # helm-simple     = one Helm chart, one kind of pod  (Neo4j, PuppyGraph-like)
+  # helm-multi-role = one chart, several pod types     (StarRocks FE/BE)
+  # helm-operator   = Kubernetes operator + CRD        (needs extra operator.* fields)
+  # native-k8s      = no Helm, plain manifests
+  template: helm-simple
+
+helm:                             # where the upstream chart lives
+  repoUrl: "https://charts.example.com/my-app"   # or oci://registry/path
+  chart: my-app
+  version: "1.0.0"
+
+images:                           # every container image the chart runs
+  - "docker.io/myorg/my-app:1.0.0"  # tip: ./awc images <repoUrl> <chart> <version> finds these for you
+
+service:
+  port: 8080                      # main port clients connect to
+  hasLandingPage: true            # does the app have a web UI?
+  landingPort: 8080               # web UI port
+
+dependencies:
+  hasAny: false                   # true if it needs another engine (e.g. a database)
+
+blueprint:
+  needed: true                    # true = shows up as an app in the marketplace
+  outcome: "What users get, e.g. Graph database"
+
+cluster:
+  minCpu: "4"
+  minMemory: "16Gi"
+
+publish:
+  destinationRegistry: "registry.example.com"   # your OCI registry
+  namespace: my-app

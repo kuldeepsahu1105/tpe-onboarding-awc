@@ -1,6 +1,6 @@
 # tpe-onboarding-awc
 
-Toolkit (`awc_onboarding/`) for onboarding any data/big-data engine or app onto the
-Cloudera Anywhere Cloud (AWC) marketplace: question wizard, one-shot `input.yaml`,
-Blueprint composer, validator, and an MCP server. Start with
-[`awc_onboarding/docs/ONBOARDING_GUIDE.md`](awc_onboarding/docs/ONBOARDING_GUIDE.md).
+Toolkit for onboarding any data/big-data app onto the Cloudera Anywhere Cloud (AWC)
+marketplace. Works with or without AI (web UI, CLI wizard, MCP server).
+
+**Start here:** [`awc_onboarding/README.md`](awc_onboarding/README.md), then run `cd awc_onboarding && ./awc ui`.
