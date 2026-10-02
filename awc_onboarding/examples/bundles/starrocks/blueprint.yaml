@@ -5,7 +5,7 @@ metadata:
 spec:
   owner: "StarRocks"
   displayName: "StarRocks"
-  description: "Blazing-fast OLAP analytics engine (1 FE + BE) via kube-starrocks."
+  description: "Blazing-fast OLAP analytics engine (FE + BE) via the kube-starrocks chart."
   outcome: "OLAP analytics"
 
   versionMatrix:

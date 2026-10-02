@@ -47,6 +47,9 @@ def _ask(session: Session, question: q.Question, answered: int, total: int) -> N
 
     while True:
         print(f"[{answered + 1}/{total}] {question.prompt}{suffix}")
+        example = q.EXAMPLES.get(question.id)
+        if example:
+            print(f"    e.g. {example}")
         raw = input("> ").strip()
         if raw == "?":
             print(f"    {question.help or 'No additional help for this question.'}\n")

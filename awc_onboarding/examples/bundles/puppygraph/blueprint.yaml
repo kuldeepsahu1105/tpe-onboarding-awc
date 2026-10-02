@@ -1,11 +1,11 @@
-apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
 kind: Blueprint
 metadata:
   name: puppygraph
 spec:
   owner: "PuppyGraph"
   displayName: "PuppyGraph"
-  description: "Zero-ETL graph query engine over existing relational/lakehouse data."
+  description: "Zero ETL graph on lakehouse data via Helm on AWC."
   outcome: "Zero-ETL graph queries"
 
   versionMatrix:
@@ -17,26 +17,19 @@ spec:
   instances:
     - name: "puppygraph"
       engine: "puppygraph-ace-engine"
-      # "auto" dependencies (private, same-lifecycle) are intentionally NOT
-      # listed here -- the operator creates/owns that child EngineInstance
-      # automatically and it is invisible to the Console. Only "optional"/
-      # "ref" dependencies are Console-wireable and belong in a Blueprint.
-      dependencies:
-        - name: "catalog"
-          instance: "hive-metastore"
 
   cluster:
     kubernetesVersion: ">= 1.28.0"
     networkStorage:
-      default: "100Gi"
-      minimum: "50Gi"
+      default: "200Gi"
+      minimum: "100Gi"
       hint: "Shared storage for PuppyGraph"
     nodeGroups:
       - id: "puppygraph-nodes"
         category: "worker"
         displayName: "PuppyGraph Nodes"
         nodeCount:
-          default: 1
+          default: 2
           minimum: 1
         resources:
           minimum:
@@ -49,5 +42,5 @@ spec:
             hasGPU: false
         storage:
           disk:
-            default: "100Gi"
-            minimum: "50Gi"
+            default: "200Gi"
+            minimum: "100Gi"

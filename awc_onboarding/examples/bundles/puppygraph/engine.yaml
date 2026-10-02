@@ -1,4 +1,4 @@
-apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
 kind: Engine
 metadata:
   name: puppygraph-ace-engine
@@ -6,7 +6,7 @@ metadata:
     ecosystem.awc.cloudera.com/requires-embedded-registry: "true"
 spec:
   displayName: "PuppyGraph"
-  description: "Zero-ETL graph query engine over existing relational/lakehouse data."
+  description: "PuppyGraph 1.x graph query engine deployed via Flux HelmRelease."
   # Multi-role chart: controlplane, leader, compute.
   # Add/remove roles below and in configSchema/template to match your chart's
   # real values.yaml role keys (e.g. controlplane/compute, FE/BE, leader/worker).
@@ -18,11 +18,6 @@ spec:
       metadata:
         buildVersion: "1.1.0"
 
-  dependencies:
-    - name: catalog
-      engine: hive-metastore-engine
-      type: ref
-
   configSchema:
     type: object
     properties:
@@ -31,18 +26,6 @@ spec:
         default: 1
         minimum: 1
         description: "Number of controlplane replicas"
-      controlplaneCpu:
-        type: string
-        default: "8"
-        description: "CPU request/limit per controlplane pod"
-      controlplaneMemory:
-        type: string
-        default: "32Gi"
-        description: "Memory request/limit per controlplane pod"
-      controlplaneStorageSize:
-        type: string
-        default: "100Gi"
-        description: "Persistent volume size per controlplane pod"
       leaderReplicas:
         type: integer
         default: 1
@@ -50,16 +33,12 @@ spec:
         description: "Number of leader replicas"
       leaderCpu:
         type: string
-        default: "8"
+        default: "2"
         description: "CPU request/limit per leader pod"
       leaderMemory:
         type: string
-        default: "32Gi"
+        default: "8Gi"
         description: "Memory request/limit per leader pod"
-      leaderStorageSize:
-        type: string
-        default: "100Gi"
-        description: "Persistent volume size per leader pod"
       computeReplicas:
         type: integer
         default: 1
@@ -67,27 +46,38 @@ spec:
         description: "Number of compute replicas"
       computeCpu:
         type: string
-        default: "8"
+        default: "6"
         description: "CPU request/limit per compute pod"
       computeMemory:
         type: string
-        default: "32Gi"
+        default: "24Gi"
         description: "Memory request/limit per compute pod"
-      computeStorageSize:
+      storageSize:
         type: string
-        default: "100Gi"
-        description: "Persistent volume size per compute pod"
+        default: "200Gi"
+        description: "PVC size for PuppyGraph storage"
+      priorityIpCidr:
+        type: string
+        default: ""
+        description: "Cluster node IP CIDR for env.common.PRIORITY_IP_CIDR (recommended)"
+      username:
+        type: string
+        default: "puppygraph"
+        description: "Initial PuppyGraph UI username"
+      password:
+        type: string
+        default: "changeme"
+        description: "Initial PuppyGraph UI password (override in production)"
 
   provides:
     - name: landingPage
       capability: landing-page
       value: |
-        url: "https://puppygraph-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+        url: "https://puppygraph-{{ .Metadata.Namespace }}.apps.{{ .Cluster.DomainName }}"
     - name: endpoint
-      capability: service
+      capability: endpoint
       value: |
-        host: "{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local"
-        port: 8081
+        url: "http://{{ .Metadata.Name }}-controlplane-service.{{ .Metadata.Namespace }}.svc.cluster.local:8081"
 
   healthChecks:
     - resource:
@@ -141,19 +131,11 @@ spec:
       values:
         nameOverride: "{{ .Metadata.Name }}"
         image:
-          repository: "{{ .Image.puppygraphPuppygraph.registry }}/{{ .Image.puppygraphPuppygraph.repository }}"
-          tag: "{{ .Image.puppygraphPuppygraph.tag }}"
+          repository: "{{ .Image.puppygraph.registry }}/{{ .Image.puppygraph.repository }}"
+          tag: "{{ .Image.puppygraph.tag }}"
+          pullPolicy: Always
         controlplane:
           replicas: "{{ .Config.controlplaneReplicas }}"
-          resources:
-            requests:
-              cpu: "{{ .Config.controlplaneCpu }}"
-              memory: "{{ .Config.controlplaneMemory }}"
-            limits:
-              cpu: "{{ .Config.controlplaneCpu }}"
-              memory: "{{ .Config.controlplaneMemory }}"
-          storage:
-            size: "{{ .Config.controlplaneStorageSize }}"
         leader:
           replicas: "{{ .Config.leaderReplicas }}"
           resources:
@@ -163,8 +145,6 @@ spec:
             limits:
               cpu: "{{ .Config.leaderCpu }}"
               memory: "{{ .Config.leaderMemory }}"
-          storage:
-            size: "{{ .Config.leaderStorageSize }}"
         compute:
           replicas: "{{ .Config.computeReplicas }}"
           resources:
@@ -174,10 +154,21 @@ spec:
             limits:
               cpu: "{{ .Config.computeCpu }}"
               memory: "{{ .Config.computeMemory }}"
-          storage:
-            size: "{{ .Config.computeStorageSize }}"
+        secrets:
+          create: true
+          PUPPYGRAPH_USERNAME: '{{ .Config.username }}'
+          PUPPYGRAPH_PASSWORD: '{{ .Config.password }}'
         service:
-          port: 8081
+          controlplane:
+            type: ClusterIP
+          query:
+            type: ClusterIP
+        storage:
+          size: '{{ .Config.storageSize }}'
+        env:
+          common:
+            PRIORITY_IP_CIDR: '{{ .Config.priorityIpCidr }}'
+
     ---
     apiVersion: gateway.networking.k8s.io/v1
     kind: HTTPRoute
@@ -185,7 +176,7 @@ spec:
       name: "{{ .Metadata.Name }}-landing"
     spec:
       hostnames:
-        - "puppygraph-{{ .Metadata.Namespace }}.{{ .Cluster.DomainName }}"
+        - "puppygraph-{{ .Metadata.Namespace }}.apps.{{ .Cluster.DomainName }}"
       parentRefs:
         - group: gateway.networking.k8s.io
           kind: Gateway
@@ -198,5 +189,5 @@ spec:
                 value: /
           backendRefs:
             - kind: Service
-              name: "{{ .Metadata.Name }}"
+              name: "{{ .Metadata.Name }}-controlplane-service"
               port: 8081

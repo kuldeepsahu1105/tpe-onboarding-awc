@@ -1,7 +1,7 @@
 # Infra sizing metadata. Only consumed by the Anywhere Cloud Console when this
 # product is part of a Blueprint; otherwise purely documentation for anyone
 # deploying the EngineInstance manually (Path B).
-apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
 kind: ClusterRequirements
 metadata:
   name: puppygraph-requirements
@@ -9,8 +9,8 @@ spec:
   kubernetesVersion: ">= 1.28.0"
 
   networkStorage:
-    default: "100Gi"
-    minimum: "50Gi"
+    default: "200Gi"
+    minimum: "100Gi"
     hint: "Shared storage for PuppyGraph data"
 
   nodeGroups:
@@ -19,7 +19,7 @@ spec:
       displayName: "PuppyGraph Nodes"
       description: "Nodes for PuppyGraph workloads"
       nodeCount:
-        default: 1
+        default: 2
         minimum: 1
       resources:
         minimum:
@@ -32,5 +32,5 @@ spec:
           hasGPU: false
       storage:
         disk:
-          default: "100Gi"
-          minimum: "50Gi"
+          default: "200Gi"
+          minimum: "100Gi"

@@ -39,7 +39,7 @@ label{font-weight:600;display:block;margin-top:10px}
 <section id="yaml" class="card hide">
  <div class="row" style="margin-top:0"><select id="exsel" onchange="loadEx('yamlta',this)"></select></div>
  <p class="help">Only the fields you know are needed; everything optional gets a default.</p>
- <textarea id="yamlta" placeholder="partner: {id: myengine}"></textarea>
+ <textarea id="yamlta" placeholder="partner: {id: neo4j, owner: \"Neo4j, Inc.\"}&#10;engine: {displayName: Neo4j, description: \"Graph database\", template: helm-simple}&#10;helm: {repoUrl: \"https://helm.neo4j.com/neo4j\", chart: neo4j, version: \"5.26.0\"}&#10;(or pick a ready-made example above)"></textarea>
  <div class="row"><button class="p" onclick="runYaml()">Generate &amp; validate</button></div>
 </section>
 <section id="bp" class="card hide">
@@ -59,17 +59,23 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x==b));
  ['guided','yaml','bp'].forEach(t=>$(t).classList.toggle('hide',t!=b.dataset.t));$('result').classList.add('hide')});
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let cur=null;
+let cur=null,prev=null;
+const backBtn=n=>n>0?'<button class="s" onclick="goBack()">&larr; Back</button>':'';
 async function loadQ(){
  const r=await api('/api/question?session='+encodeURIComponent($('sid').value));
+ window.nAns=r.answered;
  $('prog').style.width=(r.total?100*r.answered/r.total:0)+'%';
- if(r.done){$('qbox').innerHTML='<p class="ok">All questions answered.</p><button class="p" onclick="runSession()">Generate &amp; validate</button>';return}
+ if(r.done){$('qbox').innerHTML='<p class="ok">All questions answered.</p><div class="row">'+backBtn(1)+'<button class="p" onclick="runSession()">Generate &amp; validate</button></div>';return}
  cur=r.question;let f;
+ if(prev&&prev.id===cur.id){cur.default=prev.value}prev=null;
  if(cur.kind==='choice')f='<select id="ans">'+cur.choices.map(c=>`<option ${c==cur.default?'selected':''}>${esc(c)}</option>`).join('')+'</select>';
  else if(cur.kind==='bool')f=`<select id="ans"><option ${cur.default!==false?'selected':''}>yes</option><option ${cur.default===false?'selected':''}>no</option></select>`;
- else f=`<input id="ans" value="${esc(Array.isArray(cur.default)?cur.default.join(', '):(cur.default??''))}" onkeydown="if(event.key==='Enter')submitQ()">`;
- $('qbox').innerHTML=`<h3>${esc(cur.prompt)}</h3>${cur.help?`<div class="help">${esc(cur.help)}</div>`:''}${f}<div id="qe" class="err"></div><div class="row"><button class="p" onclick="submitQ()">Next</button></div>`;
+ else f=`<input id="ans" placeholder="${esc(cur.example.split('   or   ')[0].replace(/ \(.*$/,''))}" value="${esc(Array.isArray(cur.default)?cur.default.join(', '):(cur.default??''))}" onkeydown="if(event.key==='Enter')submitQ()">`;
+ $('qbox').innerHTML=`<h3>${esc(cur.prompt)}</h3>${cur.help?`<div class="help">${esc(cur.help)}</div>`:''}${cur.example?`<div class="help"><b>Example:</b> ${esc(cur.example)}</div>`:''}${f}<div id="qe" class="err"></div><div class="row">${backBtn(r.answered)}<button class="p" onclick="submitQ()">Next</button></div>`;
  $('ans').focus()}
+async function goBack(){
+ const r=await api('/api/back',{session:$('sid').value});
+ if(r.id)prev={id:r.id,value:r.value};loadQ()}
 async function submitQ(){
  let v=$('ans').value;if(cur.kind==='bool')v=v==='yes';
  if(cur.required&&v===''){$('qe').textContent='This question requires an answer.';return}
@@ -79,10 +85,10 @@ async function submitQ(){
  loadQ()}
 function depForm(){
  $('qbox').innerHTML=`<h3>Dependencies on other engines</h3><div class="help">Internal, Cloudera-native (CDE, CAI, CDF...) or third-party engines. auto = private; optional/ref = wired in the Blueprint.</div>
- <label>Name (key used in templates)</label><input id="dn"><label>Engine resource name</label><input id="de" placeholder="cde-ace-engine">
+ <label>Name (key used in templates)</label><input id="dn" placeholder="database"><label>Engine resource name</label><input id="de" placeholder="cde-ace-engine">
  <label>Type</label><select id="dt"><option>auto</option><option>optional</option><option>ref</option></select>
- <label>Target instance (optional/ref only)</label><input id="di"><div id="dl" class="help"></div>
- <div class="row"><button class="s" onclick="addDep()">Add dependency</button><button class="p" onclick="loadQ()">Done</button></div>`}
+ <label>Target instance (optional/ref only)</label><input id="di" placeholder="hive-metastore"><div id="dl" class="help"></div>
+ <div class="row"><button class="s" onclick="goBack()">&larr; Back</button><button class="s" onclick="addDep()">Add dependency</button><button class="p" onclick="loadQ()">Done</button></div>`}
 async function addDep(){
  const r=await api('/api/dependency',{session:$('sid').value,name:$('dn').value,engine:$('de').value,type:$('dt').value,instance:$('di').value||null});
  $('dl').textContent='Added: '+r.entries.map(e=>e.name+' → '+e.engine).join(', ');['dn','de','di'].forEach(i=>$(i).value='')}

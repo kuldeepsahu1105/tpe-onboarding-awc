@@ -65,12 +65,26 @@ def normalize(answers: Manifest) -> Manifest:
     _set(engine, "template", "helm-simple")
     _set(engine, "version", m.get("helm", {}).get("version", "1.0.0"))
 
+    _set(engine, "apiVersion", "v1alpha9")
+    m["apiVersion"] = f"ecosystem.awc.cloudera.com/{engine['apiVersion']}"
+    _set(engine, "roleStorage", True)
+    _set(engine, "configFromRoles", True)
+    m.setdefault("provides", [])
+    config = m.setdefault("config", {})
+    extras = config.get("extras") or []
+    for e in extras:
+        _set(e, "type", "string")
+        _set(e, "default", "")
+        _set(e, "description", e["name"])
+    config["extras"] = extras
+
     helm = m.setdefault("helm", {})
     images = _normalize_images(m.get("images"), m.get("publish", {}))
     if images and helm.get("imageRepository") is None:
         # The first image is the primary one (referenced as .Image.<id> in the Engine).
         helm["imageRepository"] = images[0]["repository"]
         helm["imageTag"] = helm.get("imageTag") or images[0]["tag"]
+        helm.setdefault("imageId", images[0]["id"])
     if engine["template"].startswith("helm"):
         _set(helm, "chart", partner_id)
         _set(helm, "chartId", _camel(helm["chart"]))
@@ -101,10 +115,44 @@ def normalize(answers: Manifest) -> Manifest:
     _set(service, "hasLandingPage", True)
     _set(service, "landingPort", service["port"])
 
+    _set(service, "landingHostPrefix", partner_id)
+    _set(
+        service,
+        "landingHost",
+        "%s-{{ .Metadata.Namespace }}.%s{{ .Cluster.DomainName }}"
+        % (service["landingHostPrefix"], service.get("domainPrefix") or ""),
+    )
+    _set(service, "domainPrefix", "")
+    _set(service, "landingBackend", "{{ .Metadata.Name }}")
+    _set(service, "endpointHost", "{{ .Metadata.Name }}")
+    _set(service, "endpointUrl", False)
+
+    # Nested Helm values: static `helm.values` plus one `{{ .Config.<name> }}`
+    # entry per config extra that declares a `valuesPath` (dotted).
+    values: dict = {}
+
+    def _nest(path: str, val: Any) -> None:
+        cur = values
+        keys = path.split(".")
+        for k in keys[:-1]:
+            cur = cur.setdefault(k, {})
+        cur[keys[-1]] = val
+
+    for path, val in _flatten(helm.get("values") or {}):
+        _nest(path, val)
+    for e in extras:
+        if e.get("valuesPath"):
+            _nest(e["valuesPath"], "{{ .Config.%s }}" % e["name"])
+    m["extraValues"] = values
+    _set(helm, "pullPolicy", "")
+    _set(helm, "valuesTemplate", "")
+
     capability = m.setdefault("capability", {})
+    capability.setdefault("schema", None)
     if capability.get("exportsStructuredData"):
         _set(capability, "name", f"{partner_id}-connection")
-        raw_fields = capability.get("fields") or ["host:string", "port:integer"]
+        raw_fields = capability.get("fields") or (
+            [] if capability.get("schema") else ["host:string", "port:integer"])
         if isinstance(raw_fields, str):
             raw_fields = [f.strip() for f in raw_fields.split(",") if f.strip()]
         capability["fields"] = _parse_capability_fields(raw_fields)
@@ -187,6 +235,15 @@ def normalize(answers: Manifest) -> Manifest:
     m["rolePrefix"] = engine["name"]
 
     return m
+
+
+def _flatten(d: dict, prefix: str = ""):
+    for k, v in d.items():
+        path = f"{prefix}.{k}" if prefix else str(k)
+        if isinstance(v, dict) and v:
+            yield from _flatten(v, path)
+        else:
+            yield path, v
 
 
 def split_image_ref(ref: str) -> dict[str, str]:
