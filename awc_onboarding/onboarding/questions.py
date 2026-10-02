@@ -38,6 +38,29 @@ _SENTINEL = object()
 
 
 @dataclass
+TEMPLATE_HELP = """Not sure? Answer in order, stop at the first YES:
+ 1. Does the app have NO Helm chart (you only have plain Kubernetes YAML)?  -> native-k8s
+ 2. Do you install an Operator first, then create a custom resource (CR)?   -> helm-operator
+ 3. Does one chart run several DIFFERENT kinds of pods (e.g. FE + BE)?      -> helm-multi-role
+ 4. Otherwise (one chart, one kind of workload)                             -> helm-simple
+
+Real-world examples
+ helm-simple      Neo4j (single server), Grafana, Redis, MinIO, Superset, a REST API service.
+                  Pods are all alike; you scale by replica count.
+ helm-multi-role  StarRocks (FE + BE), PuppyGraph (controlplane/leader/compute), Trino
+                  (coordinator + workers), Druid, Pinot, Kafka+ZooKeeper-style charts.
+                  Each role needs its own replicas / CPU / memory / disk.
+ helm-operator    PostgreSQL via CloudNativePG, Kafka via Strimzi, Flink via Flink Operator,
+                  Spark via Spark Operator, Elasticsearch via ECK, PhoenixAI-style operators.
+                  Signs: chart installs CRDs; docs say 'kubectl apply -f my-cluster.yaml'.
+ native-k8s       An in-house tool with only Deployment/Service YAML, a small internal
+                  service, a proof of concept with no chart published yet.
+
+Quick tips: if values.yaml has sections like 'fe:' and 'be:' it is multi-role. If the install
+guide has two steps (install operator, then apply a CR) it is operator. When unsure, pick
+helm-simple; you can switch later by changing one line. Full guide: docs/CHOOSING_A_TEMPLATE.md"""
+
+
 class Question:
     id: str
     prompt: str
@@ -106,16 +129,7 @@ QUESTIONS: list[Question] = [
         prompt="How does this engine ship?",
         kind="choice",
         choices=["helm-simple", "helm-multi-role", "helm-operator", "native-k8s"],
-        help=(
-            "helm-simple: one Helm chart, one logical workload (most community engines). "
-            "helm-multi-role: one Helm chart with multiple roles/pools "
-            "(coordinator/worker, FE/BE, controlplane/compute, ...). "
-            "helm-operator: you must first install a Kubernetes Operator (via its own "
-            "Helm chart, CRDs) and the Engine renders the custom resources that operator "
-            "reconciles (e.g. CloudNativePG, Strimzi). "
-            "native-k8s: no Helm chart -- the Engine template renders plain Kubernetes "
-            "objects (Deployment/StatefulSet/Service) directly, Go-template style."
-        ),
+        help=TEMPLATE_HELP,
         default="helm-simple",
     ),
     # --- Helm coordinates (helm-*) --------------------------------------

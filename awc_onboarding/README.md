@@ -75,6 +75,8 @@ Everything above works without it.
 | `helm template failed ... required` | Add the chart's required values: `--set key=value` |
 | `command not found: skopeo` / `awc-marketplace` | Install it; only needed for mirror/publish |
 
+Not sure which `template:` fits your app? See [`docs/CHOOSING_A_TEMPLATE.md`](docs/CHOOSING_A_TEMPLATE.md).
+
 More: [`docs/AWC_CONCEPTS.md`](docs/AWC_CONCEPTS.md) (how AWC fits together) and
 [`docs/ONBOARDING_GUIDE.md`](docs/ONBOARDING_GUIDE.md) (reference: all fields, MCP tools, templates).
 
