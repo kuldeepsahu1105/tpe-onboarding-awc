@@ -1,0 +1,37 @@
+# Slim manifest — PuppyGraph artifacts already in nijjwol-awc (mirror skipped).
+partner:
+  id: puppygraph
+  owner: PuppyGraph
+
+helm:
+  chart: puppygraph
+  version: "1.0.0"
+
+engine:
+  displayName: PuppyGraph
+  description: "PuppyGraph 1.x graph query engine on AWC."
+  version: "1.1.0"
+
+blueprint:
+  outcome: PuppyGraph
+  description: "Zero ETL graph on lakehouse data via Helm on AWC."
+
+publish:
+  destinationRegistry: docker-sandbox.infra.cloudera.com
+  namespace: nijjwol-awc
+
+overrides:
+  template: helm-multi-role
+  imageTag: "1.1.0"
+  servicePort: 8081
+  serviceNameSuffix: controlplane-service
+  landingHostnamePrefix: puppygraph
+
+mirror:
+  skip: true
+  note: "Chart/image already in nijjwol-awc"
+
+cluster:
+  workerCountDefault: 2
+  diskDefault: "200Gi"
+  diskMinimum: "100Gi"
