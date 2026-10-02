@@ -1,0 +1,15 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+kind: EngineInstance
+metadata:
+  name: puppygraph
+spec:
+  engine: puppygraph-plugin
+  version: "1.1.0"
+  config:
+    controlplaneReplicas: 1
+    leaderReplicas: 1
+    computeReplicas: 1
+    storageSize: "200Gi"
+    priorityIpCidr: ""
+    username: "puppygraph"
+    password: "changeme"

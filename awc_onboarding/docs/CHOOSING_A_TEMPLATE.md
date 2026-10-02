@@ -29,7 +29,7 @@ flowchart TD
 | Pattern | File |
 |---|---|
 | helm-simple | `examples/neo4j.input.yaml` |
-| helm-multi-role | `examples/starrocks.input.yaml`, `examples/puppygraph.input.yaml` |
+| helm-multi-role | `examples/starrocks.input.yaml`, `examples/puppygraph.input.yaml` (hand-tuned reference: `examples/reference/puppygraph-nijjwol/`) |
 | helm-operator | `examples/phoenixai.input.yaml` |
 | native-k8s | `examples/dataspark/api.input.yaml` |
 
