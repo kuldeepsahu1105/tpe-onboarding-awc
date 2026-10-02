@@ -37,7 +37,6 @@ Answers = dict[str, Any]
 _SENTINEL = object()
 
 
-@dataclass
 TEMPLATE_HELP = """Not sure? Answer in order, stop at the first YES:
  1. Does the app have NO Helm chart (you only have plain Kubernetes YAML)?  -> native-k8s
  2. Do you install an Operator first, then create a custom resource (CR)?   -> helm-operator
@@ -61,6 +60,7 @@ guide has two steps (install operator, then apply a CR) it is operator. When uns
 helm-simple; you can switch later by changing one line. Full guide: docs/CHOOSING_A_TEMPLATE.md"""
 
 
+@dataclass
 class Question:
     id: str
     prompt: str
