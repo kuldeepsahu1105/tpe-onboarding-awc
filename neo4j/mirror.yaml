@@ -1,0 +1,12 @@
+# Mirror plan — consumed by mirror.sh (helm + skopeo).
+# Not an ACE CRD.
+
+charts:
+  - repository: "https://helm.neo4j.com/neo4j"
+    name: "neo4j"
+    version: "5.26.0"
+    destination: "oci://docker-sandbox.infra.cloudera.com/nijjwol-awc/charts"
+
+images:
+  - source: "docker.io/neo4j:5.26.0-community"
+    destination: "docker-sandbox.infra.cloudera.com/nijjwol-awc/neo4j:5.26.0-community"

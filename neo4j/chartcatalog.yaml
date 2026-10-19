@@ -1,0 +1,10 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: ChartCatalog
+metadata:
+  name: neo4j-charts-2025-12-1
+spec:
+  charts:
+  - id: neo4j
+    registry: docker-private.infra.cloudera.com
+    repository: cloudera-thirdparty-helm/neo4j
+    version: 2025.12.1

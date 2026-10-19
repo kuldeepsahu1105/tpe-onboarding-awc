@@ -1,0 +1,14 @@
+# Example awc-oci-register config (apply on AWC *control plane* cluster).
+# https://github.com/agupta-git/awc-oci-register
+#
+#   awc-oci-register verify -f oci-register.config.yaml
+#   awc-oci-register apply  -f oci-register.config.yaml
+#
+# Until CCF-95 lands, this registers pull creds + MARKETPLACE_REGISTRIES.
+---
+registryHost: docker-sandbox.infra.cloudera.com
+marketplacePrefix: nijjwol-awc
+auth:
+  kind: basic
+  username: partner
+  passwordFile: /path/to/registry-password
