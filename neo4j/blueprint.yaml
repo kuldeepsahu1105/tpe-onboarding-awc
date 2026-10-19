@@ -1,0 +1,44 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Blueprint
+metadata:
+  name: neo4j-blueprint
+spec:
+  owner: Cloudera
+  description: Deploy Neo4j as a standalone graph database with persistent storage, Bolt and browser endpoints, and credentials managed by the ACE engine.
+  outcome: Neo4j Graph Database
+  instances:
+  - name: neo4j
+    engine: neo4j-engine
+    minimumVersion: 5.26.0
+  hardwareTiers:
+  - name: default
+    cluster:
+      kubernetesVersion: '>= 1.28.0'
+      nodeGroups:
+      - id: neo4j-nodes
+        category: worker
+        displayName: Neo4j Nodes
+        description: Memory-oriented nodes for the Neo4j graph database.
+        nodeCount:
+          default: 1
+          minimum: 1
+          hint: Use 1 for development; scale the cluster separately for HA topologies.
+        resources:
+          minimum:
+            cpu: '2'
+            memory: 8Gi
+            hasGPU: false
+          recommended:
+            cpu: '4'
+            memory: 16Gi
+            hasGPU: false
+          hint: 'Neo4j is heap- and page-cache sensitive; allocate at least 8 Gi memory for small workloads and 16 Gi or more for production graphs.
+
+            '
+        storage:
+          disk:
+            default: 100Gi
+            minimum: 30Gi
+            hint: Root disk for OS and images; graph data uses a separate PVC from engine config.
+  ui:
+    displayName: Neo4j Graph Database

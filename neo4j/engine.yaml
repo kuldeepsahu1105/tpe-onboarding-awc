@@ -1,0 +1,108 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Engine
+metadata:
+  name: neo4j-engine
+spec:
+  displayName: Neo4j
+  description: Neo4j is a native graph database for connected data. This engine deploys a standalone Neo4j server using the official Neo4j Helm chart with persistent storage and generated credentials.
+  provides:
+  - name: credentials
+    secret:
+      selector:
+        matchLabels:
+          ace.cloudera.com/provides: credentials
+      index: username
+  - name: boltEndpoint
+    capability: endpoint
+    value: 'url: "bolt://{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local:7687"
+
+      '
+  - name: browserEndpoint
+    capability: landing-page
+    value: 'url: "http://{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local:7474"
+
+      navGroup: data-apps
+
+      '
+  - name: graphDatabase
+    capability: neo4j-graph-database
+    value: "endpoint:\n  bolt:\n    host: \"{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local\"\n    port: 7687\n  http:\n    host: \"{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local\"\n    port: 7474\ncredentials:\n  secretRef:\n    name: {{ .Metadata.Name }}-auth\n    namespace: {{ .Metadata.Namespace }}\n  usernameKey: username\n  passwordKey: password\n"
+  template: "{- $password := randAlphaNum .Metadata.Name 24 }\napiVersion: v1\nkind: Secret\nmetadata:\n  name: {{ .Metadata.Name }}-auth\n  labels:\n    ace.cloudera.com/provides: credentials\ndata:\n  username: {{ b64enc \"neo4j\" }}\n  password: {{ b64enc $password }}\n  NEO4J_AUTH: {{ b64enc (printf \"neo4j/%s\" $password) }}\ntype: Opaque\n---\napiVersion: security.awc.cloudera.com/v1alpha1\nkind: AuthConfig\nmetadata:\n  name: default\nspec:\n  meshMode: Ambient\n  enableAWCAuth: {{ .Config.istioEnabled }}\n"
+  configSchema:
+    type: object
+    properties:
+      edition:
+        type: string
+        default: community
+        enum:
+        - community
+        - enterprise
+        title: Neo4j Edition
+        description: Neo4j edition to deploy. Enterprise requires a valid license and acceptLicenseAgreement.
+      acceptLicenseAgreement:
+        type: string
+        default: 'no'
+        enum:
+        - 'no'
+        - 'yes'
+        - eval
+        title: License Agreement
+        description: Set to yes with a valid Enterprise license, or eval for evaluation. Required when edition is enterprise.
+      storageSize:
+        type: string
+        default: 10Gi
+        title: Storage Size
+        description: Persistent volume size for Neo4j data (for example 10Gi, 50Gi, 100Gi).
+        pattern: ^[0-9]+(\.[0-9]+)?(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|k|m)?$
+      cpu:
+        type: string
+        default: 1000m
+        title: CPU Request
+        description: CPU request for the Neo4j container. Neo4j Helm requires at least 500m.
+        pattern: ^([0-9]+m|[0-9]+(\.[0-9]+)?)$
+      memory:
+        type: string
+        default: 2Gi
+        title: Memory Request
+        description: Memory request for the Neo4j container. Neo4j Helm requires at least 2Gi.
+        pattern: ^[0-9]+(\.[0-9]+)?(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|k|m)?$
+      cpuLimit:
+        type: string
+        default: 2000m
+        title: CPU Limit
+        description: Optional CPU limit for the Neo4j container (for example 2000m).
+        pattern: ^([0-9]+m|[0-9]+(\.[0-9]+)?)$
+      memoryLimit:
+        type: string
+        default: 4Gi
+        title: Memory Limit
+        description: Optional memory limit for the Neo4j container (for example 4Gi).
+        pattern: ^[0-9]+(\.[0-9]+)?(Ei|Pi|Ti|Gi|Mi|Ki|E|P|T|G|M|k|m)?$
+      istioEnabled:
+        type: boolean
+        default: true
+        title: Istio AWC Auth
+        description: When true, enables AWC authentication integration via AuthConfig for the instance namespace.
+  healthChecks:
+  - resource:
+      apiVersion: apps/v1
+      kind: StatefulSet
+      name: '{{ .Metadata.Name }}'
+    expression: 'has(resource.status) &&
+
+      has(resource.status.readyReplicas) &&
+
+      resource.status.readyReplicas >= 1
+
+      '
+  imageCatalog: neo4j-images-5-26-0
+  chartCatalog: neo4j-charts-2025-12-1
+  releases:
+  - chartID: neo4j
+    values: "disableLookups: true\nfullnameOverride: {{ .Metadata.Name | quote }}\nneo4j:\n  name: {{ .Metadata.Name | quote }}\n  edition: {{ .Config.edition | quote }}\n  acceptLicenseAgreement: {{ .Config.acceptLicenseAgreement | quote }}\n  passwordFromSecret: {{ .Metadata.Name }}-auth\n  resources:\n    requests:\n      cpu: {{ .Config.cpu | quote }}\n      memory: {{ .Config.memory | quote }}\n    limits:\n      cpu: {{ .Config.cpuLimit | quote }}\n      memory: {{ .Config.memoryLimit | quote }}\nvolumes:\n  data:\n    mode: defaultStorageClass\n    defaultStorageClass:\n      accessModes:\n        - ReadWriteOnce\n      requests:\n        storage: {{ .Config.storageSize | quote }}\nimage:\n  registry: {{ .Image.neo4j.registry | quote }}\n  repository: {{ .Image.neo4j.repository | quote }}\n  tag: {{ .Image.neo4j.tag | quote }}\n"
+    install:
+      remediation:
+        retries: 3
+    upgrade:
+      remediation:
+        retries: 3

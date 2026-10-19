@@ -1,0 +1,76 @@
+# Example: target engine with auto + ref dependencies (HMS / Polaris patterns).
+# Scaffold only — not a full production HMS engine; shows dependencies + Blueprint wiring.
+version: v1
+directory: example-graph-app
+
+engine:
+  name: example-graph-app-engine
+  displayName: Example Graph App
+  description: >
+    Illustrates dependencies.entries (auto postgres, ref udf and ozone) for onboarding forms.
+
+imageCatalog:
+  name: example-graph-app-images-1-0-0
+  images:
+    - id: app
+      registry: docker-private.infra.cloudera.com
+      repository: cloudera_thirdparty/hardened/example-app
+      tag: "1.0.0-r0-202601010000"
+
+chartCatalog:
+  name: example-graph-app-charts-1-0-0
+  charts:
+    - id: exampleApp
+      registry: docker-private.infra.cloudera.com
+      repository: cloudera-thirdparty-helm/example-app
+      version: "1.0.0"
+
+helm:
+  chartID: exampleApp
+  values: |
+    fullnameOverride: {{ .Metadata.Name | quote }}
+
+dependencies:
+  entries:
+    - name: postgres
+      engine: postgres-plugin
+      type: auto
+      version: "18.0.0"
+      config:
+        databases: appdb
+        owners: appuser
+        storageSize: "2Gi"
+        cpu: "500m"
+        memory: 1024
+    - name: ranger
+      engine: udf-plugin
+      type: ref
+      minimumVersion: "1.6.0"
+    - name: ozone
+      engine: ozone-engine
+      type: ref
+      minimumVersion: "1.6.0"
+
+provides:
+  - name: endpoint
+    capability: endpoint
+    value: |
+      url: "http://{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local:8080"
+
+rbac:
+  preset: helm-basic
+
+blueprint:
+  enabled: true
+  name: example-graph-app-blueprint
+  outcome: Example Graph App
+  minimumVersion: "1.0.0"
+  instanceName: example-graph-app
+  existingEngines:
+    - name: shared-udf
+      engine: udf-plugin
+      minimumVersion: "1.6.0"
+  additionalInstances: []
+
+publish:
+  enabled: false
