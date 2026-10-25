@@ -31,13 +31,18 @@ flowchart LR
 | **Cluster sizing** | min 4 CPU / 16Gi, disk | ClusterRequirements, validator warnings |
 | **Publish**: registry + namespace | `registry.example.com` / `neo4j` | Where mirror/publish scripts push |
 
-Everything except identity, template, chart and images has a sensible default.
+Defaults are conveniences, not verified environment settings. In particular the
+publish registry defaults to a placeholder; `engine.description` and (when
+enabled) `blueprint.outcome` must be supplied to the file workflow. See the
+[actual key checklists and edit commands](ONBOARDING_GUIDE.md#engine-input-checklist)
+before building. Source configuration is YAML, not `.env`; never edit generated output.
 
 ## 2. What happens to them (processing)
 
 1. **Collect** – the guided UI/wizard asks only questions that apply to your earlier answers
    (e.g. operator questions appear only for `helm-operator`). The MCP server does the same for an AI.
-   Result: one answers file (`input.yaml`) that you can save and re-run.
+   File-based answers live in your own `*.input.yaml`; guided answers are saved
+   in runtime session JSON. Keep a source YAML for repeatable file-based runs.
 2. **Expand** (`manifest.py`) – fills defaults, splits `registry/repo:tag` image refs, creates per-role fields,
    computes landing-page host, merges advanced options (`docs/ADVANCED_OPTIONS.md`).
 3. **Render** (`generator.py` + `templates/`) – Jinja templates for your chosen ship type produce the files.
