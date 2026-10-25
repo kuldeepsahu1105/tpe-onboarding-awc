@@ -6,3 +6,6 @@ sessions/*.json
 !sessions/.gitkeep
 # Default local output location for generated bundles.
 /out/
+# Local cost exports can contain account and billing details.
+/cost-input/
+/output/cost-report/

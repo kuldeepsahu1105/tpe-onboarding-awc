@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "source": "ILLUSTRATIVE ONLY; not an AWS, Azure or GCP price list",
+  "as_of": "2026-10-01T00:00:00Z",
+  "rates": [
+    {
+      "provider": "demo-provider",
+      "region": "demo-region",
+      "sku": "demo-worker",
+      "unit": "node-hour",
+      "currency": "USD",
+      "rate": "0.20",
+      "source": "ILLUSTRATIVE flat rate; replace with provider export row ID and price-list URI/version",
+      "as_of": "2026-10-01T00:00:00Z",
+      "valid_from": "2026-10-01T00:00:00Z",
+      "valid_to": "2026-11-01T00:00:00Z"
+    }
+  ]
+}

@@ -77,6 +77,16 @@ Full step-by-step for UI, CLI and AI: **[docs/USAGE.md](docs/USAGE.md)**. Quick:
 questions and generate the bundle for you. Start it with `python -m mcp_server.server`.
 Everything above works without it.
 
+## Offline cost reports
+
+`./awc cost-report --file examples/neo4j.input.yaml --inventory examples/costs/inventory.json --prices examples/costs/prices.json --billing examples/costs/billing.json --out output/cost-report`
+produces TXT tables, versioned JSON and CSV from explicit inventory, provider
+ratecards and optional billing exports. The supplied cost examples are
+**illustrative, not live provider prices**. Requests/limits and cluster sizing
+are not dedicated-node billing evidence. Estimates and actuals stay separate,
+with missing prices, shared allocations and incomplete scope exposed.
+See [input formats, `vi` editing steps and limits](docs/COST_REPORTING.md).
+
 ## Troubleshooting
 | Problem | Fix |
 |---|---|
