@@ -1,15 +1,20 @@
 # Advanced input options (matching hand-written engines)
 
-Most engines only need the basics in `starter.input.yaml`. These optional keys let the generated
+Most engines only need the basics in `examples/starter.input.yaml`. These optional keys let the generated
 bundle match hand-tuned engines such as Nijj's PuppyGraph and Anshul's StarRocks.
 See `examples/puppygraph.input.yaml` and `examples/starrocks.input.yaml` for full uses.
+
+After creating your source with `./awc new my-app` from `awc_onboarding/`, use
+`vi my-app.input.yaml` to add these keys, then rerun `./awc build my-app.input.yaml`.
+Do not edit generated YAML/scripts. Follow the [input and safety checklists](ONBOARDING_GUIDE.md#edit-source-configuration-before-running)
+first; not every advanced option is consumed by every template.
 
 | Key | What it does |
 |---|---|
 | `engine.apiVersion` | Engine CRD version (default `v1alpha9`; PuppyGraph uses `v1alpha10`). |
 | `engine.roleStorage` | `false` removes the per-role storage-size fields. |
 | `engine.configFromRoles` | `false` = do not auto-create replica/cpu/memory fields; define them yourself in `config.extras`. |
-| `roles[].cpu` / `memory` / `resources: false` | Per-role sizing overrides, or drop the resources block for a role. |
+| `engine.roles[].cpu` / `engine.roles[].memory` / `engine.roles[].resources: false` | Per-role sizing overrides, or drop the resources block for a role. |
 | `config.extras` | Extra user-facing settings: `{name, type, default, description, title?, minimum?, valuesPath?}`. `valuesPath` (e.g. `storage.size`) wires the setting into the Helm values. |
 | `helm.values` | Static nested Helm values added to every install. |
 | `helm.valuesTemplate` | Full replacement of the generated Helm `values:` block (use `{{ .Config.x }}`, `{{ .Image.id.repository }}`). |

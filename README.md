@@ -4,3 +4,7 @@ Toolkit for onboarding any data/big-data app onto the Cloudera Anywhere Cloud (A
 marketplace. Works with or without AI (web UI, CLI wizard, MCP server).
 
 **Start here:** [`awc_onboarding/README.md`](awc_onboarding/README.md), then run `cd awc_onboarding && ./awc ui`.
+
+Before generating a bundle, follow the [configuration edit commands and parameter
+checklists](awc_onboarding/docs/ONBOARDING_GUIDE.md#edit-source-configuration-before-running)
+for YAML inputs, conditional settings, credentials, and offline validation.

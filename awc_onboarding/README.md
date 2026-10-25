@@ -28,9 +28,15 @@ Prefer files over a form?
 
 ```bash
 ./awc new my-app                       # 1. creates my-app.input.yaml (every line explained)
-# edit my-app.input.yaml               # 2. fill in your app's details
+vi my-app.input.yaml                   # 2. fill in your app's details
 ./awc build my-app.input.yaml          # 3. generates + validates -> output/my-app/
 ```
+
+Before building, use the [source configuration and parameter checklists](docs/ONBOARDING_GUIDE.md#edit-source-configuration-before-running).
+Inputs are YAML, not `.env` files. Edit your input, never generated files under
+`output/` or `examples/bundles/`. In `vi`: `i` to edit, `Esc` then `:wq` + Enter
+to save/quit (`:q!` to discard). Replace sample chart/image/registry values;
+keep credentials outside inputs and generated bundles.
 
 Prefer a terminal Q&A? `./awc wizard`. Not sure where to start? `./awc examples`
 (ready-made, pre-generated results are in `examples/bundles/`: Neo4j, StarRocks, PuppyGraph).
@@ -53,7 +59,7 @@ tools you have.
 The result prints `"ok": true` when valid. **Errors** must be fixed; **warnings** should be read.
 
 ## Step by step: from nothing to published
-1. `./awc new my-app` and edit it. Don't know your images? `./awc images <repoUrl> <chart> <version>`.
+1. `./awc new my-app`, then `vi my-app.input.yaml` and complete the linked checklists. Don't know your images? `./awc images <repoUrl> <chart> <version>` (uses Helm and may fetch charts).
 2. `./awc build my-app.input.yaml` until `"ok": true`.
 3. `cd output/my-app && ./mirror.sh` (skip if your chart/images are already in your registry).
 4. `./publish.sh` (dry run), then `./publish.sh --push`.
@@ -75,7 +81,7 @@ Everything above works without it.
 | Problem | Fix |
 |---|---|
 | `still need '<question>'` | That field is missing in your input file; add it |
-| `Unresolved placeholder '<...>'` warning | Only for `helm-operator`: fill in the operator's CRD group/kind |
+| `Unresolved placeholder '<...>'` warning | Fix placeholder inputs and regenerate; operator CRD placeholders require a reviewed source-template change, not editing generated YAML. See the onboarding guide. |
 | `helm template failed ... required` | Add the chart's required values: `--set key=value` |
 | `command not found: skopeo` / `awc-marketplace` | Install it; only needed for mirror/publish |
 
