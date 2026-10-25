@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "source": "ILLUSTRATIVE billing export, not a real invoice",
+  "as_of": "2026-11-02T00:00:00Z",
+  "period": {"start": "2026-10-01T00:00:00Z", "end": "2026-11-01T00:00:00Z"},
+  "metric": "net_cost",
+  "project": "demo-project",
+  "tags": {"environment": "demo"},
+  "allocation_limitations": [
+    "Fixed inventory shares applied to billing lines; workload usage not independently measured",
+    "Export is partial and may omit taxes, charges and credits"
+  ],
+  "lines": [
+    {
+      "id": "demo-invoice-compute",
+      "provider_resource_id": "demo-provider-node-1",
+      "account": "demo-account",
+      "charge_key": "demo-node-1/compute",
+      "resource_id": "demo-node-1",
+      "provider": "demo-provider",
+      "region": "demo-region",
+      "sku": "demo-worker",
+      "unit": "node-hour",
+      "currency": "USD",
+      "amount": "130.00",
+      "record_type": "charge",
+      "period": {"start": "2026-10-01T00:00:00Z", "end": "2026-11-01T00:00:00Z"},
+      "source": "ILLUSTRATIVE invoice row 1"
+    },
+    {
+      "id": "demo-invoice-credit",
+      "provider_resource_id": "demo-provider-node-1",
+      "account": "demo-account",
+      "charge_key": "demo-node-1/compute",
+      "resource_id": "demo-node-1",
+      "provider": "demo-provider",
+      "region": "demo-region",
+      "sku": "demo-worker",
+      "unit": "node-hour",
+      "currency": "USD",
+      "amount": "-10.00",
+      "record_type": "credit",
+      "period": {"start": "2026-10-01T00:00:00Z", "end": "2026-11-01T00:00:00Z"},
+      "source": "ILLUSTRATIVE invoice row 2; separate credit, not already netted in row 1"
+    }
+  ]
+}
