@@ -103,7 +103,7 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  <p id="lneed" class="help">Required to push. The password is not saved.</p>
  <details>
   <summary>Advanced</summary>
-  <label for="lpid">Launchpad id</label>
+  <label for="lpid">Catalog id</label>
   <input id="lpid" placeholder="partner-neo4j" autocomplete="off">
   <label for="lsess">Local save name</label>
   <input id="lsess" value="my-engine" autocomplete="off">
@@ -117,7 +117,7 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  <p class="help">Create local files writes the product folder on this computer. Does not upload anything.</p>
  <p class="help">Check files checks the YAML. Does not upload.</p>
  <p class="help">Copy images pushes the image to registry host / repository name : tag. Nothing is copied if any of those, or the username or password, is empty.</p>
- <p class="help">Publish the product sends the install guide after the image exists. Partner Launchpad is not connected, so nothing is sent.</p>
+ <p class="help">Publish the product sends the install guide to the catalog after the image exists. The catalog service is not connected yet, so this only updates the list on this page.</p>
  <div class="row"><button class="s" type="button" onclick="refreshJobs()">Refresh status</button></div>
  <p class="help">Updates the job list on this page.</p>
  <p id="lmsg" class="help"></p>
@@ -126,11 +126,11 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
 <section id="catalog" class="card hide">
  <h3>OCI program catalog</h3>
  <div class="row">
-  <input id="catEmail" placeholder="Launchpad email" autocomplete="off" style="max-width:240px">
-  <input id="catPass" type="password" placeholder="Launchpad password" autocomplete="new-password" value="" style="max-width:240px">
+  <input id="catEmail" placeholder="Catalog email" autocomplete="off" style="max-width:240px">
+  <input id="catPass" type="password" placeholder="Catalog password" autocomplete="new-password" value="" style="max-width:240px">
   <button class="p" onclick="loadCatalog()">Load / refresh</button>
  </div>
- <p id="catNote" class="help">Partner Launchpad is not connected yet, so this does not load a live list. The password is not saved.</p>
+ <p id="catNote" class="help">Used only to load the catalog list. Not saved.</p>
  <h4>Partner engines</h4>
  <p class="help">An engine is the product definition.</p>
  <p id="partnerEmpty" class="help">No partner products listed.</p>
@@ -248,11 +248,11 @@ async function checkFiles(){
 async function copyImages(){
  if(!pushReady()) return;
  clearRegistryPassword();
- $('lmsg').textContent='Nothing was copied. Partner Launchpad is not connected, so this page does not upload.';$('lmsg').className='err'}
+ $('lmsg').textContent='Nothing was copied. The catalog service is not connected yet, so this only updates the list on this page.';$('lmsg').className='err'}
 async function publishProduct(){
  if(!pushReady()) return;
  clearRegistryPassword();
- $('lmsg').textContent='Partner Launchpad is not connected, so nothing is sent.';$('lmsg').className='err'}
+ $('lmsg').textContent='The catalog service is not connected yet, so this only updates the list on this page.';$('lmsg').className='err'}
 async function loadCatalog(){
  const r=await api('/api/launchpad/catalog',{username:$('catEmail').value,password:$('catPass').value,registry:$('lhost').value});
  $('catPass').value='';
