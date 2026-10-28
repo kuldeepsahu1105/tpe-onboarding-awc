@@ -1,117 +1,129 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><title>Cloudera partner third-party engine onboarding</title>
 <style>
-:root{--b:#FF8400;--bg:#f7f6f4;--t:#1B1B1B}
-*{box-sizing:border-box}body{margin:0;font:17px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--t)}
-header{background:#1B1B1B;color:#fff;padding:16px 24px;font-size:20px}
-header b{color:#FF8400}
-.start{max-width:960px;margin:16px auto 0;padding:0 16px;color:#1B1B1B}
-nav{display:flex;flex-wrap:wrap;gap:4px;padding:0 24px;background:#fff;border-bottom:1px solid #ddd}
-nav button{border:0;background:none;padding:12px 16px;cursor:pointer;font-size:16px;color:#1B1B1B;border-bottom:3px solid transparent}
-nav button.on{border-color:#FF8400;color:#FF8400;font-weight:700}
-code{font-family:ui-monospace,monospace;font-size:0.92em}
-main{max-width:960px;margin:20px auto;padding:0 16px}
-.card{background:#fff;border:1px solid #e1e4e8;border-radius:8px;padding:20px;margin-bottom:16px}
-input,select,textarea{width:100%;max-width:100%;padding:10px;border:1px solid #bbb;border-radius:6px;font:inherit;background:#fff;color:#1B1B1B}
-textarea{font-family:ui-monospace,monospace;font-size:14px;min-height:260px}
-button.p{background:#FF8400;color:#1B1B1B;border:0;padding:10px 18px;border-radius:6px;cursor:pointer;font-size:16px;font-weight:700}
-button.s{background:#fff;color:#1B1B1B;border:1px solid #999;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:16px}
+*{box-sizing:border-box}
+@font-face{font-family:"Source Sans 3";src:url("/fonts/SourceSans3-Regular.otf") format("opentype");font-weight:400;font-style:normal}
+@font-face{font-family:"Source Sans 3";src:url("/fonts/SourceSans3-Bold.otf") format("opentype");font-weight:600;font-style:normal}
+body{margin:0;background:#F5F6F8;color:#1B1B1B;font-family:"Source Sans 3","Source Sans Pro","Helvetica Neue",Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;font-weight:400}
+.shell{max-width:1100px;margin:0 auto;padding:0 24px}
+header{background:#1B1B1B;height:64px}
+header .shell{height:64px;display:flex;align-items:center;gap:16px}
+header img{height:22px;width:auto;display:block}
+header h1{margin:0;color:#fff;font-size:20px;font-weight:600;line-height:1.2}
+.sub{margin:16px auto 0;color:#5C6570;font-size:15px}
+nav.shell{display:flex;flex-wrap:nowrap;gap:8px;margin-top:8px;border-bottom:1px solid #E4E6EB}
+nav button{flex:0 0 auto;border:0;background:none;padding:12px 4px;margin-right:20px;cursor:pointer;font-size:14px;font-weight:400;color:#1B1B1B;border-bottom:3px solid transparent;white-space:nowrap}
+nav button.on{border-bottom-color:#FF8400;font-weight:600}
+main.shell{margin-top:16px;margin-bottom:32px}
+.card{background:#fff;border:1px solid #E4E6EB;border-radius:8px;padding:24px}
+.track{height:3px;background:#E4E6EB;border-radius:2px;margin-bottom:24px}
+.track>div{height:3px;background:#FF8400;width:0}
+.session{display:flex;align-items:center;gap:12px}
+.session label{margin:0;font-weight:600;white-space:nowrap}
+.session input{width:240px;flex:0 0 240px;height:40px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid #C5C9D1;border-radius:6px;font-family:inherit;font-size:14px;line-height:1.45;background:#fff;color:#1B1B1B}
+textarea{font-family:ui-monospace,monospace;font-size:14px;min-height:220px}
+button{height:40px;border-radius:6px;font-family:inherit;font-size:14px;font-weight:600;line-height:1.45;cursor:pointer}
+button.p{background:#FF8400;color:#1B1B1B;border:0;padding:0 16px}
+button.p:hover{background:#E07000}
+button.s{background:#fff;color:#1B1B1B;border:1px solid #C5C9D1;padding:0 14px}
 input:focus,select:focus,textarea:focus,button:focus{outline:2px solid #FF8400;outline-offset:2px}
 button.p:focus{outline-color:#1B1B1B}
-.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}.hide{display:none}
-.bar{height:8px;background:#e5e7eb;border-radius:4px}.bar>div{height:100%;background:#FF8400;border-radius:4px}
-.help{color:#5c6570;font-size:15px;margin:6px 0;white-space:pre-wrap}
-.kicker{font-weight:700;margin:0 0 4px}
-.err{color:#b00020}.ok{color:#0a7d33}.warn{color:#9a6700}
+.row{display:flex;align-items:center;gap:12px;margin-top:16px}
+.hide{display:none}
+.help{color:#5C6570;font-size:14px;line-height:1.45;margin:8px 0 0}
+h3{margin:20px 0 8px;font-size:18px;font-weight:600;line-height:1.45}
+.actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:16px}
+.actions button{height:40px}
+label{font-weight:600;display:block;margin-top:16px}
+.err{color:#b00020;margin:8px 0 0}.ok{color:#0a7d33}.warn{color:#9a6700}
 pre{background:#1B1B1B;color:#f2f2f2;padding:12px;border-radius:6px;overflow:auto;max-height:420px;font-size:13px;white-space:pre-wrap;word-break:break-word}
-.tabs{display:flex;flex-wrap:wrap}.tabs button{margin:0 4px 4px 0}.tabs button.on{background:#1B1B1B;color:#fff}
-label{font-weight:700;display:block;margin-top:12px}
-.grid2{display:grid;grid-template-columns:1fr;gap:16px}
-table.jobs{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
-table.jobs th,table.jobs td{border-bottom:1px solid #e1e4e8;text-align:left;padding:6px 8px;vertical-align:top}
-@media(max-width:640px){header,nav{padding-left:16px;padding-right:16px}.row button{width:100%}}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}.tabs button.on{background:#1B1B1B;color:#fff}
+table.jobs{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}
+table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padding:8px;vertical-align:top}
 </style></head><body>
-<header>Cloudera partner third-party engine onboarding</header>
-<p class="start">TPE onboarding for Anywhere Cloud (AWC). You finish with a product folder (an engine, the product definition) and an install guide (a blueprint) a customer can deploy. Those files are written on this computer first. Nothing is pushed to an image registry and nothing is installed into a cluster until you run a publish command.</p>
-<nav id="nav">
+<header>
+ <div class="shell">
+  <img src="/cloudera-logo.png" alt="Cloudera" height="22">
+  <h1>Cloudera partner third-party engine onboarding</h1>
+ </div>
+</header>
+<p class="shell sub">TPE onboarding for Anywhere Cloud (AWC).</p>
+<nav id="nav" class="shell">
  <button data-t="guided" class="on">Guided questions</button>
  <button data-t="yaml">Paste input.yaml</button>
  <button data-t="bp">Blueprint (multi-engine)</button>
  <button data-t="publish">Publish &amp; OCI</button>
  <button data-t="catalog">OCI catalog</button>
 </nav>
-<main>
+<main class="shell">
 <section id="guided" class="card">
- <p class="help"><b>What it does.</b> Writes each answer into a session file on this computer.</p>
- <p class="help"><b>Impact.</b> You keep a setup you can resume. It does not push images or charts, and it does not install into a cluster.</p>
- <p class="help">Same questions in the terminal, from awc_onboarding: <code>./awc wizard</code></p>
- <div class="row" style="margin-top:0"><label style="margin:0">This setup</label>
-  <input id="sid" value="my-engine" style="max-width:240px">
+ <div class="track"><div id="prog"></div></div>
+ <div class="session"><label for="sid">This setup</label>
+  <input id="sid" value="my-engine">
   <button class="s" onclick="loadQ()">Start / resume</button>
   <button class="s" onclick="resetS()">Reset</button></div>
- <p class="help"><b>Start / resume.</b> Opens the saved setup for this name. Safe to repeat. <b>Reset.</b> Deletes that session file on this computer only. It does not touch a cluster or a registry.</p>
- <div class="bar" style="margin-top:14px"><div id="prog" style="width:0"></div></div>
  <div id="qbox"></div>
 </section>
 <section id="yaml" class="card hide">
- <p class="help"><b>What it does.</b> Validates the YAML in the box and, if the check passes, builds the product files in the browser.</p>
- <p class="help"><b>Impact.</b> You get a file list and a zip. A failed check publishes nothing and the error says what to fix. It does not push to a registry or install into a cluster. Safe to repeat.</p>
- <p class="help">Same check from awc_onboarding: <code>./awc build file.input.yaml</code></p>
- <div class="row" style="margin-top:0"><select id="exsel" onchange="loadEx('yamlta',this)"></select></div>
- <p class="help"><b>Load an example.</b> Fills the box with a finished YAML answer. It does not write a bundle and does not publish. Safe to repeat.</p>
+ <label for="exsel">Load an example</label>
+ <select id="exsel" onchange="loadEx('yamlta',this)"></select>
  <p class="help">Only the fields you know are needed; everything optional gets a default.</p>
  <textarea id="yamlta" placeholder="partner: {id: neo4j, owner: \"Neo4j, Inc.\"}&#10;engine: {displayName: Neo4j, description: \"Graph database\", template: helm-simple}&#10;helm: {repoUrl: \"https://helm.neo4j.com/neo4j\", chart: neo4j, version: \"5.26.0\"}&#10;(or pick a ready-made example above)"></textarea>
  <div class="row"><button class="p" onclick="runYaml()">Generate &amp; validate</button></div>
- <p class="help"><b>Generate &amp; validate.</b> Checks the YAML and writes the product files when the check passes. If it fails, nothing is published and the error says what to fix.</p>
+ <p class="help">Checks the YAML and writes the product files on this computer if the check passes. A failed check publishes nothing. It does not push to a registry.</p>
 </section>
 <section id="bp" class="card hide">
- <p class="help"><b>What it does.</b> Builds one install guide (a blueprint) from the product YAML you list. An engine is the product definition.</p>
- <p class="help"><b>Impact.</b> You get one blueprint file set and a check result. Entries marked existing are reused, not installed again. It does not push images or install into a cluster.</p>
- <p class="help">Same step from awc_onboarding: <code>./awc blueprint blueprint.input.yaml</code></p>
- <p class="help">One Blueprint = one app. List your engines (each its own input.yaml) and/or existing engines already on the cluster.</p>
+ <p class="help">One blueprint is one install guide. List your products, each in its own YAML, and any engines already on the cluster.</p>
  <label>blueprint.input.yaml</label><textarea id="bpta" style="min-height:200px"></textarea>
  <label>Engine input files referenced above</label><div id="engs"></div>
  <div class="row"><button class="s" onclick="addEng()">+ Add engine file</button>
  <button class="s" onclick="loadBpEx()">Load DataSpark example</button>
  <button class="p" onclick="runBp()">Compose &amp; validate</button></div>
- <p class="help"><b>+ Add engine file.</b> Adds another YAML box. It does not write a file until you compose.</p>
- <p class="help"><b>Load DataSpark example.</b> Fills the boxes with a finished answer. It does not publish. Safe to repeat.</p>
- <p class="help"><b>Compose &amp; validate.</b> Writes one install guide from the products listed and checks it. Existing products on the cluster are referenced, not installed again.</p>
+ <p class="help">Writes one install guide from the products listed and checks it on this computer. Existing engines are reused, not installed again. Nothing is pushed.</p>
 </section>
 <section id="publish" class="card hide">
- <p class="help"><b>What it does.</b> Stage bundle writes product YAML on this computer. Queue validate, Queue mirror, and Queue publish only add a job row.</p>
- <p class="help"><b>Impact.</b> Local files stay on this computer. These buttons do not push to an image registry and do not install into a cluster. Partner Launchpad is not connected here, so a queue click sends nothing. Safe to repeat.</p>
- <p class="help">A real mirror or publish, from the repo root: <code>make mirror-engine DIR=&lt;folder&gt;</code> then <code>make publish-engine DIR=&lt;folder&gt;</code>. Add <code>PUSH=1 APPROVE_PUBLISH=1</code> only when you mean to push.</p>
- <label>Image registry</label>
- <input id="lreg" placeholder="registry.example.com/your-namespace" oninput="updateNs()">
- <p class="help">Optional. Leave this empty until you publish. Any registry host works. It is not tied to one cloud.</p>
- <p class="help">Folder on the registry (namespace): <span id="lns">blank until you type a registry</span></p>
- <label>Short name</label>
- <input id="lslug" placeholder="neo4j" oninput="syncProductId()">
- <p id="lslugErr" class="err"></p>
- <p class="help">Folder name for the product definition (an engine). Lowercase letters and hyphens, for example neo4j.</p>
- <label>Product id</label>
- <input id="lpid" placeholder="partner-neo4j">
- <p class="help">Launchpad partner id. Starts as partner- plus the short name. Not sent from this screen.</p>
- <label>This setup</label>
- <input id="lsess" value="my-engine">
- <p class="help">Session name for the saved answers. A launchpad worker would use partners/&lt;short name&gt;/.</p>
- <div class="row">
-  <button class="s" onclick="stageBundle()">Stage bundle</button>
-  <button class="s" onclick="queueJob('validate')">Queue validate</button>
-  <button class="s" onclick="queueJob('mirror')">Queue mirror</button>
-  <button class="p" onclick="queueJob('publish')">Queue publish</button>
+ <label for="lhost">Registry host</label>
+ <input id="lhost" placeholder="registry.example.com" autocomplete="off">
+ <p class="help">Where the images will be pushed. Any registry. Not tied to one cloud.</p>
+ <label for="lrepo">Repository name</label>
+ <input id="lrepo" placeholder="your-namespace/product" autocomplete="off">
+ <p class="help">The repository path on that host.</p>
+ <label for="limage">Image name</label>
+ <input id="limage" placeholder="neo4j" autocomplete="off">
+ <p class="help">Image name starts as the folder name from the first step. Change it if the image name is different.</p>
+ <label for="ltag">Tag</label>
+ <input id="ltag" placeholder="1.0.0" autocomplete="off">
+ <p class="help">The image tag. Nothing is pushed until host, repository, image name, and tag are all set.</p>
+ <label for="luser">Registry username</label>
+ <input id="luser" autocomplete="off">
+ <label for="lpass">Registry password or token</label>
+ <input id="lpass" type="password" autocomplete="new-password" value="">
+ <p id="lneed" class="help">Required to push. The password is not saved.</p>
+ <details>
+  <summary>Advanced</summary>
+  <label for="lpid">Launchpad id</label>
+  <input id="lpid" placeholder="partner-neo4j" autocomplete="off">
+  <label for="lsess">Local save name</label>
+  <input id="lsess" value="my-engine" autocomplete="off">
+ </details>
+ <div class="actions">
+  <button class="s" type="button" onclick="stageBundle()">Create local files</button>
+  <button class="s" type="button" onclick="checkFiles()">Check files</button>
+  <button class="s" type="button" onclick="copyImages()">Copy images</button>
+  <button class="p" type="button" onclick="publishProduct()">Publish the product</button>
  </div>
- <p class="help"><b>Stage bundle.</b> Generates the YAML bundle locally. Impact: a succeeded row and a file count. Does not push.</p>
- <p class="help"><b>Queue publish.</b> Records a job only. Impact: nothing is uploaded, and no password is stored. The row says Partner Launchpad is not connected.</p>
- <div class="row"><button class="s" onclick="refreshJobs()">Refresh status</button></div>
+ <p class="help">Create local files writes the product folder on this computer. Does not upload anything.</p>
+ <p class="help">Check files checks the YAML. Does not upload.</p>
+ <p class="help">Copy images pushes the image to registry host / repository name : tag. Nothing is copied if any of those, or the username or password, is empty.</p>
+ <p class="help">Publish the product sends the install guide after the image exists. Partner Launchpad is not connected, so nothing is sent.</p>
+ <div class="row"><button class="s" type="button" onclick="refreshJobs()">Refresh status</button></div>
+ <p class="help">Updates the job list on this page.</p>
  <p id="lmsg" class="help"></p>
  <table class="jobs"><thead><tr><th>When</th><th>Type</th><th>Status</th><th>Job id</th></tr></thead><tbody id="jobs"></tbody></table>
 </section>
 <section id="catalog" class="card hide">
  <h3>OCI program catalog</h3>
- <p class="help"><b>What it does.</b> Load / refresh asks for partner products and images for the registry you typed.</p>
- <p class="help"><b>Impact.</b> This checkout does not call Partner Launchpad, so the lists stay empty. The password is not stored and no registry is queried. Safe to repeat.</p>
  <div class="row">
   <input id="catEmail" placeholder="Launchpad email" autocomplete="off" style="max-width:240px">
   <input id="catPass" type="password" placeholder="Launchpad password" autocomplete="new-password" value="" style="max-width:240px">
@@ -134,8 +146,8 @@ const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringif
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x==b));
  ['guided','yaml','bp','publish','catalog'].forEach(t=>$(t).classList.toggle('hide',t!=b.dataset.t));
- if(b.dataset.t==='publish'&&!$('lsess').value)$('lsess').value=$('sid').value;
- if(b.dataset.t==='catalog'){$('catReg').textContent=$('lreg').value.trim()}
+ if(b.dataset.t==='publish') fillImageFromFolder();
+ if(b.dataset.t==='catalog'){$('catReg').textContent=($('lhost').value||'').trim()}
  $('result').classList.add('hide')});
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const PLAIN={'partner.id':'Short name','partner.owner':'Who makes this product','engine.displayName':'Name shoppers see','engine.description':'What the product does','engine.template':'How the product is packaged','publish.destinationRegistry':'Image registry, optional','publish.namespace':'Folder on the registry'};
@@ -167,6 +179,7 @@ async function submitQ(){
  if(cur.required&&v===''){$('qe').textContent='This question needs an answer. Type it in the field above to continue.';return}
  const r=await api('/api/answer',{session:$('sid').value,id:cur.id,value:v});
  if(r.error){$('qe').textContent=r.error;return}
+ if(cur.id==='partner.id'){window._folder=String(v).trim(); fillImageFromFolder(); const id=$('lpid'); if(id&&(!id.value||id.value.startsWith('partner-'))) id.value=window._folder?('partner-'+window._folder):'';}
  if(cur.id==='dependencies.hasAny'&&v===true)return depForm();
  loadQ()}
 function depForm(){
@@ -201,14 +214,20 @@ function show(r){const el=$('result');el.classList.remove('hide');
 function tab(i){$('fv').textContent=window._f[window._n[i]];document.querySelectorAll('.tabs button').forEach((b,j)=>b.classList.toggle('on',i==j))}
 function dl(){const b=atob(window._z),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);
  const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([a],{type:'application/zip'}));l.download='awc-bundle.zip';l.click()}
-function updateNs(){
- const v=$('lreg').value.trim();const i=v.indexOf('/');
- $('lns').textContent=i>=0&&v.slice(i+1)?v.slice(i+1):'blank until you type a registry';
- if($('catReg'))$('catReg').textContent=v}
-function syncProductId(){
- const slug=$('lslug').value.trim();
- const cur=$('lpid').value.trim();
- if(!cur||cur.startsWith('partner-'))$('lpid').value=slug?('partner-'+slug):''}
+function fillImageFromFolder(){
+ const name=window._folder||'';
+ const image=$('limage');
+ if(image&&!image.value.trim()&&name) image.value=name}
+function pushCoords(){
+ return ['lhost','lrepo','limage','ltag','luser','lpass'].map(id=>$(id).value.trim())}
+function pushReady(){
+ const [host,repo,image,tag,user,pass]=pushCoords();
+ if(host&&repo&&image&&tag&&user&&pass) return true;
+ $('lneed').textContent='Required to push. The password is not saved.';
+ $('lmsg').textContent='Required to push. The password is not saved.';
+ $('lmsg').className='err';
+ return false}
+function clearRegistryPassword(){ $('lpass').value='' }
 function paintJobs(jobs){
  $('jobs').innerHTML=(jobs||[]).map(j=>`<tr><td>${esc(j.when)}</td><td>${esc(j.type)}</td><td class="${j.status==='succeeded'?'ok':'err'}">${esc(j.status)}</td><td>${esc(j.id)}</td></tr>`).join('');
  const latest=(jobs||[])[0];
@@ -216,20 +235,27 @@ function paintJobs(jobs){
  $('lmsg').className=latest&&latest.status==='succeeded'?'ok help':'err'}
 async function refreshJobs(){const r=await api('/api/launchpad/jobs');paintJobs(r.jobs)}
 async function stageBundle(){
- $('lslugErr').textContent='';
- if(!$('lslug').value.trim()){$('lslugErr').textContent='Type a short name, using lowercase letters and hyphens, for example neo4j.';return}
- const r=await api('/api/launchpad/stage',{session:$('lsess').value,slug:$('lslug').value,registry:$('lreg').value});
+ const folder=window._folder||'';
+ if(!folder){$('lmsg').textContent='Set the folder name on the first step before creating files.';$('lmsg').className='err';return}
+ const r=await api('/api/launchpad/stage',{session:$('lsess').value,slug:folder});
  await refreshJobs();
  if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
-async function queueJob(action){
- if(!$('lslug').value.trim()){$('lslugErr').textContent='Type a short name, using lowercase letters and hyphens, for example neo4j.';return}
- const r=await api('/api/launchpad/queue',{action:action,slug:$('lslug').value,registry:$('lreg').value,username:'',password:''});
- await refreshJobs();
- if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
+async function checkFiles(){
+ const r=await api('/api/run-session',{session:$('lsess').value});
+ if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err';return}
+ $('lmsg').textContent='Check passed. Nothing was uploaded.';$('lmsg').className='ok'}
+async function copyImages(){
+ if(!pushReady()) return;
+ clearRegistryPassword();
+ $('lmsg').textContent='Nothing was copied. Partner Launchpad is not connected, so this page does not upload.';$('lmsg').className='err'}
+async function publishProduct(){
+ if(!pushReady()) return;
+ clearRegistryPassword();
+ $('lmsg').textContent='Partner Launchpad is not connected, so nothing is sent.';$('lmsg').className='err'}
 async function loadCatalog(){
- const r=await api('/api/launchpad/catalog',{username:$('catEmail').value,password:$('catPass').value,registry:$('lreg').value});
+ const r=await api('/api/launchpad/catalog',{username:$('catEmail').value,password:$('catPass').value,registry:$('lhost').value});
  $('catPass').value='';
- $('catReg').textContent=($('lreg').value||'').trim();
+ $('catReg').textContent=($('lhost').value||'').trim();
  $('partnerList').innerHTML='';
  $('catNote').textContent=r.message||r.error||'';
  $('partnerEmpty').textContent=(r.partners&&r.partners.length)?'':'No partner products listed.';
