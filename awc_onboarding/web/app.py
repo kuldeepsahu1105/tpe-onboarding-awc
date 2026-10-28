@@ -70,7 +70,7 @@ def launchpad_queue(action: str, username: str, password: str, registry: str, sl
         job = _record_job(action or "queue", "failed", f"Unknown queue action: {action}")
         return {"error": job["detail"], "job": job}
     if not (slug or "").strip():
-        job = _record_job(action, "failed", "Engine slug is required. Nothing was queued.")
+        job = _record_job(action, "failed", "Short name is required. Nothing was queued and nothing was pushed.")
         return {"error": job["detail"], "job": job}
     if not (registry or "").strip():
         job = _record_job(action, "failed", "Target registry is empty. Nothing was queued.")
@@ -90,7 +90,7 @@ def _stage_bundle(d: dict) -> dict:
     slug = (d.get("slug") or "").strip()
     session_name = (d.get("session") or "").strip()
     if not slug:
-        job = _record_job("stage", "failed", "Engine slug is required. Nothing was staged.")
+        job = _record_job("stage", "failed", "Short name is required. Nothing was written and nothing was pushed.")
         return {"error": job["detail"], "job": job}
     if not session_name:
         job = _record_job("stage", "failed", "Session name is required. Nothing was staged.")
@@ -109,17 +109,13 @@ def _stage_bundle(d: dict) -> dict:
 
 
 def launchpad_catalog(username: str, password: str, registry: str) -> dict:
-    """Catalog refresh never calls ECR. Empty credentials are a clear failure."""
-    if not _creds_present(username, password):
-        return {
-            "images": [],
-            "error": "Mission Control VPN username and password are required to refresh the program catalog. No registry was queried.",
-        }
-    path = (registry or "").strip()
-    where = path or "the target registry"
+    """Layout stays. This checkout does not call Partner Launchpad. The password is not stored."""
+    del username, password
     return {
         "images": [],
-        "message": f"No images in {where} yet. This checkout does not query ECR.",
+        "partners": [],
+        "registry": (registry or "").strip(),
+        "message": "Partner Launchpad is not connected in this checkout, so no list was loaded. The password was not stored and no registry was queried.",
     }
 
 
