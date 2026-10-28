@@ -8,3 +8,5 @@ marketplace. Works with or without AI (web UI, CLI wizard, MCP server).
 Before generating a bundle, follow the [configuration edit commands and parameter
 checklists](awc_onboarding/docs/ONBOARDING_GUIDE.md#edit-source-configuration-before-running)
 for YAML inputs, conditional settings, credentials, and offline validation.
+
+Partner engine package: [`bluemetrix-stms/`](bluemetrix-stms/README.md).

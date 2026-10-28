@@ -1,0 +1,21 @@
+# DRAFT. Not for a real push. STMS Helm chart and images are not published yet.
+# Mirror plan — consumed by mirror.sh (helm + skopeo).
+# Not an ACE CRD.
+#
+# mirror.sh exits non-zero while charts and images are empty or still
+# contain angle-bracket placeholders. Uncomment and replace the lines below
+# only when the chart and images exist. Do not commit a registry password.
+
+charts: []
+# - repository: "<helm-repo-url>"
+#   name: "<stms-chart-name>"
+#   version: "<chart-version>"
+#   destination: "oci://<your-registry>/<your-namespace>/charts"
+
+images: []
+# STMS management image.
+# - source: "<source-registry>/<stms-image>:<tag>"
+#   destination: "<your-registry>/<your-namespace>/<stms-image>:<tag>"
+# SecureToken agent sidecar (CDE pod template and Trino workers).
+# - source: "<source-registry>/<agent-sidecar-image>:<tag>"
+#   destination: "<your-registry>/<your-namespace>/<agent-sidecar-image>:<tag>"
