@@ -4,30 +4,31 @@
 *{box-sizing:border-box}
 @font-face{font-family:"Source Sans 3";src:url("/fonts/SourceSans3-Regular.otf") format("opentype");font-weight:400;font-style:normal}
 @font-face{font-family:"Source Sans 3";src:url("/fonts/SourceSans3-Bold.otf") format("opentype");font-weight:600;font-style:normal}
-body{margin:0;background:#F5F6F8;color:#1B1B1B;font-family:"Source Sans 3","Source Sans Pro","Helvetica Neue",Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;font-weight:400}
+body{margin:0;background:#f2f2f2;color:#1a1a1a;font-family:"Source Sans 3","Source Sans Pro","Helvetica Neue",Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;font-weight:400}
 .shell{max-width:1100px;margin:0 auto;padding:0 24px}
-header{background:#1B1B1B;height:64px}
+header{background:#fff;height:64px;border-bottom:2px solid #cedbe4}
 header .shell{height:64px;display:flex;align-items:center;gap:16px}
-header img{height:22px;width:auto;display:block}
-header h1{margin:0;color:#fff;font-size:20px;font-weight:600;line-height:1.2}
+header img{height:28px;width:auto;display:block}
+header h1{margin:0;color:#1a1a1a;font-size:20px;font-weight:600;line-height:1.2}
 .sub{margin:16px auto 0;color:#5C6570;font-size:15px}
 nav.shell{display:flex;flex-wrap:nowrap;gap:8px;margin-top:8px;border-bottom:1px solid #E4E6EB}
 nav button{flex:0 0 auto;border:0;background:none;padding:12px 4px;margin-right:20px;cursor:pointer;font-size:14px;font-weight:400;color:#1B1B1B;border-bottom:3px solid transparent;white-space:nowrap}
-nav button.on{border-bottom-color:#FF8400;font-weight:600}
+nav button.on{border-bottom-color:#5555f9;color:#5555f9;font-weight:600}
 main.shell{margin-top:16px;margin-bottom:32px}
 .card{background:#fff;border:1px solid #E4E6EB;border-radius:8px;padding:24px}
-.track{height:3px;background:#E4E6EB;border-radius:2px;margin-bottom:24px}
-.track>div{height:3px;background:#FF8400;width:0}
+.track{height:3px;background:#cedbe4;border-radius:2px;margin-bottom:24px}
+.track>div{height:3px;background:#ff550d;width:0}
 .session{display:flex;align-items:center;gap:12px}
 .session label{margin:0;font-weight:600;white-space:nowrap}
 .session input{width:240px;flex:0 0 240px;height:40px}
-input,select,textarea{width:100%;padding:8px 10px;border:1px solid #C5C9D1;border-radius:6px;font-family:inherit;font-size:14px;line-height:1.45;background:#fff;color:#1B1B1B}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #cedbe4;border-radius:6px;font-family:inherit;font-size:14px;line-height:1.45;background:#fff;color:#1a1a1a}
 textarea{font-family:ui-monospace,monospace;font-size:14px;min-height:220px}
 button{height:40px;border-radius:6px;font-family:inherit;font-size:14px;font-weight:600;line-height:1.45;cursor:pointer}
-button.p{background:#FF8400;color:#1B1B1B;border:0;padding:0 16px}
-button.p:hover{background:#E07000}
-button.s{background:#fff;color:#1B1B1B;border:1px solid #C5C9D1;padding:0 14px}
-input:focus,select:focus,textarea:focus,button:focus{outline:2px solid #FF8400;outline-offset:2px}
+button.p{background:#ff550d;color:#fff;border:0;padding:0 16px}
+button.p:hover{background:#e04c0c}
+button.s{background:#fff;color:#1a1a1a;border:1px solid #cedbe4;padding:0 14px}
+a{color:#413cc3}
+input:focus,select:focus,textarea:focus,button:focus{outline:2px solid #5555f9;outline-offset:3px}
 button.p:focus{outline-color:#1B1B1B}
 .row{display:flex;align-items:center;gap:12px;margin-top:16px}
 .hide{display:none}
@@ -38,7 +39,7 @@ h3{margin:20px 0 8px;font-size:18px;font-weight:600;line-height:1.45}
 label{font-weight:600;display:block;margin-top:16px}
 .err{color:#b00020;margin:8px 0 0}.ok{color:#0a7d33}.warn{color:#9a6700}
 pre{background:#1B1B1B;color:#f2f2f2;padding:12px;border-radius:6px;overflow:auto;max-height:420px;font-size:13px;white-space:pre-wrap;word-break:break-word}
-.tabs{display:flex;flex-wrap:wrap;gap:8px}.tabs button.on{background:#1B1B1B;color:#fff}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}.tabs button.on{background:#fff;color:#5555f9;border-bottom:3px solid #5555f9}
 table.jobs{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}
 table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padding:8px;vertical-align:top}
 </style></head><body>

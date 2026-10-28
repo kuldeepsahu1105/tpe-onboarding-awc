@@ -177,6 +177,13 @@ class Handler(BaseHTTPRequestHandler):
         qs = {k: v[0] for k, v in parse_qs(url.query).items()}
         if url.path == "/":
             return self._send(INDEX.read_bytes(), ctype="text/html; charset=utf-8")
+        if url.path == "/cloudera-logo.png":
+            logo = INDEX.with_name("cloudera-logo.png")
+            return self._send(logo.read_bytes(), ctype="image/png")
+        if url.path.startswith("/fonts/") and ".." not in url.path:
+            font = (INDEX.parent / url.path.lstrip("/")).resolve()
+            if font.is_file() and font.parent == (INDEX.parent / "fonts").resolve():
+                return self._send(font.read_bytes(), ctype="font/ttf")
         if url.path == "/api/examples":
             names = sorted(str(p.relative_to(EXAMPLES)) for p in EXAMPLES.rglob("*.yaml"))
             return self._send(names)
@@ -190,6 +197,7 @@ class Handler(BaseHTTPRequestHandler):
             question = s.next_question()
             done, total = s.progress()
             return self._send({"done": question is None, "answered": done, "total": total,
+                               "shortName": q._get(s.answers, "partner.id") or "",
                                "question": question and _qpayload(question, s.answers)})
         if url.path == "/api/launchpad/jobs":
             with _jobs_lock:
