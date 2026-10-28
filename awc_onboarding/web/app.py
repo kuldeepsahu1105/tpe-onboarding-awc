@@ -13,8 +13,13 @@ import argparse
 import base64
 import io
 import json
+import os
+import signal
+import subprocess
+import sys
 import tempfile
 import threading
+import time
 import uuid
 import zipfile
 from datetime import datetime, timezone
@@ -269,13 +274,69 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
+_WATCH_SUFFIXES = {".py", ".html", ".css", ".js"}
+_SKIP_DIRS = {".venv", "sessions", "__pycache__", "output", ".git"}
+
+
+def _watch_stamp(root: Path) -> tuple:
+    stamps = []
+    app_py = root / "web" / "app.py"
+    for path in root.rglob("*"):
+        if not path.is_file() or path.suffix not in _WATCH_SUFFIXES:
+            continue
+        if any(part in _SKIP_DIRS for part in path.parts):
+            continue
+        if path.suffix == ".py" and path != app_py:
+            continue
+        stamps.append((str(path), path.stat().st_mtime_ns))
+    return tuple(stamps)
+
+
+def _serve(host: str, port: int) -> None:
+    try:
+        ThreadingHTTPServer((host, port), Handler).serve_forever()
+    except OSError as exc:
+        if exc.errno == 48:
+            print("Port 8765 is already in use", file=sys.stderr)
+            raise SystemExit(1) from None
+        raise
+
+
+def _reload(host: str, port: int) -> None:
+    root = Path(__file__).resolve().parents[1]
+    while True:
+        env = os.environ.copy()
+        env["AWC_DEV_CHILD"] = "1"
+        proc = subprocess.Popen(
+            [sys.executable, "-m", "web.app", "--host", host, "--port", str(port)],
+            cwd=str(root),
+            env=env,
+            start_new_session=True,
+        )
+        stamp = _watch_stamp(root)
+        try:
+            while proc.poll() is None:
+                time.sleep(0.4)
+                if _watch_stamp(root) != stamp:
+                    os.killpg(proc.pid, signal.SIGTERM)
+                    proc.wait(timeout=5)
+                    break
+            else:
+                raise SystemExit(proc.returncode or 0)
+        except KeyboardInterrupt:
+            os.killpg(proc.pid, signal.SIGTERM)
+            raise SystemExit(0) from None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
     args = ap.parse_args()
-    print(f"AWC Onboarding UI: http://{args.host}:{args.port}")
-    ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
+    if os.environ.get("AWC_DEV_CHILD") == "1":
+        _serve(args.host, args.port)
+        return
+    _reload(args.host, args.port)
 
 
 if __name__ == "__main__":
