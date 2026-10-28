@@ -103,8 +103,9 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  <p id="lneed" class="help">Required to push. The password is not saved.</p>
  <details>
   <summary>Advanced</summary>
-  <label for="lpid">Catalog id</label>
+  <label for="lpid">Id on the product list</label>
   <input id="lpid" placeholder="partner-neo4j" autocomplete="off">
+  <p class="help">Filled in for you. This is how the product is named on the list customers install from.</p>
   <label for="lsess">Local save name</label>
   <input id="lsess" value="my-engine" autocomplete="off">
  </details>
@@ -117,20 +118,21 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  <p class="help">Create local files writes the product folder on this computer. Does not upload anything.</p>
  <p class="help">Check files checks the YAML. Does not upload.</p>
  <p class="help">Copy images pushes the image to registry host / repository name : tag. Nothing is copied if any of those, or the username or password, is empty.</p>
- <p class="help">Publish the product sends the install guide to the catalog after the image exists. The catalog service is not connected yet, so this only updates the list on this page.</p>
+ <p class="help">Publish the product sends the install guide after the image exists. The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer.</p>
  <div class="row"><button class="s" type="button" onclick="refreshJobs()">Refresh status</button></div>
  <p class="help">Updates the job list on this page.</p>
  <p id="lmsg" class="help"></p>
  <table class="jobs"><thead><tr><th>When</th><th>Type</th><th>Status</th><th>Job id</th></tr></thead><tbody id="jobs"></tbody></table>
 </section>
 <section id="catalog" class="card hide">
- <h3>OCI program catalog</h3>
+ <p class="help">This is the list of products a customer can install in Anywhere Cloud.</p>
  <div class="row">
-  <input id="catEmail" placeholder="Catalog email" autocomplete="off" style="max-width:240px">
-  <input id="catPass" type="password" placeholder="Catalog password" autocomplete="new-password" value="" style="max-width:240px">
+  <input id="catEmail" placeholder="Email for the product list" autocomplete="off" style="max-width:240px">
+  <input id="catPass" type="password" placeholder="Password for the product list" autocomplete="new-password" value="" style="max-width:240px">
   <button class="p" onclick="loadCatalog()">Load / refresh</button>
  </div>
- <p id="catNote" class="help">Used only to load the catalog list. Not saved.</p>
+ <p id="catNote" class="help">Loads the list of products customers can install. Not saved. You do not need this to create files on this computer.</p>
+ <p id="catStatus" class="help"></p>
  <h4>Partner engines</h4>
  <p class="help">An engine is the product definition.</p>
  <p id="partnerEmpty" class="help">No partner products listed.</p>
@@ -248,17 +250,17 @@ async function checkFiles(){
 async function copyImages(){
  if(!pushReady()) return;
  clearRegistryPassword();
- $('lmsg').textContent='Nothing was copied. The catalog service is not connected yet, so this only updates the list on this page.';$('lmsg').className='err'}
+ $('lmsg').textContent='Nothing was copied. The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer.';$('lmsg').className='err'}
 async function publishProduct(){
  if(!pushReady()) return;
  clearRegistryPassword();
- $('lmsg').textContent='The catalog service is not connected yet, so this only updates the list on this page.';$('lmsg').className='err'}
+ $('lmsg').textContent='The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer.';$('lmsg').className='err'}
 async function loadCatalog(){
  const r=await api('/api/launchpad/catalog',{username:$('catEmail').value,password:$('catPass').value,registry:$('lhost').value});
  $('catPass').value='';
  $('catReg').textContent=($('lhost').value||'').trim();
  $('partnerList').innerHTML='';
- $('catNote').textContent=r.message||r.error||'';
+ $('catStatus').textContent=r.message||r.error||'';
  $('partnerEmpty').textContent=(r.partners&&r.partners.length)?'':'No partner products listed.';
  $('imageEmpty').textContent=(r.images&&r.images.length)?'':'No images listed yet.'}
 async function loadEx(t,sel){if(sel.value)$(t).value=(await api('/api/example?name='+encodeURIComponent(sel.value))).text}
