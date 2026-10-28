@@ -20,12 +20,19 @@ button.s{background:#fff;border:1px solid #999;padding:8px 14px;border-radius:6p
 pre{background:#0d1117;color:#e6edf3;padding:12px;border-radius:6px;overflow:auto;max-height:420px;font-size:12.5px}
 .tabs button{margin:0 4px 4px 0}.tabs button.on{background:#1b2430;color:#fff}
 label{font-weight:600;display:block;margin-top:10px}
+.grid2{display:grid;grid-template-columns:1.3fr .7fr;gap:16px}
+table.jobs{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+table.jobs th,table.jobs td{border-bottom:1px solid #e1e4e8;text-align:left;padding:6px 8px;vertical-align:top}
+input[type=password]{font:inherit}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}}
 </style></head><body>
 <header><b>AWC</b> Engine &amp; Blueprint Onboarding</header>
 <nav id="nav">
  <button data-t="guided" class="on">Guided questions</button>
  <button data-t="yaml">Paste input.yaml</button>
  <button data-t="bp">Blueprint (multi-engine)</button>
+ <button data-t="publish">Publish &amp; OCI</button>
+ <button data-t="catalog">OCI catalog</button>
 </nav>
 <main>
 <section id="guided" class="card">
@@ -50,6 +57,55 @@ label{font-weight:600;display:block;margin-top:10px}
  <button class="s" onclick="loadBpEx()">Load DataSpark example</button>
  <button class="p" onclick="runBp()">Compose &amp; validate</button></div>
 </section>
+<section id="publish" class="card hide">
+ <p class="help">After Generate &amp; validate, mirror charts/images and publish the engine + blueprint to OCI (Partner Launchpad ECR). Same flow as mirror.sh, then publish.sh --push. This tab does not call that registry.</p>
+ <label>Target registry</label>
+ <input id="lreg" placeholder="&lt;account&gt;.dkr.ecr.&lt;region&gt;.amazonaws.com/&lt;namespace&gt;" oninput="updateNs()">
+ <p class="help">Schema v2 namespace: <span id="lns">—</span>. The namespace is the path after the registry host. It is not locked to one AWS account.</p>
+ <div class="grid2">
+  <div>
+   <label>Engine slug</label><input id="lslug" placeholder="neo4j">
+   <label>Launchpad partner id</label><input id="lpid" placeholder="partner-&lt;slug&gt;">
+  </div>
+  <div>
+   <label>Session</label><input id="lsess" value="my-engine">
+   <div class="row"><button class="s" onclick="applyEcrDefaults()">Apply ECR defaults</button></div>
+  </div>
+ </div>
+ <p class="help">Worker runs partners/&lt;slug&gt;/ in the engine repo (Neo4j pilot uses the directory name, for example neo4j, not the word engine).</p>
+ <div class="grid2">
+  <div>
+   <h3>Publish &amp; queue</h3>
+   <p class="help">Uses the Partner Launchpad API (same VPN credentials as Mission Control). Leave the password empty until you are at that step. This page never stores it.</p>
+   <label>Username</label><input id="luser" autocomplete="off">
+   <label>Password</label><input id="lpass" type="password" autocomplete="new-password" value="">
+   <div class="row">
+    <button class="s" onclick="stageBundle()">Stage bundle</button>
+    <button class="s" onclick="queueJob('validate')">Queue validate</button>
+    <button class="s" onclick="queueJob('mirror')">Queue mirror</button>
+    <button class="p" onclick="queueJob('publish')">Queue publish</button>
+   </div>
+   <div class="row"><button class="s" onclick="refreshJobs()">Refresh status</button></div>
+   <p id="lmsg" class="help"></p>
+   <table class="jobs"><thead><tr><th>When</th><th>Type</th><th>Status</th><th>Job id</th></tr></thead><tbody id="jobs"></tbody></table>
+  </div>
+  <div>
+   <h3>Program catalog (ECR)</h3>
+   <p class="help">Images in the target registry after a successful publish.</p>
+   <button class="s" onclick="refreshCatalog()">Refresh catalog</button>
+   <p id="catEmpty" class="help">No images in the program catalog yet.</p>
+   <ul id="catList"></ul>
+  </div>
+ </div>
+</section>
+<section id="catalog" class="card hide">
+ <h3>OCI catalog</h3>
+ <p class="help">Same program catalog as Publish &amp; OCI. Refresh reads the target registry field. Empty VPN credentials stop the refresh. This checkout does not query ECR, so a successful credential check still lists no images.</p>
+ <p class="help">Target registry: <span id="catReg">—</span></p>
+ <div class="row"><button class="s" onclick="refreshCatalog()">Refresh catalog</button></div>
+ <p id="catEmpty2" class="help">No images in the program catalog yet.</p>
+ <ul id="catList2"></ul>
+</section>
 <section id="result" class="card hide"></section>
 </main>
 <script>
@@ -57,7 +113,10 @@ const $=id=>document.getElementById(id);
 const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{});return r.json()};
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x==b));
- ['guided','yaml','bp'].forEach(t=>$(t).classList.toggle('hide',t!=b.dataset.t));$('result').classList.add('hide')});
+ ['guided','yaml','bp','publish','catalog'].forEach(t=>$(t).classList.toggle('hide',t!=b.dataset.t));
+ if(b.dataset.t==='publish'&&!$('lsess').value)$('lsess').value=$('sid').value;
+ if(b.dataset.t==='catalog'){$('catReg').textContent=$('lreg').value.trim()||'—'}
+ $('result').classList.add('hide')});
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let cur=null,prev=null;
 const backBtn=n=>n>0?'<button class="s" onclick="goBack()">&larr; Back</button>':'';
@@ -115,6 +174,41 @@ function show(r){const el=$('result');el.classList.remove('hide');
 function tab(i){$('fv').textContent=window._f[window._n[i]];document.querySelectorAll('.tabs button').forEach((b,j)=>b.classList.toggle('on',i==j))}
 function dl(){const b=atob(window._z),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);
  const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([a],{type:'application/zip'}));l.download='awc-bundle.zip';l.click()}
+function updateNs(){
+ const v=$('lreg').value.trim();const i=v.indexOf('/');
+ $('lns').textContent=i>=0&&v.slice(i+1)?v.slice(i+1):(v?'path after the registry host':'—');
+ if($('catReg'))$('catReg').textContent=v||'—'}
+function applyEcrDefaults(){
+ const slug=$('lslug').value.trim();
+ $('lreg').value='<account>.dkr.ecr.<region>.amazonaws.com/partner-launchpad/awc-marketplace';
+ if(slug)$('lpid').value='partner-'+slug;
+ updateNs()}
+function lpBody(){return{session:$('lsess').value,slug:$('lslug').value,partnerId:$('lpid').value,registry:$('lreg').value,username:$('luser').value,password:$('lpass').value}}
+function paintJobs(jobs){
+ $('jobs').innerHTML=(jobs||[]).map(j=>`<tr><td>${esc(j.when)}</td><td>${esc(j.type)}</td><td class="${j.status==='succeeded'?'ok':'err'}">${esc(j.status)}</td><td>${esc(j.id)}</td></tr>`).join('');
+ const latest=(jobs||[])[0];
+ $('lmsg').textContent=latest&&latest.detail?latest.detail:'';
+ $('lmsg').className=latest&&latest.status==='succeeded'?'ok help':'help'}
+async function refreshJobs(){const r=await api('/api/launchpad/jobs');paintJobs(r.jobs)}
+async function stageBundle(){
+ const r=await api('/api/launchpad/stage',{session:$('lsess').value,slug:$('lslug').value,registry:$('lreg').value});
+ await refreshJobs();if(r.error)$('lmsg').textContent=r.error}
+async function queueJob(action){
+ const body=lpBody();body.action=action;
+ const r=await api('/api/launchpad/queue',body);
+ $('lpass').value='';
+ await refreshJobs();if(r.error)$('lmsg').textContent=r.error}
+function paintCatalog(r){
+ const images=r.images||[];
+ const text=r.error||r.message||(images.length?'': 'No images in the program catalog yet.');
+ $('catEmpty').textContent=text;$('catEmpty2').textContent=text;
+ const items=images.map(n=>`<li>${esc(n)}</li>`).join('');
+ $('catList').innerHTML=items;$('catList2').innerHTML=items;
+ if($('catReg'))$('catReg').textContent=$('lreg').value.trim()||'—'}
+async function refreshCatalog(){
+ const r=await api('/api/launchpad/catalog',lpBody());
+ $('lpass').value='';
+ paintCatalog(r)}
 async function loadEx(t,sel){if(sel.value)$(t).value=(await api('/api/example?name='+encodeURIComponent(sel.value))).text}
 (async()=>{const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')&&!e.includes('/')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
 </script></body></html>
