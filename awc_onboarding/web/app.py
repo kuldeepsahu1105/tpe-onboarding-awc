@@ -45,7 +45,7 @@ _jobs_lock = threading.Lock()
 _jobs: list[dict] = []
 _QUEUE_ACTIONS = {"validate", "mirror", "publish"}
 _LAUNCHPAD_ABSENT = (
-    "The catalog service is not connected yet, so this only updates the list on this page. "
+    "The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer. "
     "The password was not stored or sent. "
     "Use mirror.sh, then publish.sh --push, from the engine directory."
 )
@@ -120,7 +120,7 @@ def launchpad_catalog(username: str, password: str, registry: str) -> dict:
         "images": [],
         "partners": [],
         "registry": (registry or "").strip(),
-        "message": "The catalog service is not connected yet, so this only updates the list on this page.",
+        "message": "The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer.",
     }
 
 
