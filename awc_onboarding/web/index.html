@@ -3,13 +3,14 @@
 <style>
 :root{--b:#FF8400;--bg:#f7f6f4;--t:#1B1B1B}
 *{box-sizing:border-box}body{margin:0;font:17px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--t)}
-header{background:#1B1B1B;color:#fff;padding:16px 24px}
-header .title{font-size:22px;font-weight:700}
-header .sub{display:block;margin-top:4px;color:#f2f2f2;font-size:15px;font-weight:400;max-width:42rem}
+header{background:#1B1B1B;color:#fff;padding:16px 24px;font-size:20px}
+header b{color:#FF8400}
+.start{max-width:960px;margin:16px auto 0;padding:0 16px;color:#1B1B1B}
 nav{display:flex;flex-wrap:wrap;gap:4px;padding:0 24px;background:#fff;border-bottom:1px solid #ddd}
 nav button{border:0;background:none;padding:12px 16px;cursor:pointer;font-size:16px;color:#1B1B1B;border-bottom:3px solid transparent}
-nav button.on{border-color:#FF8400;font-weight:700}
-main{max-width:42rem;margin:20px auto;padding:0 16px}
+nav button.on{border-color:#FF8400;color:#FF8400;font-weight:700}
+code{font-family:ui-monospace,monospace;font-size:0.92em}
+main{max-width:960px;margin:20px auto;padding:0 16px}
 .card{background:#fff;border:1px solid #e1e4e8;border-radius:8px;padding:20px;margin-bottom:16px}
 input,select,textarea{width:100%;max-width:100%;padding:10px;border:1px solid #bbb;border-radius:6px;font:inherit;background:#fff;color:#1B1B1B}
 textarea{font-family:ui-monospace,monospace;font-size:14px;min-height:260px}
@@ -30,10 +31,8 @@ table.jobs{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
 table.jobs th,table.jobs td{border-bottom:1px solid #e1e4e8;text-align:left;padding:6px 8px;vertical-align:top}
 @media(max-width:640px){header,nav{padding-left:16px;padding-right:16px}.row button{width:100%}}
 </style></head><body>
-<header>
- <div class="title">Cloudera partner setup</div>
- <span class="sub">AWC Engine &amp; Blueprint Onboarding. Answer the questions, paste a file, or compose several products. Done is a checked set of files you can download.</span>
-</header>
+<header>Cloudera partner setup</header>
+<p class="start">Start here. You finish with a product folder (an engine, the product definition) and an install guide (a blueprint) a customer can deploy. Those files are written on this computer first. Nothing is pushed to an image registry and nothing is installed into a cluster until you run a publish command.</p>
 <nav id="nav">
  <button data-t="guided" class="on">Guided questions</button>
  <button data-t="yaml">Paste input.yaml</button>
@@ -43,53 +42,89 @@ table.jobs th,table.jobs td{border-bottom:1px solid #e1e4e8;text-align:left;padd
 </nav>
 <main>
 <section id="guided" class="card">
- <div class="row" style="margin-top:0"><label style="margin:0">Session name</label>
+ <p class="help"><b>What it does.</b> Writes each answer into a session file on this computer.</p>
+ <p class="help"><b>Impact.</b> You keep a setup you can resume. It does not push images or charts, and it does not install into a cluster.</p>
+ <p class="help">Same questions in the terminal, from awc_onboarding: <code>./awc wizard</code></p>
+ <div class="row" style="margin-top:0"><label style="margin:0">This setup</label>
   <input id="sid" value="my-engine" style="max-width:240px">
   <button class="s" onclick="loadQ()">Start / resume</button>
   <button class="s" onclick="resetS()">Reset</button></div>
+ <p class="help"><b>Start / resume.</b> Opens the saved setup for this name. Safe to repeat. <b>Reset.</b> Deletes that session file on this computer only. It does not touch a cluster or a registry.</p>
  <div class="bar" style="margin-top:14px"><div id="prog" style="width:0"></div></div>
  <div id="qbox"></div>
 </section>
 <section id="yaml" class="card hide">
+ <p class="help"><b>What it does.</b> Validates the YAML in the box and, if the check passes, builds the product files in the browser.</p>
+ <p class="help"><b>Impact.</b> You get a file list and a zip. A failed check publishes nothing and the error says what to fix. It does not push to a registry or install into a cluster. Safe to repeat.</p>
+ <p class="help">Same check from awc_onboarding: <code>./awc build file.input.yaml</code></p>
  <div class="row" style="margin-top:0"><select id="exsel" onchange="loadEx('yamlta',this)"></select></div>
+ <p class="help"><b>Load an example.</b> Fills the box with a finished YAML answer. It does not write a bundle and does not publish. Safe to repeat.</p>
  <p class="help">Only the fields you know are needed; everything optional gets a default.</p>
  <textarea id="yamlta" placeholder="partner: {id: neo4j, owner: \"Neo4j, Inc.\"}&#10;engine: {displayName: Neo4j, description: \"Graph database\", template: helm-simple}&#10;helm: {repoUrl: \"https://helm.neo4j.com/neo4j\", chart: neo4j, version: \"5.26.0\"}&#10;(or pick a ready-made example above)"></textarea>
  <div class="row"><button class="p" onclick="runYaml()">Generate &amp; validate</button></div>
+ <p class="help"><b>Generate &amp; validate.</b> Checks the YAML and writes the product files when the check passes. If it fails, nothing is published and the error says what to fix.</p>
 </section>
 <section id="bp" class="card hide">
+ <p class="help"><b>What it does.</b> Builds one install guide (a blueprint) from the product YAML you list. An engine is the product definition.</p>
+ <p class="help"><b>Impact.</b> You get one blueprint file set and a check result. Entries marked existing are reused, not installed again. It does not push images or install into a cluster.</p>
+ <p class="help">Same step from awc_onboarding: <code>./awc blueprint blueprint.input.yaml</code></p>
  <p class="help">One Blueprint = one app. List your engines (each its own input.yaml) and/or existing engines already on the cluster.</p>
  <label>blueprint.input.yaml</label><textarea id="bpta" style="min-height:200px"></textarea>
  <label>Engine input files referenced above</label><div id="engs"></div>
  <div class="row"><button class="s" onclick="addEng()">+ Add engine file</button>
  <button class="s" onclick="loadBpEx()">Load DataSpark example</button>
  <button class="p" onclick="runBp()">Compose &amp; validate</button></div>
+ <p class="help"><b>+ Add engine file.</b> Adds another YAML box. It does not write a file until you compose.</p>
+ <p class="help"><b>Load DataSpark example.</b> Fills the boxes with a finished answer. It does not publish. Safe to repeat.</p>
+ <p class="help"><b>Compose &amp; validate.</b> Writes one install guide from the products listed and checks it. Existing products on the cluster are referenced, not installed again.</p>
 </section>
 <section id="publish" class="card hide">
- <p class="help">After Generate &amp; validate, copy charts and images, then publish with mirror.sh and publish.sh --push. The image registry is optional and stays blank until you are ready. Any registry works.</p>
+ <p class="help"><b>What it does.</b> Stage bundle writes product YAML on this computer. Queue validate, Queue mirror, and Queue publish only add a job row.</p>
+ <p class="help"><b>Impact.</b> Local files stay on this computer. These buttons do not push to an image registry and do not install into a cluster. Partner Launchpad is not connected here, so a queue click sends nothing. Safe to repeat.</p>
+ <p class="help">A real mirror or publish, from the repo root: <code>make mirror-engine DIR=&lt;folder&gt;</code> then <code>make publish-engine DIR=&lt;folder&gt;</code>. Add <code>PUSH=1 APPROVE_PUBLISH=1</code> only when you mean to push.</p>
  <label>Image registry</label>
  <input id="lreg" placeholder="registry.example.com/your-namespace" oninput="updateNs()">
- <p class="help">Folder on the registry: <span id="lns">blank until you type a registry</span></p>
+ <p class="help">Optional. Leave this empty until you publish. Any registry host works. It is not tied to one cloud.</p>
+ <p class="help">Folder on the registry (namespace): <span id="lns">blank until you type a registry</span></p>
  <label>Short name</label>
  <input id="lslug" placeholder="neo4j" oninput="syncProductId()">
  <p id="lslugErr" class="err"></p>
- <p class="help">Engine slug. Lowercase letters and hyphens, for example neo4j. This is the folder name.</p>
+ <p class="help">Folder name for the product definition (an engine). Lowercase letters and hyphens, for example neo4j.</p>
  <label>Product id</label>
  <input id="lpid" placeholder="partner-neo4j">
- <p class="help">Launchpad partner id. It starts as partner- plus the short name. You can edit it.</p>
+ <p class="help">Launchpad partner id. Starts as partner- plus the short name. Not sent from this screen.</p>
  <label>This setup</label>
  <input id="lsess" value="my-engine">
- <p class="help">Session name used to create the local files. Worker path is partners/&lt;short name&gt;/ (the Neo4j pilot uses neo4j, not the word engine).</p>
- <div class="row"><button class="p" onclick="stageBundle()">Create local bundle</button>
- <button class="s" onclick="refreshJobs()">Refresh status</button></div>
+ <p class="help">Session name for the saved answers. A launchpad worker would use partners/&lt;short name&gt;/.</p>
+ <div class="row">
+  <button class="s" onclick="stageBundle()">Stage bundle</button>
+  <button class="s" onclick="queueJob('validate')">Queue validate</button>
+  <button class="s" onclick="queueJob('mirror')">Queue mirror</button>
+  <button class="p" onclick="queueJob('publish')">Queue publish</button>
+ </div>
+ <p class="help"><b>Stage bundle.</b> Generates the YAML bundle locally. Impact: a succeeded row and a file count. Does not push.</p>
+ <p class="help"><b>Queue publish.</b> Records a job only. Impact: nothing is uploaded, and no password is stored. The row says Partner Launchpad is not connected.</p>
+ <div class="row"><button class="s" onclick="refreshJobs()">Refresh status</button></div>
  <p id="lmsg" class="help"></p>
  <table class="jobs"><thead><tr><th>When</th><th>Type</th><th>Status</th><th>Job id</th></tr></thead><tbody id="jobs"></tbody></table>
- <p class="help">Live Partner Launchpad queue and image-registry listing are not connected yet.</p>
 </section>
 <section id="catalog" class="card hide">
- <h3>OCI catalog</h3>
- <p class="help">Image registry listing is not connected yet, so nothing is fetched. Leave the registry blank until you publish. Any registry is fine. An example is registry.example.com/your-namespace.</p>
- <p class="help">Registry you typed: <span id="catReg">blank</span></p>
- <p class="help">No images listed yet.</p>
+ <h3>OCI program catalog</h3>
+ <p class="help"><b>What it does.</b> Load / refresh asks for partner products and images for the registry you typed.</p>
+ <p class="help"><b>Impact.</b> This checkout does not call Partner Launchpad, so the lists stay empty. The password is not stored and no registry is queried. Safe to repeat.</p>
+ <div class="row">
+  <input id="catEmail" placeholder="Launchpad email" autocomplete="off" style="max-width:240px">
+  <input id="catPass" type="password" placeholder="Launchpad password" autocomplete="new-password" value="" style="max-width:240px">
+  <button class="p" onclick="loadCatalog()">Load / refresh</button>
+ </div>
+ <p id="catNote" class="help">Partner Launchpad is not connected yet, so this does not load a live list. The password is not saved.</p>
+ <h4>Partner engines</h4>
+ <p class="help">An engine is the product definition.</p>
+ <p id="partnerEmpty" class="help">No partner products listed.</p>
+ <ul id="partnerList"></ul>
+ <h4>Images in the marketplace repo</h4>
+ <p id="imageEmpty" class="help">No images listed yet.</p>
+ <p class="help">Registry: <span id="catReg"></span></p>
 </section>
 <section id="result" class="card hide"></section>
 </main>
@@ -100,7 +135,7 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x==b));
  ['guided','yaml','bp','publish','catalog'].forEach(t=>$(t).classList.toggle('hide',t!=b.dataset.t));
  if(b.dataset.t==='publish'&&!$('lsess').value)$('lsess').value=$('sid').value;
- if(b.dataset.t==='catalog'){$('catReg').textContent=$('lreg').value.trim()||'—'}
+ if(b.dataset.t==='catalog'){$('catReg').textContent=$('lreg').value.trim()}
  $('result').classList.add('hide')});
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const PLAIN={'partner.id':'Short name','partner.owner':'Who makes this product','engine.displayName':'Name shoppers see','engine.description':'What the product does','engine.template':'How the product is packaged','publish.destinationRegistry':'Image registry, optional','publish.namespace':'Folder on the registry'};
@@ -117,7 +152,12 @@ async function loadQ(){
  else if(cur.kind==='bool')f=`<select id="ans"><option ${cur.default!==false?'selected':''}>yes</option><option ${cur.default===false?'selected':''}>no</option></select>`;
  else f=`<input id="ans" placeholder="${esc((cur.example||'').split('   or   ')[0].replace(/ \(.*$/,''))}" value="${esc(Array.isArray(cur.default)?cur.default.join(', '):(cur.default??''))}" onkeydown="if(event.key==='Enter')submitQ()">`;
  const plain=PLAIN[cur.id]?`<p class="kicker">${PLAIN[cur.id]}</p>`:'';
- $('qbox').innerHTML=plain+`<h3>${esc(cur.prompt)}</h3>${cur.help?`<div class="help">${esc(cur.help)}</div>`:''}${cur.example?`<div class="help"><b>Example:</b> ${esc(cur.example)}</div>`:''}${f}<div id="qe" class="err"></div><div class="row">${backBtn(r.answered)}<button class="p" onclick="submitQ()">Next</button></div>`;
+ let shown=cur.prompt;
+ if(cur.id==='partner.id') shown="What is a short, unique name for this product? (lowercase, hyphens, no spaces -- e.g. 'starrocks', 'neo4j', 'dataspark')";
+ const nextNote=cur.id==='partner.id'
+  ? '<p class="help"><b>Next.</b> Saves this answer in the session file. The short name becomes the folder name. It does not push to a registry or install into a cluster.</p>'
+  : '<p class="help"><b>Next.</b> Saves this answer in the session file. It does not push images or install into a cluster. Safe to repeat.</p>';
+ $('qbox').innerHTML=plain+`<h3>${esc(shown)}</h3>${cur.help?`<div class="help">${esc(cur.help)}</div>`:''}${cur.example?`<div class="help"><b>Example:</b> ${esc(cur.example)}</div>`:''}${f}<div id="qe" class="err"></div><div class="row">${backBtn(r.answered)}<button class="p" onclick="submitQ()">Next</button></div>`+nextNote;
  $('ans').focus()}
 async function goBack(){
  const r=await api('/api/back',{session:$('sid').value});
@@ -164,7 +204,7 @@ function dl(){const b=atob(window._z),a=new Uint8Array(b.length);for(let i=0;i<b
 function updateNs(){
  const v=$('lreg').value.trim();const i=v.indexOf('/');
  $('lns').textContent=i>=0&&v.slice(i+1)?v.slice(i+1):'blank until you type a registry';
- if($('catReg'))$('catReg').textContent=v||'blank'}
+ if($('catReg'))$('catReg').textContent=v}
 function syncProductId(){
  const slug=$('lslug').value.trim();
  const cur=$('lpid').value.trim();
@@ -181,6 +221,19 @@ async function stageBundle(){
  const r=await api('/api/launchpad/stage',{session:$('lsess').value,slug:$('lslug').value,registry:$('lreg').value});
  await refreshJobs();
  if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
+async function queueJob(action){
+ if(!$('lslug').value.trim()){$('lslugErr').textContent='Type a short name, using lowercase letters and hyphens, for example neo4j.';return}
+ const r=await api('/api/launchpad/queue',{action:action,slug:$('lslug').value,registry:$('lreg').value,username:'',password:''});
+ await refreshJobs();
+ if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
+async function loadCatalog(){
+ const r=await api('/api/launchpad/catalog',{username:$('catEmail').value,password:$('catPass').value,registry:$('lreg').value});
+ $('catPass').value='';
+ $('catReg').textContent=($('lreg').value||'').trim();
+ $('partnerList').innerHTML='';
+ $('catNote').textContent=r.message||r.error||'';
+ $('partnerEmpty').textContent=(r.partners&&r.partners.length)?'':'No partner products listed.';
+ $('imageEmpty').textContent=(r.images&&r.images.length)?'':'No images listed yet.'}
 async function loadEx(t,sel){if(sel.value)$(t).value=(await api('/api/example?name='+encodeURIComponent(sel.value))).text}
 (async()=>{const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')&&!e.includes('/')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
 </script></body></html>

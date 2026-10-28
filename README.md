@@ -1,5 +1,7 @@
 # tpe-onboarding-awc
 
+You finish with a product folder (an engine, the product definition) and an install guide (a blueprint) a customer can deploy. Those files are written on your computer first. Pushing to an image registry and installing into a cluster are separate commands.
+
 Toolkit for onboarding any data/big-data app onto the Cloudera Anywhere Cloud (AWC)
 marketplace. Works with or without AI (web UI, CLI wizard, MCP server).
 
