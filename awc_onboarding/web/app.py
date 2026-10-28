@@ -3,7 +3,8 @@
     python -m web.app [--port 8765]
 
 Same engine as the CLI/MCP server: guided questions, paste-YAML one-shot,
-and a multi-engine Blueprint composer.
+and a multi-engine Blueprint composer. Publish & OCI and OCI catalog are
+local panels: they record intent and never call Partner Launchpad or ECR.
 """
 
 from __future__ import annotations
@@ -13,7 +14,10 @@ import base64
 import io
 import json
 import tempfile
+import threading
+import uuid
 import zipfile
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -30,6 +34,93 @@ from onboarding.validator import validate_bundle
 ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
 INDEX = Path(__file__).with_name("index.html")
+
+# In-memory only. Passwords are never stored. Restarting the UI clears the table.
+_jobs_lock = threading.Lock()
+_jobs: list[dict] = []
+_QUEUE_ACTIONS = {"validate", "mirror", "publish"}
+_LAUNCHPAD_ABSENT = (
+    "Partner Launchpad queue client is not in this checkout. "
+    "The password was not stored or sent. "
+    "Use mirror.sh, then publish.sh --push, from the engine directory."
+)
+
+
+def _record_job(kind: str, status: str, detail: str) -> dict:
+    job = {
+        "id": str(uuid.uuid4()),
+        "when": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "type": kind,
+        "status": status,
+        "detail": detail,
+    }
+    with _jobs_lock:
+        _jobs.insert(0, job)
+        del _jobs[50:]
+    return job
+
+
+def _creds_present(username: str, password: str) -> bool:
+    return bool((username or "").strip()) and bool(password)
+
+
+def launchpad_queue(action: str, username: str, password: str, registry: str, slug: str) -> dict:
+    """Accept a queue click. Empty VPN credentials fail closed. Filled credentials are discarded."""
+    if action not in _QUEUE_ACTIONS:
+        job = _record_job(action or "queue", "failed", f"Unknown queue action: {action}")
+        return {"error": job["detail"], "job": job}
+    if not (slug or "").strip():
+        job = _record_job(action, "failed", "Engine slug is required. Nothing was queued.")
+        return {"error": job["detail"], "job": job}
+    if not (registry or "").strip():
+        job = _record_job(action, "failed", "Target registry is empty. Nothing was queued.")
+        return {"error": job["detail"], "job": job}
+    if not _creds_present(username, password):
+        job = _record_job(
+            action, "failed",
+            "Mission Control VPN username and password are required. Nothing was sent to Partner Launchpad.",
+        )
+        return {"error": job["detail"], "job": job}
+    job = _record_job(action, "failed", _LAUNCHPAD_ABSENT)
+    return {"error": job["detail"], "job": job}
+
+
+def _stage_bundle(d: dict) -> dict:
+    """Generate the session bundle locally. Does not upload or read VPN credentials."""
+    slug = (d.get("slug") or "").strip()
+    session_name = (d.get("session") or "").strip()
+    if not slug:
+        job = _record_job("stage", "failed", "Engine slug is required. Nothing was staged.")
+        return {"error": job["detail"], "job": job}
+    if not session_name:
+        job = _record_job("stage", "failed", "Session name is required. Nothing was staged.")
+        return {"error": job["detail"], "job": job}
+    result = run_answers(Session.load(session_name).answers)
+    if result.get("error"):
+        job = _record_job("stage", "failed", result["error"])
+        return {"error": result["error"], "job": job}
+    count = len(result.get("files") or {})
+    detail = (
+        f"Staged {count} files for partners/{slug}/ in this UI process. "
+        "Nothing was uploaded."
+    )
+    job = _record_job("stage", "succeeded", detail)
+    return {"ok": True, "job": job, "files": count}
+
+
+def launchpad_catalog(username: str, password: str, registry: str) -> dict:
+    """Catalog refresh never calls ECR. Empty credentials are a clear failure."""
+    if not _creds_present(username, password):
+        return {
+            "images": [],
+            "error": "Mission Control VPN username and password are required to refresh the program catalog. No registry was queried.",
+        }
+    path = (registry or "").strip()
+    where = path or "the target registry"
+    return {
+        "images": [],
+        "message": f"No images in {where} yet. This checkout does not query ECR.",
+    }
 
 
 def _qpayload(question, answers):
@@ -104,6 +195,9 @@ class Handler(BaseHTTPRequestHandler):
             done, total = s.progress()
             return self._send({"done": question is None, "answered": done, "total": total,
                                "question": question and _qpayload(question, s.answers)})
+        if url.path == "/api/launchpad/jobs":
+            with _jobs_lock:
+                return self._send({"jobs": list(_jobs)})
         self._send({"error": "not found"}, 404)
 
     def do_POST(self):
@@ -151,6 +245,20 @@ class Handler(BaseHTTPRequestHandler):
             return run_answers(yaml.safe_load(d["yaml"]))
         if path == "/api/run-blueprint":
             return run_blueprint(d["blueprint"], d.get("engines", {}))
+        if path == "/api/launchpad/stage":
+            return _stage_bundle(d)
+        if path == "/api/launchpad/queue":
+            password = d.get("password") or ""
+            result = launchpad_queue(
+                d.get("action") or "",
+                d.get("username") or "",
+                password,
+                d.get("registry") or "",
+                d.get("slug") or "",
+            )
+            return result
+        if path == "/api/launchpad/catalog":
+            return launchpad_catalog(d.get("username") or "", d.get("password") or "", d.get("registry") or "")
         return {"error": "not found"}
 
     def log_message(self, *a):
