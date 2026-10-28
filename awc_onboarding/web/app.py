@@ -45,7 +45,7 @@ _jobs_lock = threading.Lock()
 _jobs: list[dict] = []
 _QUEUE_ACTIONS = {"validate", "mirror", "publish"}
 _LAUNCHPAD_ABSENT = (
-    "Partner Launchpad queue client is not in this checkout. "
+    "The catalog service is not connected yet, so this only updates the list on this page. "
     "The password was not stored or sent. "
     "Use mirror.sh, then publish.sh --push, from the engine directory."
 )
@@ -83,7 +83,7 @@ def launchpad_queue(action: str, username: str, password: str, registry: str, sl
     if not _creds_present(username, password):
         job = _record_job(
             action, "failed",
-            "Mission Control VPN username and password are required. Nothing was sent to Partner Launchpad.",
+            "Registry username and password are required to push. Nothing was sent. The password is not saved.",
         )
         return {"error": job["detail"], "job": job}
     job = _record_job(action, "failed", _LAUNCHPAD_ABSENT)
@@ -120,7 +120,7 @@ def launchpad_catalog(username: str, password: str, registry: str) -> dict:
         "images": [],
         "partners": [],
         "registry": (registry or "").strip(),
-        "message": "Partner Launchpad is not connected in this checkout, so no list was loaded. The password was not stored and no registry was queried.",
+        "message": "The catalog service is not connected yet, so this only updates the list on this page.",
     }
 
 
