@@ -1,0 +1,70 @@
+# Minimal Helm-first third-party onboarding form (custom capability optional).
+version: v1
+directory: my-service
+
+engine:
+  name: my-service-engine
+  displayName: My Service
+  description: Short description of the third-party service for AWC and docs.
+
+imageCatalog:
+  name: my-service-images-1-0-0
+  images:
+    - id: myService
+      registry: docker-private.infra.cloudera.com
+      repository: cloudera_thirdparty/hardened/my-service
+      tag: "1.0.0-r0-202601010000"
+
+chartCatalog:
+  name: my-service-charts-1-0-0
+  charts:
+    - id: myService
+      registry: docker-private.infra.cloudera.com
+      repository: cloudera-thirdparty-helm/my-service
+      version: "1.0.0"
+
+helm:
+  chartID: myService
+  values: |
+    fullnameOverride: {{ .Metadata.Name | quote }}
+    image:
+      registry: {{ .Image.myService.registry | quote }}
+      repository: {{ .Image.myService.repository | quote }}
+      tag: {{ .Image.myService.tag | quote }}
+
+provides:
+  - name: endpoint
+    capability: endpoint
+    value: |
+      url: "http://{{ .Metadata.Name }}.{{ .Metadata.Namespace }}.svc.cluster.local:8080"
+
+configSchema:
+  type: object
+  properties:
+    replicas:
+      type: integer
+      default: 1
+      minimum: 1
+      title: Replicas
+      description: Number of pods to run.
+
+healthChecks:
+  - resource:
+      apiVersion: "apps/v1"
+      kind: "Deployment"
+      name: "{{ .Metadata.Name }}"
+    condition:
+      type: "Available"
+      status: "True"
+
+rbac:
+  preset: helm-basic
+
+blueprint:
+  enabled: true
+  minimumVersion: "1.0.0"
+
+exampleInstance:
+  name: my-service
+  config:
+    replicas: 1

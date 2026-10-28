@@ -1,0 +1,10 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: ImageCatalog
+metadata:
+  name: neo4j-images-5-26-0
+spec:
+  images:
+  - id: neo4j
+    registry: docker-private.infra.cloudera.com
+    repository: cloudera_thirdparty/hardened/neo4j
+    tag: 5.26.0-r0-202610191200

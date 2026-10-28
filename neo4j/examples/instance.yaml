@@ -1,0 +1,15 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: EngineInstance
+metadata:
+  name: neo4j
+spec:
+  engine: neo4j-engine
+  config:
+    edition: community
+    acceptLicenseAgreement: 'no'
+    storageSize: 10Gi
+    cpu: 1000m
+    memory: 2Gi
+    cpuLimit: 2000m
+    memoryLimit: 4Gi
+    istioEnabled: true
