@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ACE Engine input form</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@2.10.1/dist/css/jsoneditor.min.css"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>ACE Engine onboarding form</h1>
+      <p>
+        JSON Schema–driven editor for <code>input_form.yaml</code> (v1). Export YAML, then run
+        <code>make scaffold-engine FORM=…</code> from the ace-engines repo root.
+      </p>
+    </header>
+
+    <div class="layout">
+      <section class="panel">
+        <h2>Form (schema-driven)</h2>
+        <div id="form-root"></div>
+        <div class="actions">
+          <button type="button" class="primary" id="btn-export">Export to YAML</button>
+          <label class="file-btn">
+            Import YAML…
+            <input id="file-import" type="file" accept=".yaml,.yml,text/yaml" hidden />
+          </label>
+        </div>
+        <p class="hint">
+          Serve this folder via <code>make serve-engine-form</code> so defaults load from
+          <code>input_form.minimal.example.yaml</code>.
+        </p>
+        <p class="status" id="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel">
+        <h2>input_form.yaml output</h2>
+        <textarea id="yaml-output" spellcheck="false" placeholder="Click Export to YAML…"></textarea>
+        <div class="actions">
+          <button type="button" id="btn-download">Download .yaml</button>
+          <button type="button" id="btn-load-yaml">Load into form</button>
+        </div>
+        <p class="hint">From repo root after saving the file:</p>
+        <p class="hint"><code id="make-cmd">make scaffold-engine FORM=my-service.input_form.yaml FORCE=1</code></p>
+        <p class="hint"><code>make validate-form FORM=my-service.input_form.yaml</code></p>
+      </section>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@2.10.1/dist/jsoneditor.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <script src="./form-app.js"></script>
+  </body>
+</html>
