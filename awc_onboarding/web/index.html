@@ -1,32 +1,39 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><title>AWC Onboarding</title>
 <style>
-:root{--b:#f96702;--bg:#f6f7f9;--t:#1b2430}
-*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--t)}
-header{background:#1b2430;color:#fff;padding:14px 24px;font-size:18px}header b{color:var(--b)}
-nav{display:flex;gap:4px;padding:0 24px;background:#fff;border-bottom:1px solid #ddd}
-nav button{border:0;background:none;padding:12px 16px;cursor:pointer;font-size:15px;border-bottom:3px solid transparent}
-nav button.on{border-color:var(--b);font-weight:600}
-main{max-width:1000px;margin:20px auto;padding:0 24px}
-.card{background:#fff;border:1px solid #e1e4e8;border-radius:8px;padding:18px;margin-bottom:16px}
-input,select,textarea{width:100%;padding:8px;border:1px solid #bbb;border-radius:6px;font:inherit}
-textarea{font-family:ui-monospace,monospace;font-size:13px;min-height:260px}
-button.p{background:var(--b);color:#fff;border:0;padding:9px 18px;border-radius:6px;cursor:pointer;font-size:15px}
-button.s{background:#fff;border:1px solid #999;padding:8px 14px;border-radius:6px;cursor:pointer}
-.row{display:flex;gap:10px;align-items:center;margin-top:12px}.hide{display:none}
-.bar{height:8px;background:#e5e7eb;border-radius:4px}.bar>div{height:100%;background:var(--b);border-radius:4px}
-.help{color:#667;font-size:13px;margin:6px 0;white-space:pre-wrap}
+:root{--b:#FF8400;--bg:#f7f6f4;--t:#1B1B1B}
+*{box-sizing:border-box}body{margin:0;font:17px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--t)}
+header{background:#1B1B1B;color:#fff;padding:16px 24px}
+header .title{font-size:22px;font-weight:700}
+header .sub{display:block;margin-top:4px;color:#f2f2f2;font-size:15px;font-weight:400;max-width:42rem}
+nav{display:flex;flex-wrap:wrap;gap:4px;padding:0 24px;background:#fff;border-bottom:1px solid #ddd}
+nav button{border:0;background:none;padding:12px 16px;cursor:pointer;font-size:16px;color:#1B1B1B;border-bottom:3px solid transparent}
+nav button.on{border-color:#FF8400;font-weight:700}
+main{max-width:42rem;margin:20px auto;padding:0 16px}
+.card{background:#fff;border:1px solid #e1e4e8;border-radius:8px;padding:20px;margin-bottom:16px}
+input,select,textarea{width:100%;max-width:100%;padding:10px;border:1px solid #bbb;border-radius:6px;font:inherit;background:#fff;color:#1B1B1B}
+textarea{font-family:ui-monospace,monospace;font-size:14px;min-height:260px}
+button.p{background:#FF8400;color:#1B1B1B;border:0;padding:10px 18px;border-radius:6px;cursor:pointer;font-size:16px;font-weight:700}
+button.s{background:#fff;color:#1B1B1B;border:1px solid #999;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:16px}
+input:focus,select:focus,textarea:focus,button:focus{outline:2px solid #FF8400;outline-offset:2px}
+button.p:focus{outline-color:#1B1B1B}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}.hide{display:none}
+.bar{height:8px;background:#e5e7eb;border-radius:4px}.bar>div{height:100%;background:#FF8400;border-radius:4px}
+.help{color:#5c6570;font-size:15px;margin:6px 0;white-space:pre-wrap}
+.kicker{font-weight:700;margin:0 0 4px}
 .err{color:#b00020}.ok{color:#0a7d33}.warn{color:#9a6700}
-pre{background:#0d1117;color:#e6edf3;padding:12px;border-radius:6px;overflow:auto;max-height:420px;font-size:12.5px}
-.tabs button{margin:0 4px 4px 0}.tabs button.on{background:#1b2430;color:#fff}
-label{font-weight:600;display:block;margin-top:10px}
-.grid2{display:grid;grid-template-columns:1.3fr .7fr;gap:16px}
-table.jobs{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+pre{background:#1B1B1B;color:#f2f2f2;padding:12px;border-radius:6px;overflow:auto;max-height:420px;font-size:13px;white-space:pre-wrap;word-break:break-word}
+.tabs{display:flex;flex-wrap:wrap}.tabs button{margin:0 4px 4px 0}.tabs button.on{background:#1B1B1B;color:#fff}
+label{font-weight:700;display:block;margin-top:12px}
+.grid2{display:grid;grid-template-columns:1fr;gap:16px}
+table.jobs{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
 table.jobs th,table.jobs td{border-bottom:1px solid #e1e4e8;text-align:left;padding:6px 8px;vertical-align:top}
-input[type=password]{font:inherit}
-@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+@media(max-width:640px){header,nav{padding-left:16px;padding-right:16px}.row button{width:100%}}
 </style></head><body>
-<header><b>AWC</b> Engine &amp; Blueprint Onboarding</header>
+<header>
+ <div class="title">Cloudera partner setup</div>
+ <span class="sub">AWC Engine &amp; Blueprint Onboarding. Answer the questions, paste a file, or compose several products. Done is a checked set of files you can download.</span>
+</header>
 <nav id="nav">
  <button data-t="guided" class="on">Guided questions</button>
  <button data-t="yaml">Paste input.yaml</button>
@@ -58,53 +65,31 @@ input[type=password]{font:inherit}
  <button class="p" onclick="runBp()">Compose &amp; validate</button></div>
 </section>
 <section id="publish" class="card hide">
- <p class="help">After Generate &amp; validate, mirror charts/images and publish the engine + blueprint to OCI (Partner Launchpad ECR). Same flow as mirror.sh, then publish.sh --push. This tab does not call that registry.</p>
- <label>Target registry</label>
- <input id="lreg" placeholder="&lt;account&gt;.dkr.ecr.&lt;region&gt;.amazonaws.com/&lt;namespace&gt;" oninput="updateNs()">
- <p class="help">Schema v2 namespace: <span id="lns">—</span>. The namespace is the path after the registry host. It is not locked to one AWS account.</p>
- <div class="grid2">
-  <div>
-   <label>Engine slug</label><input id="lslug" placeholder="neo4j">
-   <label>Launchpad partner id</label><input id="lpid" placeholder="partner-&lt;slug&gt;">
-  </div>
-  <div>
-   <label>Session</label><input id="lsess" value="my-engine">
-   <div class="row"><button class="s" onclick="applyEcrDefaults()">Apply ECR defaults</button></div>
-  </div>
- </div>
- <p class="help">Worker runs partners/&lt;slug&gt;/ in the engine repo (Neo4j pilot uses the directory name, for example neo4j, not the word engine).</p>
- <div class="grid2">
-  <div>
-   <h3>Publish &amp; queue</h3>
-   <p class="help">Uses the Partner Launchpad API (same VPN credentials as Mission Control). Leave the password empty until you are at that step. This page never stores it.</p>
-   <label>Username</label><input id="luser" autocomplete="off">
-   <label>Password</label><input id="lpass" type="password" autocomplete="new-password" value="">
-   <div class="row">
-    <button class="s" onclick="stageBundle()">Stage bundle</button>
-    <button class="s" onclick="queueJob('validate')">Queue validate</button>
-    <button class="s" onclick="queueJob('mirror')">Queue mirror</button>
-    <button class="p" onclick="queueJob('publish')">Queue publish</button>
-   </div>
-   <div class="row"><button class="s" onclick="refreshJobs()">Refresh status</button></div>
-   <p id="lmsg" class="help"></p>
-   <table class="jobs"><thead><tr><th>When</th><th>Type</th><th>Status</th><th>Job id</th></tr></thead><tbody id="jobs"></tbody></table>
-  </div>
-  <div>
-   <h3>Program catalog (ECR)</h3>
-   <p class="help">Images in the target registry after a successful publish.</p>
-   <button class="s" onclick="refreshCatalog()">Refresh catalog</button>
-   <p id="catEmpty" class="help">No images in the program catalog yet.</p>
-   <ul id="catList"></ul>
-  </div>
- </div>
+ <p class="help">After Generate &amp; validate, copy charts and images, then publish with mirror.sh and publish.sh --push. The image registry is optional and stays blank until you are ready. Any registry works.</p>
+ <label>Image registry</label>
+ <input id="lreg" placeholder="registry.example.com/your-namespace" oninput="updateNs()">
+ <p class="help">Folder on the registry: <span id="lns">blank until you type a registry</span></p>
+ <label>Short name</label>
+ <input id="lslug" placeholder="neo4j" oninput="syncProductId()">
+ <p id="lslugErr" class="err"></p>
+ <p class="help">Engine slug. Lowercase letters and hyphens, for example neo4j. This is the folder name.</p>
+ <label>Product id</label>
+ <input id="lpid" placeholder="partner-neo4j">
+ <p class="help">Launchpad partner id. It starts as partner- plus the short name. You can edit it.</p>
+ <label>This setup</label>
+ <input id="lsess" value="my-engine">
+ <p class="help">Session name used to create the local files. Worker path is partners/&lt;short name&gt;/ (the Neo4j pilot uses neo4j, not the word engine).</p>
+ <div class="row"><button class="p" onclick="stageBundle()">Create local bundle</button>
+ <button class="s" onclick="refreshJobs()">Refresh status</button></div>
+ <p id="lmsg" class="help"></p>
+ <table class="jobs"><thead><tr><th>When</th><th>Type</th><th>Status</th><th>Job id</th></tr></thead><tbody id="jobs"></tbody></table>
+ <p class="help">Live Partner Launchpad queue and image-registry listing are not connected yet.</p>
 </section>
 <section id="catalog" class="card hide">
  <h3>OCI catalog</h3>
- <p class="help">Same program catalog as Publish &amp; OCI. Refresh reads the target registry field. Empty VPN credentials stop the refresh. This checkout does not query ECR, so a successful credential check still lists no images.</p>
- <p class="help">Target registry: <span id="catReg">—</span></p>
- <div class="row"><button class="s" onclick="refreshCatalog()">Refresh catalog</button></div>
- <p id="catEmpty2" class="help">No images in the program catalog yet.</p>
- <ul id="catList2"></ul>
+ <p class="help">Image registry listing is not connected yet, so nothing is fetched. Leave the registry blank until you publish. Any registry is fine. An example is registry.example.com/your-namespace.</p>
+ <p class="help">Registry you typed: <span id="catReg">blank</span></p>
+ <p class="help">No images listed yet.</p>
 </section>
 <section id="result" class="card hide"></section>
 </main>
@@ -118,6 +103,7 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  if(b.dataset.t==='catalog'){$('catReg').textContent=$('lreg').value.trim()||'—'}
  $('result').classList.add('hide')});
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PLAIN={'partner.id':'Short name','partner.owner':'Who makes this product','engine.displayName':'Name shoppers see','engine.description':'What the product does','engine.template':'How the product is packaged','publish.destinationRegistry':'Image registry, optional','publish.namespace':'Folder on the registry'};
 let cur=null,prev=null;
 const backBtn=n=>n>0?'<button class="s" onclick="goBack()">&larr; Back</button>':'';
 async function loadQ(){
@@ -129,15 +115,16 @@ async function loadQ(){
  if(prev&&prev.id===cur.id){cur.default=prev.value}prev=null;
  if(cur.kind==='choice')f='<select id="ans">'+cur.choices.map(c=>`<option ${c==cur.default?'selected':''}>${esc(c)}</option>`).join('')+'</select>';
  else if(cur.kind==='bool')f=`<select id="ans"><option ${cur.default!==false?'selected':''}>yes</option><option ${cur.default===false?'selected':''}>no</option></select>`;
- else f=`<input id="ans" placeholder="${esc(cur.example.split('   or   ')[0].replace(/ \(.*$/,''))}" value="${esc(Array.isArray(cur.default)?cur.default.join(', '):(cur.default??''))}" onkeydown="if(event.key==='Enter')submitQ()">`;
- $('qbox').innerHTML=`<h3>${esc(cur.prompt)}</h3>${cur.help?`<div class="help">${esc(cur.help)}</div>`:''}${cur.example?`<div class="help"><b>Example:</b> ${esc(cur.example)}</div>`:''}${f}<div id="qe" class="err"></div><div class="row">${backBtn(r.answered)}<button class="p" onclick="submitQ()">Next</button></div>`;
+ else f=`<input id="ans" placeholder="${esc((cur.example||'').split('   or   ')[0].replace(/ \(.*$/,''))}" value="${esc(Array.isArray(cur.default)?cur.default.join(', '):(cur.default??''))}" onkeydown="if(event.key==='Enter')submitQ()">`;
+ const plain=PLAIN[cur.id]?`<p class="kicker">${PLAIN[cur.id]}</p>`:'';
+ $('qbox').innerHTML=plain+`<h3>${esc(cur.prompt)}</h3>${cur.help?`<div class="help">${esc(cur.help)}</div>`:''}${cur.example?`<div class="help"><b>Example:</b> ${esc(cur.example)}</div>`:''}${f}<div id="qe" class="err"></div><div class="row">${backBtn(r.answered)}<button class="p" onclick="submitQ()">Next</button></div>`;
  $('ans').focus()}
 async function goBack(){
  const r=await api('/api/back',{session:$('sid').value});
  if(r.id)prev={id:r.id,value:r.value};loadQ()}
 async function submitQ(){
  let v=$('ans').value;if(cur.kind==='bool')v=v==='yes';
- if(cur.required&&v===''){$('qe').textContent='This question requires an answer.';return}
+ if(cur.required&&v===''){$('qe').textContent='This question needs an answer. Type it in the field above to continue.';return}
  const r=await api('/api/answer',{session:$('sid').value,id:cur.id,value:v});
  if(r.error){$('qe').textContent=r.error;return}
  if(cur.id==='dependencies.hasAny'&&v===true)return depForm();
@@ -176,39 +163,24 @@ function dl(){const b=atob(window._z),a=new Uint8Array(b.length);for(let i=0;i<b
  const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([a],{type:'application/zip'}));l.download='awc-bundle.zip';l.click()}
 function updateNs(){
  const v=$('lreg').value.trim();const i=v.indexOf('/');
- $('lns').textContent=i>=0&&v.slice(i+1)?v.slice(i+1):(v?'path after the registry host':'—');
- if($('catReg'))$('catReg').textContent=v||'—'}
-function applyEcrDefaults(){
+ $('lns').textContent=i>=0&&v.slice(i+1)?v.slice(i+1):'blank until you type a registry';
+ if($('catReg'))$('catReg').textContent=v||'blank'}
+function syncProductId(){
  const slug=$('lslug').value.trim();
- $('lreg').value='<account>.dkr.ecr.<region>.amazonaws.com/partner-launchpad/awc-marketplace';
- if(slug)$('lpid').value='partner-'+slug;
- updateNs()}
-function lpBody(){return{session:$('lsess').value,slug:$('lslug').value,partnerId:$('lpid').value,registry:$('lreg').value,username:$('luser').value,password:$('lpass').value}}
+ const cur=$('lpid').value.trim();
+ if(!cur||cur.startsWith('partner-'))$('lpid').value=slug?('partner-'+slug):''}
 function paintJobs(jobs){
  $('jobs').innerHTML=(jobs||[]).map(j=>`<tr><td>${esc(j.when)}</td><td>${esc(j.type)}</td><td class="${j.status==='succeeded'?'ok':'err'}">${esc(j.status)}</td><td>${esc(j.id)}</td></tr>`).join('');
  const latest=(jobs||[])[0];
  $('lmsg').textContent=latest&&latest.detail?latest.detail:'';
- $('lmsg').className=latest&&latest.status==='succeeded'?'ok help':'help'}
+ $('lmsg').className=latest&&latest.status==='succeeded'?'ok help':'err'}
 async function refreshJobs(){const r=await api('/api/launchpad/jobs');paintJobs(r.jobs)}
 async function stageBundle(){
+ $('lslugErr').textContent='';
+ if(!$('lslug').value.trim()){$('lslugErr').textContent='Type a short name, using lowercase letters and hyphens, for example neo4j.';return}
  const r=await api('/api/launchpad/stage',{session:$('lsess').value,slug:$('lslug').value,registry:$('lreg').value});
- await refreshJobs();if(r.error)$('lmsg').textContent=r.error}
-async function queueJob(action){
- const body=lpBody();body.action=action;
- const r=await api('/api/launchpad/queue',body);
- $('lpass').value='';
- await refreshJobs();if(r.error)$('lmsg').textContent=r.error}
-function paintCatalog(r){
- const images=r.images||[];
- const text=r.error||r.message||(images.length?'': 'No images in the program catalog yet.');
- $('catEmpty').textContent=text;$('catEmpty2').textContent=text;
- const items=images.map(n=>`<li>${esc(n)}</li>`).join('');
- $('catList').innerHTML=items;$('catList2').innerHTML=items;
- if($('catReg'))$('catReg').textContent=$('lreg').value.trim()||'—'}
-async function refreshCatalog(){
- const r=await api('/api/launchpad/catalog',lpBody());
- $('lpass').value='';
- paintCatalog(r)}
+ await refreshJobs();
+ if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
 async function loadEx(t,sel){if(sel.value)$(t).value=(await api('/api/example?name='+encodeURIComponent(sel.value))).text}
 (async()=>{const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')&&!e.includes('/')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
 </script></body></html>
