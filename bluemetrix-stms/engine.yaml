@@ -1,0 +1,324 @@
+# Config contract for Bluemetrix SecureToken STMS.
+#
+# This file is not a publishable engine yet. There is no Helm chart in the
+# partner registry, so this document has no imageCatalog, chartCatalog,
+# releases, or template. Do not invent those. Add them when Bluemetrix
+# publishes the chart, using neo4j/engine.yaml as the shape.
+#
+# Customer-facing inputs live here, on spec.configSchema. Blueprints in this
+# repo do not carry a config schema. The same pattern is awc-workspaces
+# (secret name + key, empty secret-name default) and prometheus-adapter
+# (cert-manager issuer name, or a secret supplied out of band).
+#
+# Passwords, keytabs, and private keys are never defaults and never literal
+# values. The form collects a Secret name and a key inside that Secret.
+#
+# Intended dependency, not declared yet: postgres-plugin 18.0.0 as type auto
+# (CloudNativePG), the same way polaris/engine.yaml does. Blueprint instances
+# must not list auto dependencies. It stays commented until the chart exists,
+# so creating an EngineInstance cannot provision a database for an engine
+# that has no workload template.
+# - name: postgres
+#   engine: postgres-plugin
+#   type: auto
+#   version: "18.0.0"
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Engine
+metadata:
+  name: bluemetrix-stms-engine
+spec:
+  displayName: "SecureToken STMS"
+  description: >
+    Bluemetrix SecureToken management service (STMS) on Anywhere Cloud.
+    Tokenization profiles, local or LDAP login, and Ranger policy calls.
+    The Helm chart is still moving from Kustomize, so this engine has no
+    chart release yet. Ranger KMS and Kerberos KDC are not part of this
+    engine. Configure them only as external URLs and secret refs.
+  dependencies:
+  - name: ranger
+    engine: udf-plugin
+    type: ref
+    minimumVersion: "1.7.0"
+  configSchema:
+    type: object
+    properties:
+      authMode:
+        type: string
+        default: local
+        enum:
+        - local
+        - ldap
+        title: "Sign-in mode"
+        description: "Required. local is the day-1 sign-in for partner engines, because Anywhere Cloud SSO is not wired into partner engines yet. ldap uses an external LDAP or Active Directory. When local, set localAdminPasswordSecret. When ldap, set the LDAP URL, bind DN, search bases, and ldapBindPasswordSecret."
+      localAdminUsername:
+        type: string
+        default: ""
+        title: "Local admin username"
+        description: "Conditional, authMode local. Username of the first STMS administrator. Not a secret."
+      localAdminPasswordSecret:
+        type: string
+        default: ""
+        title: "Local admin password secret"
+        description: "Conditional, authMode local. Required for the first administrator. Name of an existing Secret in this instance namespace. The secret must contain the password under localAdminPasswordSecretKey. Do not put the password in this field."
+      localAdminPasswordSecretKey:
+        type: string
+        default: password
+        title: "Local admin password secret key"
+        description: "Key inside localAdminPasswordSecret that holds the password. The default is the key name, not a password."
+      ldapUrl:
+        type: string
+        default: ""
+        title: "LDAP URL"
+        description: "Conditional, authMode ldap. Required then. LDAP or Active Directory URL, for example ldaps://ldap.example.com:636. The server is outside this blueprint."
+      ldapBindDn:
+        type: string
+        default: ""
+        title: "LDAP bind DN"
+        description: "Conditional, authMode ldap. Required then. Distinguished name of the bind user. Not a secret."
+      ldapUserSearchBase:
+        type: string
+        default: ""
+        title: "LDAP user search base"
+        description: "Conditional, authMode ldap. Required then. Search base for user entries."
+      ldapGroupSearchBase:
+        type: string
+        default: ""
+        title: "LDAP group search base"
+        description: "Conditional, authMode ldap. Required then. Search base for group entries."
+      ldapBindPasswordSecret:
+        type: string
+        default: ""
+        title: "LDAP bind password secret"
+        description: "Conditional, authMode ldap. Required then. Name of an existing Secret in this instance namespace. The secret must contain the bind password under ldapBindPasswordSecretKey. Do not put the password in this field."
+      ldapBindPasswordSecretKey:
+        type: string
+        default: bind-password
+        title: "LDAP bind password secret key"
+        description: "Key inside ldapBindPasswordSecret that holds the bind password."
+      useExternalRangerAdmin:
+        type: boolean
+        default: false
+        title: "Use an external Ranger Admin"
+        description: "Leave false to call Ranger Admin on the UDF instance in this blueprint (engine udf-plugin, dependency name ranger). Set true only when Ranger Admin is outside Anywhere Cloud. UDF does not include Ranger KMS."
+      rangerAdminUrl:
+        type: string
+        default: ""
+        title: "Ranger Admin URL"
+        description: "Conditional, useExternalRangerAdmin true. Required then. Base URL of Ranger Admin. Policies are created through the Ranger OpenAPI. Leave empty when the UDF instance supplies Ranger Admin."
+      rangerAdminUsername:
+        type: string
+        default: ""
+        title: "Ranger Admin username"
+        description: "Conditional, useExternalRangerAdmin true. Username for Ranger Admin API calls. Not a secret. Leave empty when the UDF dependency supplies admin credentials."
+      rangerAdminPasswordSecret:
+        type: string
+        default: ""
+        title: "Ranger Admin password secret"
+        description: "Conditional, useExternalRangerAdmin true. Name of an existing Secret in this instance namespace. The secret must contain the Ranger Admin password under rangerAdminPasswordSecretKey. Leave empty to use the udf-plugin admin credential, which is the normal case. Do not put the password in this field."
+      rangerAdminPasswordSecretKey:
+        type: string
+        default: rangerAdmin_password
+        title: "Ranger Admin password secret key"
+        description: "Key inside rangerAdminPasswordSecret. Matches the key name used by awc-workspaces. The default is a key name, not a password."
+      useExternalRangerKms:
+        type: boolean
+        default: false
+        title: "Use an external Ranger KMS"
+        description: "Leave false for day-1. Ranger KMS is not in Anywhere Cloud and is not in UDF. Set true only when STMS must call a Ranger KMS outside the cluster. That path also needs the KDC fields and the keytab secret. The Kerberos ticket sidecar is not deployed unless this is true. Cloud KMS is not a field on this form."
+      rangerKmsUrl:
+        type: string
+        default: ""
+        title: "Ranger KMS URL"
+        description: "Conditional, useExternalRangerKms true. Required then. URL of the external Ranger KMS. This is not the Ranger Admin URL."
+      kdcRealm:
+        type: string
+        default: ""
+        title: "Kerberos realm"
+        description: "Conditional, useExternalRangerKms true. Required then. Kerberos realm for the external Ranger KMS. No KDC is deployed by this blueprint."
+      kdcHost:
+        type: string
+        default: ""
+        title: "KDC host"
+        description: "Conditional, useExternalRangerKms true. Required then. Hostname of the external KDC. No port is assumed; include a port in the host string only if the chart later requires it."
+      kerberosPrincipal:
+        type: string
+        default: ""
+        title: "Kerberos principal"
+        description: "Conditional, useExternalRangerKms true. Required then. Principal STMS uses to obtain a ticket for Ranger KMS. Not a secret."
+      kerberosKeytabSecret:
+        type: string
+        default: ""
+        title: "Kerberos keytab secret"
+        description: "Conditional, useExternalRangerKms true. Required then. Name of an existing Secret in this instance namespace. The secret must contain the keytab bytes under kerberosKeytabSecretKey. Do not put keytab bytes in this field."
+      kerberosKeytabSecretKey:
+        type: string
+        default: keytab
+        title: "Kerberos keytab secret key"
+        description: "Key inside kerberosKeytabSecret that holds the keytab."
+      rangerKmsCredentialSecret:
+        type: string
+        default: ""
+        title: "Ranger KMS credential secret"
+        description: "Conditional, useExternalRangerKms true. Optional extra secret when the external KMS needs a credential besides the keytab. Leave empty if the keytab is enough. The secret must contain that credential under rangerKmsCredentialSecretKey."
+      rangerKmsCredentialSecretKey:
+        type: string
+        default: password
+        title: "Ranger KMS credential secret key"
+        description: "Key inside rangerKmsCredentialSecret. Used only when rangerKmsCredentialSecret is set."
+      tlsCertIssuerName:
+        type: string
+        default: ""
+        title: "TLS cert issuer name"
+        description: "Required unless the bring-your-own TLS secret names are set. cert-manager Issuer or ClusterIssuer that will issue the STMS server certificate and the agent client certificate. Same idea as prometheusScrapeCertIssuerName on prometheus-adapter. All STMS-to-agent traffic is mTLS. Leave empty only when stmsServerTlsSecretName, agentClientTlsSecretName, and trustBundleSecretName are set."
+      tlsCertIssuerKind:
+        type: string
+        default: ClusterIssuer
+        enum:
+        - Issuer
+        - ClusterIssuer
+        title: "TLS cert issuer kind"
+        description: "Kind of tlsCertIssuerName. Ignored when tlsCertIssuerName is empty."
+      stmsServerTlsSecretName:
+        type: string
+        default: ""
+        title: "STMS server TLS secret"
+        description: "Conditional. Required when tlsCertIssuerName is empty. Name of an existing Secret for the STMS nginx server certificate. The secret must contain the certificate under stmsServerTlsCrtKey and the private key under stmsServerTlsPrivateKeyKey. Do not paste PEM text here."
+      stmsServerTlsCrtKey:
+        type: string
+        default: tls.crt
+        title: "STMS server certificate key"
+        description: "Key inside stmsServerTlsSecretName that holds the server certificate."
+      stmsServerTlsPrivateKeyKey:
+        type: string
+        default: tls.key
+        title: "STMS server private key key"
+        description: "Key inside stmsServerTlsSecretName that holds the server private key."
+      agentClientTlsSecretName:
+        type: string
+        default: ""
+        title: "Agent client TLS secret"
+        description: "Conditional. Required when tlsCertIssuerName is empty. Name of an existing Secret for the client certificate agents use to register and call STMS. The secret must contain the certificate under agentClientTlsCrtKey and the private key under agentClientTlsPrivateKeyKey."
+      agentClientTlsCrtKey:
+        type: string
+        default: tls.crt
+        title: "Agent client certificate key"
+        description: "Key inside agentClientTlsSecretName that holds the client certificate."
+      agentClientTlsPrivateKeyKey:
+        type: string
+        default: tls.key
+        title: "Agent client private key key"
+        description: "Key inside agentClientTlsSecretName that holds the client private key."
+      trustBundleSecretName:
+        type: string
+        default: ""
+        title: "Trust bundle secret"
+        description: "Conditional. Required when tlsCertIssuerName is empty, and whenever a custom CA must verify Ranger, LDAP, or S3. Name of an existing Secret. The secret must contain the CA bundle PEM under trustBundleSecretKey."
+      trustBundleSecretKey:
+        type: string
+        default: ca.crt
+        title: "Trust bundle secret key"
+        description: "Key inside trustBundleSecretName that holds the CA bundle."
+      postgresMode:
+        type: string
+        default: bundled
+        enum:
+        - bundled
+        - external
+        title: "PostgreSQL mode"
+        description: "bundled is the intended default. CloudNativePG (postgres-plugin 18.0.0) generates the database credential secret. Do not paste a password. The chart must read that generated secret once the auto dependency is declared. external points STMS at a database outside the blueprint. Then postgresHost, postgresDatabase, postgresUsername, and postgresPasswordSecret are required."
+      postgresHost:
+        type: string
+        default: ""
+        title: "External PostgreSQL host"
+        description: "Conditional, postgresMode external. Required then. Hostname of the external PostgreSQL server."
+      postgresPort:
+        type: integer
+        default: 5432
+        minimum: 1
+        maximum: 65535
+        title: "External PostgreSQL port"
+        description: "Conditional, postgresMode external. Port of the external PostgreSQL server."
+      postgresDatabase:
+        type: string
+        default: ""
+        title: "External PostgreSQL database"
+        description: "Conditional, postgresMode external. Required then. Database name."
+      postgresUsername:
+        type: string
+        default: ""
+        title: "External PostgreSQL username"
+        description: "Conditional, postgresMode external. Required then. Database user. Not a secret."
+      postgresPasswordSecret:
+        type: string
+        default: ""
+        title: "External PostgreSQL password secret"
+        description: "Conditional, postgresMode external. Required then. Name of an existing Secret. The secret must contain the password under postgresPasswordSecretKey. Leave empty when postgresMode is bundled."
+      postgresPasswordSecretKey:
+        type: string
+        default: password
+        title: "External PostgreSQL password secret key"
+        description: "Key inside postgresPasswordSecret that holds the password."
+      postgresTlsSecretName:
+        type: string
+        default: ""
+        title: "External PostgreSQL TLS secret"
+        description: "Conditional, postgresMode external. Optional. Name of an existing Secret whose postgresTlsCaKey holds the CA certificate used to verify the database. Leave empty if the external database does not use TLS."
+      postgresTlsCaKey:
+        type: string
+        default: ca.crt
+        title: "External PostgreSQL CA key"
+        description: "Key inside postgresTlsSecretName that holds the CA certificate."
+      objectStorage:
+        type: string
+        default: unconfigured
+        enum:
+        - unconfigured
+        - external-s3
+        - ozone
+        title: "Audit object storage"
+        description: "Neither choice is deployed by this blueprint. unconfigured collects no object-storage credentials. external-s3 requires s3Endpoint, s3Bucket, and s3CredentialsSecret. ozone uses an Ozone engine already on the cluster (engine ozone-engine) and must not set S3 keys. External Ozone S3 gateway is external-s3, not ozone."
+      s3Endpoint:
+        type: string
+        default: ""
+        title: "S3 endpoint"
+        description: "Conditional, objectStorage external-s3. Required then. S3 or S3-compatible endpoint URL, including an external Ozone S3 gateway."
+      s3Bucket:
+        type: string
+        default: ""
+        title: "S3 bucket"
+        description: "Conditional, objectStorage external-s3. Required then. Bucket name for write-once audit objects. The bucket must already exist."
+      s3Region:
+        type: string
+        default: ""
+        title: "S3 region"
+        description: "Conditional, objectStorage external-s3. Region string the signer needs. Leave empty only if the store ignores region."
+      s3KeyPrefix:
+        type: string
+        default: ""
+        title: "S3 key prefix"
+        description: "Conditional, objectStorage external-s3. Optional path prefix inside the bucket. Empty uses the bucket root."
+      s3UsePathStyle:
+        type: boolean
+        default: true
+        title: "S3 path-style addressing"
+        description: "Conditional, objectStorage external-s3. Leave true for Ozone S3 gateway and similar stores that reject virtual-host buckets."
+      s3CredentialsSecret:
+        type: string
+        default: ""
+        title: "S3 credentials secret"
+        description: "Conditional, objectStorage external-s3. Required then. Not used when objectStorage is ozone. Name of an existing Secret. It must contain the access key under s3AccessKeyIdKey and the secret key under s3SecretAccessKeyKey. Do not put the keys in this field."
+      s3AccessKeyIdKey:
+        type: string
+        default: AWS_ACCESS_KEY_ID
+        title: "S3 access key id key"
+        description: "Key inside s3CredentialsSecret that holds the access key id. Same key name as awc-workspaces."
+      s3SecretAccessKeyKey:
+        type: string
+        default: AWS_SECRET_ACCESS_KEY
+        title: "S3 secret access key key"
+        description: "Key inside s3CredentialsSecret that holds the secret access key."
+      s3SseKmsKeyId:
+        type: string
+        default: ""
+        title: "S3 SSE-KMS key id"
+        description: "Optional. Not a secret. Server-side encryption key id when the external bucket requires SSE-KMS. Leave empty to skip. This is not Cloud KMS integration and not Ranger KMS."

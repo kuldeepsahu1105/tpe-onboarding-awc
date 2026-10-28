@@ -1,0 +1,206 @@
+# Bluemetrix SecureToken STMS on Anywhere Cloud.
+#
+# The customer form is spec.configSchema on bluemetrix-stms/engine.yaml.
+# Blueprints in this repo do not carry a config schema (see neo4j/blueprint.yaml
+# and cde-and-polaris/blueprint.yaml). There is no versionMatrix field in the
+# blueprints on disk.
+#
+# Postgres is not an instance. polaris/blueprint.yaml and udf/blueprint.yaml
+# leave CloudNativePG (postgres-plugin) as an engine auto dependency. The STMS
+# engine does not declare that auto dependency yet; see engine.yaml.
+#
+# optional: true on a blueprint instance is not used by a live blueprint.
+# caii/blueprint.yaml keeps it commented because of a platform bug. Commented
+# instances below are optional. Uncommenting one makes ACE deploy it.
+#
+# Trino is required for the product shape (worker sidecar, loopback only) but
+# this repo no longer has a Trino engine. trino-lakehouse/README.md and
+# trino-core/README.md point at CLE/trino-operator. trino-lakehouse is the
+# lakehouse path. Do not invent an engine name.
+#
+# cde-engine declares ozone-engine as a ref dependency (cde/engine.yaml).
+# STMS audit does not require Ozone. A CDE deploy that uses this repo's
+# cde-engine still needs an Ozone instance, existing or new. That Ozone
+# instance is commented here so this blueprint does not require it.
+#
+# Node resource "recommended" blocks are omitted. awc-workspaces/blueprint.yaml
+# notes that nodeGroups[].resources only keeps minimum and hint; a recommended
+# block is dropped by the API server. Production sizes are in the hints.
+#
+# Ranger KMS and Kerberos KDC are not instances. They are external form fields
+# on the engine, and only when useExternalRangerKms is true.
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Blueprint
+metadata:
+  name: bluemetrix-stms
+spec:
+  owner: "Bluemetrix"
+  description: >
+    SecureToken STMS from Bluemetrix: the tokenization management service on
+    Anywhere Cloud, with Unified Data Fabric for Ranger policies and Cloudera
+    Data Engineering for Spark. The SecureToken agent is a loopback sidecar
+    on Spark pods via a pod template. Ranger KMS and Kerberos KDC stay outside
+    the cluster. Sign-in on day one is a local STMS user.
+  outcome: "SecureToken STMS"
+  instances:
+    # Ranger Admin, usersync, and the policy API. Engine is UDF. UDF does not
+    # ship Ranger KMS. Instance name ranger matches the STMS engine dependency.
+    - name: ranger
+      engine: udf-plugin
+      minimumVersion: "1.7.0"
+    # Spark control plane. Agent sidecar is injected with a pod template on
+    # the executor (and driver) pods, loopback 127.0.0.1 only. Not an
+    # admission webhook.
+    - name: cde
+      engine: cde-engine
+      minimumVersion: "1.6.0"
+    # Management plane. Chart and images are not in the catalog yet.
+    # minimumVersion 0.0.0 means "no published chart version yet".
+    - name: stms
+      engine: bluemetrix-stms-engine
+      minimumVersion: "0.0.0"
+    # --- optional; commented so ACE does not deploy them ---
+    # Preferred metastore. polaris/blueprint.yaml.
+    # - name: polaris
+    #   engine: polaris-plugin
+    #   minimumVersion: "2.0.0"
+    #   optional: true
+    # Hive Metastore only. There is no Hive server engine on Anywhere Cloud.
+    # cde-udf/blueprint.yaml.
+    # - name: hms
+    #   engine: hive-metastore-plugin
+    #   minimumVersion: "1.6.0"
+    #   optional: true
+    # Audit object storage when objectStorage is ozone. ozone/blueprint.yaml.
+    # Also satisfies cde-engine's ozone ref if you deploy this repo's CDE.
+    # - name: ozone
+    #   engine: ozone-engine
+    #   minimumVersion: "1.6.0"
+    #   optional: true
+    # Cloudera AI Workbench. Data Discovery MCP would be called from here.
+    # There is no engine named cai. caiw/blueprint.yaml.
+    # - name: caiw
+    #   engine: caiw
+    #   minimumVersion: "1.6.0"
+    #   optional: true
+    # Cloudera AI Inference (CAI-I). No engine named cai-i. caii/blueprint.yaml.
+    # - name: caii
+    #   engine: caii
+    #   minimumVersion: "2.0.0-b1"
+    #   optional: true
+    # Cloudera AI Registry (CAI-R). No engine named cai-r. cair/blueprint.yaml.
+    # - name: cair
+    #   engine: cair
+    #   minimumVersion: "2.0.0"
+    #   optional: true
+  hardwareTiers:
+    - name: default
+      cluster:
+        kubernetesVersion: ">= v1.33.5"
+        nodeGroups:
+          - id: "stms-nodes"
+            category: "worker"
+            displayName: "STMS nodes"
+            description: "Nodes for three STMS replicas, bundled PostgreSQL, and the audit path that runs with STMS. Spark and Trino sidecars do not run here."
+            nodeCount:
+              default: 3
+              minimum: 3
+              hint: "Three nodes so the three STMS replicas can spread. 8 CPU and 32Gi memory per node is the production size. Database volumes come from CloudNativePG, not from this root disk."
+            resources:
+              minimum:
+                cpu: "4"
+                memory: "16Gi"
+                hasGPU: false
+              hint: "4 CPU and 16Gi is the floor for one STMS replica plus a share of PostgreSQL and audit. Use 8 CPU and 32Gi for production."
+            storage:
+              disk:
+                default: "100Gi"
+                minimum: "50Gi"
+                hint: "Root disk for OS and images. PostgreSQL data uses a separate volume."
+          - id: "udf-nodes"
+            category: "worker"
+            displayName: "UDF nodes"
+            description: "Nodes for Ranger Admin and the rest of Unified Data Fabric. Not tainted: udf-plugin pods do not tolerate an exclusiveFor taint (see awc-workspaces/blueprint.yaml)."
+            nodeCount:
+              default: 3
+              minimum: 1
+              hint: "Use 1 for a trial. Use 3 or more for production. 16 CPU and 64Gi per node when Ranger and Atlas are both busy."
+            resources:
+              minimum:
+                cpu: "8"
+                memory: "32Gi"
+                hasGPU: false
+              hint: "Floor matches udf/blueprint.yaml. 16 CPU and 64Gi is the production size."
+            storage:
+              disk:
+                default: "200Gi"
+                minimum: "100Gi"
+                hint: "Root disk for OS, images, and local scratch."
+          - id: "cde-nodes"
+            category: "worker"
+            displayName: "CDE nodes"
+            description: "Nodes for the Cloudera Data Engineering control plane and Spark pods. The SecureToken agent is a sidecar on those Spark pods."
+            nodeCount:
+              default: 3
+              minimum: 1
+              hint: "Use 1 for a trial. Use 3 or more when several Spark jobs run together. 16 CPU and 64Gi per node is the production size from cde/awc-cde-blueprint.yaml."
+            resources:
+              minimum:
+                cpu: "8"
+                memory: "32Gi"
+                hasGPU: false
+              hint: "Floor matches the CDE blueprint. 16 CPU and 64Gi for concurrent Spark jobs."
+            storage:
+              disk:
+                default: "200Gi"
+                minimum: "100Gi"
+                hint: "Root disk. Spark shuffle and job logs need the larger size."
+          - id: "cde-gpu-nodes"
+            category: "worker"
+            displayName: "CDE GPU nodes"
+            optional: true
+            exclusiveFor:
+              - "cde"
+            description: "Optional GPU nodes for Spark. Not used by STMS."
+            nodeCount:
+              default: 0
+              minimum: 0
+              hint: "Leave at 0 unless a Spark job needs a GPU. Same optional pool as cde/awc-cde-blueprint.yaml."
+            resources:
+              minimum:
+                cpu: "8"
+                memory: "32Gi"
+                hasGPU: true
+              hint: "16 CPU and 64Gi when GPU jobs are the workload."
+            storage:
+              disk:
+                default: "200Gi"
+                minimum: "100Gi"
+                hint: "Same root disk guidance as the CDE CPU nodes."
+  ui:
+    displayName: "Bluemetrix SecureToken STMS"
+    about: >
+      SecureToken STMS is the management plane for Bluemetrix tokenization.
+      It runs on Kubernetes with three replicas. Customers sign in with a
+      local STMS user on day one. LDAP or Active Directory is an external URL
+      and a bind-password secret. Ranger policies come from Unified Data
+      Fabric (engine udf-plugin). Ranger KMS and the Kerberos KDC are not in
+      Anywhere Cloud and are not in UDF. Set them only when an external Ranger
+      KMS URL is configured. Cloud KMS is not part of this blueprint.
+      Two ways to reach systems that stay outside the cluster: type their
+      URLs and secret names on the STMS engine form, or later attach an
+      existing CDP cluster through engine cdp-base-connector-plugin. That
+      connector is not an instance here. Cloudera Data Engineering is included
+      so Spark executor pods can run the SecureToken agent as a sidecar via a
+      pod template, on 127.0.0.1 only. An admission webhook is not the plan.
+      Trino workers need the same sidecar. The Trino engine is not in this
+      repository; the lakehouse definition lives with trino-lakehouse in
+      CLE/trino-operator. Without the sidecar, Trino can only mask.
+      Polaris is the preferred optional catalog. Hive Metastore is the other
+      optional catalog. There is no Hive server. Ozone is optional audit
+      object storage; external S3 is the other choice and is a form, not an
+      engine. Cloudera AI Workbench (caiw), Inference (caii), and Registry
+      (cair) are optional and only matter later for Data Discovery. Data
+      Discovery is a later Helm chart, not this blueprint. mTLS uses
+      cert-manager or secret names you already created. The chart does not
+      ask for a password, keytab, or private key.
