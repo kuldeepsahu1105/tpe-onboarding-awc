@@ -17,7 +17,52 @@ ensure_env() {
 py() { "$VENV/bin/python" "$@"; }
 
 case "${1:-help}" in
-  ui)       ensure_env; echo "Opening http://127.0.0.1:8765  (Ctrl-C to stop)"; py -m web.app ;;
+  ui)
+            ensure_env
+            port_pid="$(lsof -nP -t -iTCP:8765 -sTCP:LISTEN 2>/dev/null | head -1 || true)"
+            if [ -n "$port_pid" ]; then
+              port_cmd="$(ps -p "$port_pid" -o command= 2>/dev/null || true)"
+              port_cwd="$(lsof -a -p "$port_pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')"
+              same=0
+              case "$port_cmd" in
+                *awc_onboarding/web/app.py*|*'./awc ui'*|*'awc ui'*|*'-m web.app'*)
+                  case "$port_cmd" in
+                    *'-m web.app'*)
+                      case "$port_cwd" in
+                        */awc_onboarding) same=1 ;;
+                      esac
+                      ;;
+                    *) same=1 ;;
+                  esac
+                  ;;
+              esac
+              if [ "$same" != 1 ]; then
+                echo "pid $port_pid"
+                echo "$port_cmd"
+                echo "Port 8765 is already in use" >&2
+                exit 1
+              fi
+              parent="$(ps -p "$port_pid" -o ppid= 2>/dev/null | tr -d ' ' || true)"
+              parent_cmd="$(ps -p "$parent" -o command= 2>/dev/null || true)"
+              case "$parent_cmd" in
+                *'-m web.app'*) kill "$parent" 2>/dev/null || true ;;
+              esac
+              kill "$port_pid" 2>/dev/null || true
+              for _ in 1 2 3 4 5 6 7 8 9 10; do
+                lsof -nP -iTCP:8765 -sTCP:LISTEN >/dev/null 2>&1 || break
+                sleep 0.2
+              done
+              if lsof -nP -iTCP:8765 -sTCP:LISTEN >/dev/null 2>&1; then
+                echo "pid $port_pid"
+                echo "$port_cmd"
+                echo "Port 8765 is already in use" >&2
+                exit 1
+              fi
+              echo "Restarted http://127.0.0.1:8765"
+            fi
+            echo "Dev server reloads when you save a file. Open http://127.0.0.1:8765"
+            exec py -m web.app
+            ;;
   wizard)   ensure_env; py -m onboarding.cli wizard ;;
   new)      name="${2:?usage: ./awc new <name>}"; cp examples/starter.input.yaml "$name.input.yaml"
             echo "Created $name.input.yaml - edit it, then run: ./awc build $name.input.yaml" ;;
