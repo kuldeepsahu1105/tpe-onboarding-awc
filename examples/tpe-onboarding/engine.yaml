@@ -1,0 +1,31 @@
+# The onboarding workbench as an Anywhere Cloud engine.
+# No Helm chart or image is published yet, so this file has no template,
+# releases, or health check, and no image digest. Chart and image catalogs
+# are named below and left empty. Fill them when a chart exists.
+# Do not put a registry password in this file.
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Engine
+metadata:
+  name: tpe-onboarding-engine
+spec:
+  displayName: Partner third-party engine onboarding
+  description: >
+    Workbench for Cloudera partner third-party engine onboarding on Anywhere
+    Cloud. Guided questions, paste YAML, an install guide for several products,
+    and publish. Registry host, repository, image name, and tag are chosen at
+    publish time. This engine does not push by itself.
+  configSchema:
+    type: object
+    properties:
+      servicePort:
+        type: integer
+        default: 8765
+        title: Workbench port
+        description: Port for the onboarding workbench on this computer. The local command is ./awc ui.
+      replicas:
+        type: integer
+        default: 1
+        title: Copies
+        description: How many workbench copies to run once a chart exists. One is enough today.
+  imageCatalog: tpe-onboarding-images-unpublished
+  chartCatalog: tpe-onboarding-charts-unpublished

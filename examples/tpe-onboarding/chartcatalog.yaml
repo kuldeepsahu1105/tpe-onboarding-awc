@@ -1,0 +1,8 @@
+# Not published yet. Leave charts empty until a Helm chart exists.
+# Do not invent a digest or a registry host.
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: ChartCatalog
+metadata:
+  name: tpe-onboarding-charts-unpublished
+spec:
+  charts: []

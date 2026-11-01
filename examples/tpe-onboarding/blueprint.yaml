@@ -1,0 +1,48 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Blueprint
+metadata:
+  name: tpe-onboarding-blueprint
+spec:
+  owner: Cloudera
+  description: >
+    Cloudera partner third-party engine onboarding as an Anywhere Cloud
+    install. The customer gets a workbench for guided questions, pasted YAML,
+    an install guide, and publish. The workbench chart and image are not
+    published yet, so this blueprint does not name a registry or a password.
+  outcome: Partner third-party engine onboarding
+  instances:
+  - name: tpe-onboarding
+    engine: tpe-onboarding-engine
+    minimumVersion: 0.0.0
+  hardwareTiers:
+  - name: default
+    cluster:
+      kubernetesVersion: '>= 1.28.0'
+      nodeGroups:
+      - id: tpe-onboarding-nodes
+        category: worker
+        displayName: Onboarding workbench
+        description: Small nodes for the onboarding workbench. No GPU.
+        nodeCount:
+          default: 1
+          minimum: 1
+          hint: One node is enough. This is a form and file generator, not a data cluster.
+        resources:
+          minimum:
+            cpu: '1'
+            memory: 2Gi
+            hasGPU: false
+          recommended:
+            cpu: '2'
+            memory: 4Gi
+            hasGPU: false
+          hint: 'Raise memory only if many people use the workbench at once.
+
+            '
+        storage:
+          disk:
+            default: 20Gi
+            minimum: 10Gi
+            hint: Disk holds generated product files on the computer. It does not hold customer data.
+  ui:
+    displayName: Cloudera partner third-party engine onboarding

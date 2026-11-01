@@ -1,0 +1,9 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: EngineInstance
+metadata:
+  name: tpe-onboarding
+spec:
+  engine: tpe-onboarding-engine
+  config:
+    servicePort: 8765
+    replicas: 1

@@ -41,6 +41,7 @@ label{font-weight:600;display:block;margin:16px 0 8px}
 .checkrow input{width:18px;height:18px;margin:0;flex:0 0 auto}
 .checkrow label{margin:0}
 ul.ready{margin:16px 0 8px;padding-left:18px}
+#ltarget{margin:0;word-break:break-all}
 ul.ready li{margin:8px 0}
 .err{color:#b00020;margin:8px 0 0}.ok{color:#0a7d33}.warn{color:#9a6700}
 pre{background:#1B1B1B;color:#f2f2f2;padding:12px;border-radius:6px;overflow:auto;max-height:420px;font-size:13px;white-space:pre-wrap;word-break:break-word}
@@ -91,7 +92,6 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  <p class="help">Checks the install guide and each product file first. Files are kept only when the check passes. Nothing is pushed.</p>
 </section>
 <section id="publish" class="card hide">
- <p id="ltarget" class="help">Images go to the registry host, repository, image name, and tag below.</p>
  <label for="lfolder">Product folder</label>
  <select id="lfolder" onchange="pickFolder()"><option value="">Generate files first</option></select>
  <p class="help">Filled in when you generate files. This is the folder on this computer.</p>
@@ -109,6 +109,9 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  <label for="ltag">Tag</label>
  <input id="ltag" placeholder="1.0.0" autocomplete="off">
  <p class="help">The image tag. Nothing is pushed until host, repository, image name, and tag are all set.</p>
+ <label>Artifact address</label>
+ <p id="ltarget"></p>
+ <p id="laddressNote" class="help"></p>
  <label for="luser">Registry username</label>
  <input id="luser" autocomplete="off">
  <label for="lpass">Registry password or token</label>
@@ -311,12 +314,35 @@ async function stageBundle(){
  await refreshJobs();
  if(r.ok){window._filesReady=true;paintReady()}
  if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
+function cleanPath(value){return String(value||'').trim().replace(/^\/+|\/+$/g,'').replace(/\/+/g,'/')}
+function artifactAddress(){
+ const host=cleanPath($('lhost').value);
+ const repo=cleanPath($('lrepo').value);
+ const image=cleanPath($('limage').value);
+ const tag=String($('ltag').value||'').trim().replace(/^:+/,'').replace(/\/+$/g,'');
+ let pathRepo=repo;
+ if(image&&repo&&(repo===image||repo.endsWith('/'+image))) pathRepo=repo;
+ const parts=[];
+ if(host) parts.push(host);
+ if(pathRepo) parts.push(pathRepo);
+ if(image&&!(pathRepo===image||pathRepo.endsWith('/'+image))) parts.push(image);
+ let line=parts.join('/');
+ if(tag) line=line?line+':'+tag:tag;
+ const missing=[];
+ if(!host) missing.push('a registry host');
+ if(!repo) missing.push('a repository');
+ if(!image) missing.push('an image name');
+ if(!tag) missing.push('a tag');
+ let note;
+ if(!missing.length) note='This is where the image will be pushed. Nothing is uploaded yet.';
+ else if(missing.length===1) note='Add '+missing[0]+' to complete the address.';
+ else note='Add '+missing.slice(0,-1).join(', ')+', and '+missing[missing.length-1]+' to complete the address.';
+ return {line, note}}
 function paintTarget(){
- const [host,repo,image,tag]=['lhost','lrepo','limage','ltag'].map(id=>$(id).value.trim());
- const bits=[host,repo,image].filter(Boolean);
- let line=bits.join('/');
- if(tag) line+=(line?':':'')+tag;
- $('ltarget').textContent=line?('Images go to '+line):'Images go to the registry host, repository, image name, and tag below.';paintReady()}
+ const built=artifactAddress();
+ $('ltarget').textContent=built.line;
+ $('laddressNote').textContent=built.note;
+ paintReady()}
 function paintReady(){const el=$('ready');if(!el)return;const rows=[['Files on this computer',!!window._filesReady],['Registry host',!!$('lhost').value.trim()],['Repository',!!$('lrepo').value.trim()],['Image name',!!$('limage').value.trim()],['Tag',!!$('ltag').value.trim()],['Username',!!$('luser').value.trim()]];el.innerHTML=rows.map(([name,ok])=>`<li class="${ok?'ok':'err'}">${ok?'Done':'Not yet'}: ${esc(name)}</li>`).join('')}
 function saveRegistry(){
  const saved={host:$('lhost').value.trim(),repo:$('lrepo').value.trim(),image:$('limage').value.trim(),tag:$('ltag').value.trim(),user:$('luser').value.trim(),allow:$('lallow').checked};
@@ -343,7 +369,7 @@ function allowPush(){
 async function recordPush(action){
  const [host,repo,image,tag,user]=pushCoords();
  clearRegistryPassword();
- const r=await api('/api/launchpad/queue',{action,username:user,passwordPresent:true,registry:[host,repo,image].filter(Boolean).join('/')+(tag?':'+tag:''),slug:selectedFolder()||image});
+ const r=await api('/api/launchpad/queue',{action,username:user,passwordPresent:true,registry:artifactAddress().line,slug:selectedFolder()||image});
  await refreshJobs();
  if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
 async function checkFiles(){
@@ -366,5 +392,5 @@ async function loadCatalog(){
  $('partnerEmpty').textContent=(r.partners&&r.partners.length)?'':'No partner products listed.';
  $('imageEmpty').textContent=(r.images&&r.images.length)?'':'No images listed yet.'}
 async function loadEx(t,sel){if(sel.value)$(t).value=(await api('/api/example?name='+encodeURIComponent(sel.value))).text}
-(async()=>{restoreRegistry();['lhost','lrepo','limage','ltag','luser'].forEach(id=>$(id).addEventListener('input',paintTarget));paintReady();const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')&&!e.includes('/')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
+(async()=>{restoreRegistry();['lhost','lrepo','limage','ltag','luser'].forEach(id=>$(id).addEventListener('input',paintTarget));paintReady();const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
 </script></body></html>
