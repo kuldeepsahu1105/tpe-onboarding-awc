@@ -5,10 +5,10 @@ You finish with a product folder (an engine, the product definition) and an inst
 Toolkit for onboarding any data/big-data app onto the Cloudera Anywhere Cloud (AWC)
 marketplace. Works with or without AI (web UI, CLI wizard, MCP server).
 
-**Start here:** [`awc_onboarding/README.md`](awc_onboarding/README.md), then run `cd awc_onboarding && ./awc ui`.
+**Start here:** from this repo, run `./awc ui`. One command opens the workbench. `./awc help` and `make help` list the same flow: generate, validate, blueprint, mirror, and publish. The workbench and those actions live in this repository.
 
 Before generating a bundle, follow the [configuration edit commands and parameter
-checklists](awc_onboarding/docs/ONBOARDING_GUIDE.md#edit-source-configuration-before-running)
+checklists](docs/ONBOARDING_GUIDE.md#edit-source-configuration-before-running)
 for YAML inputs, conditional settings, credentials, and offline validation.
 
-Partner engine package: [`bluemetrix-stms/`](bluemetrix-stms/README.md).
+Example packages live in `examples/`, including `examples/bluemetrix-stms` and `examples/neo4j`. They are not a second onboarding app.

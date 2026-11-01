@@ -4,7 +4,7 @@ Most engines only need the basics in `examples/starter.input.yaml`. These option
 bundle match hand-tuned engines such as Nijj's PuppyGraph and Anshul's StarRocks.
 See `examples/puppygraph.input.yaml` and `examples/starrocks.input.yaml` for full uses.
 
-After creating your source with `./awc new my-app` from `awc_onboarding/`, use
+After creating your source with `./awc new my-app` from the repository root, use
 `vi my-app.input.yaml` to add these keys, then rerun `./awc build my-app.input.yaml`.
 Do not edit generated YAML/scripts. Follow the [input and safety checklists](ONBOARDING_GUIDE.md#edit-source-configuration-before-running)
 first; not every advanced option is consumed by every template.

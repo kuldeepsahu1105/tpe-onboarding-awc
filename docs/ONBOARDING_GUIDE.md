@@ -1,12 +1,12 @@
 # Onboarding guide
 
 ## Setup
-Run the commands below from `awc_onboarding/` unless a command says otherwise.
+Run the commands below from the repository root unless a command says otherwise.
 Python 3.10+ is required. `./awc` creates `.venv/` and installs `requirements.txt`
 on the first Python-backed command; `./awc doctor` only reports available tools.
 
 ```bash
-cd awc_onboarding
+cd /path/to/tpe-onboarding-awc
 ./awc doctor
 ```
 
