@@ -174,7 +174,7 @@ def normalize(answers: Manifest) -> Manifest:
     for dep in dep_list:
         _set(dep, "type", "auto")
         # `instance` is the target's real Blueprint *instance* name (e.g.
-        # "keycloak" / "dataspark-auth"). Only meaningful for optional/ref
+        # "keycloak"). Only meaningful for optional/ref
         # deps -- Blueprint never lists "auto" deps (the operator wires those
         # privately inside the Engine itself, invisible to the Console).
         # Falls back to `engine` with the common "-engine" suffix stripped,

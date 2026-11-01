@@ -7,12 +7,9 @@ metadata:
 spec:
   displayName: "[[ engine.displayName ]]"
   description: "[[ engine.description ]]"
-  # IMPORTANT: this Engine renders the Custom Resource(s) that the
-  # [[ operator.chartName ]] Operator (installed via operator.yaml, see
-  # operator.yaml in this bundle) reconciles. Replace <operator.group/vX> and
-  # <OperatorKind> below with the real CRD this operator exposes, and replace
-  # the health check with a CEL `expression:` if the CR does not populate
-  # status.conditions[] (see docs/AWC_CONCEPTS.md#cel-health-checks).
+  # Custom resource the [[ operator.chartName ]] Operator reconciles.
+  # operator.group, operator.kind, and operator.resource come from the input.
+  # Swap the CEL expression for a condition check when the CR uses status.conditions.
 
   versionCatalog:
     - displayName: "[[ engine.version ]]"
@@ -57,30 +54,33 @@ spec:
         port: [[ service.port ]]
 
   healthChecks:
-    # CNPG-style example using a CEL expression. Swap for `condition:` if your
-    # operator's CR populates status.conditions[] instead.
+[% if operator.group is defined and operator.kind is defined and operator.group and operator.kind %]
     - resource:
-        apiVersion: "<operator.group>/v1"
-        kind: "<OperatorKind>"
+        apiVersion: "[[ operator.group ]]/v1"
+        kind: "[[ operator.kind ]]"
         name: "{{ .Metadata.Name }}"
       expression: >-
         has(resource.status) &&
         has(resource.status.phase) &&
         resource.status.phase == "Ready"
+[% endif %]
 
   template: |
-    apiVersion: <operator.group>/v1
-    kind: <OperatorKind>
+[% if operator.group is defined and operator.kind is defined and operator.group and operator.kind %]
+    apiVersion: [[ operator.group ]]/v1
+    kind: [[ operator.kind ]]
     metadata:
       name: "{{ .Metadata.Name }}"
       namespace: "{{ .Metadata.Namespace }}"
     spec:
-      # TODO: map .Config.* / .Dependencies.* into the fields this CR expects.
       instances: "{{ .Config.replicas }}"
       storage:
         size: "{{ .Config.storageSize }}"
+[% endif %]
 [% if service.hasLandingPage %]
+[% if operator.group is defined and operator.kind is defined and operator.group and operator.kind %]
     ---
+[% endif %]
     apiVersion: gateway.networking.k8s.io/v1
     kind: HTTPRoute
     metadata:

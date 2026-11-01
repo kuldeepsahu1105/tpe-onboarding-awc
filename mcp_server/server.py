@@ -86,10 +86,9 @@ def start_session(session_id: str) -> dict:
     """Create (or resume) a single onboarding session for ONE engine.
 
     Use a short, stable id such as the partner/engine slug, e.g. "neo4j" or
-    "dataspark". Never bundle more than one engine into a session -- even a
-    product like DataSpark is a single Engine; its database/auth are
-    dependencies on other, separately-onboarded engines (see
-    'add_dependency'), not sub-engines of this one.
+    "dataspark". One product is one Engine. DataSpark's API, auth, and
+    database images belong on that engine, not in separate engines. Call
+    add_dependency only for a different engine already on the cluster.
     """
     session = Session.load(session_id)
     answered, total = session.progress()
@@ -239,12 +238,11 @@ def onboard_engine(session_id: str, answers_yaml: str, out_dir: Optional[str] = 
 
 @mcp.tool()
 def compose_blueprint(blueprint_yaml_path: str, out_dir: Optional[str] = None) -> dict:
-    """Build ONE Blueprint (the Marketplace app, e.g. DataSpark) from a
-    blueprint input file listing its engines. Each listed engine's
-    input.yaml is rendered + validated, and a single blueprint.yaml wiring
-    them together is emitted. For a simple one-engine app (Neo4j,
-    PuppyGraph, ...) just list that one engine. See
-    examples/dataspark/blueprint.input.yaml."""
+    """Build ONE Blueprint from a blueprint input file listing its engines.
+    Each listed engine's input.yaml is rendered and validated, and a single
+    blueprint.yaml wiring them together is emitted. A one-engine app such as
+    DataSpark or Phoenix AI does not need this; generate that input.yaml
+    directly."""
     from onboarding.blueprint_composer import compose_blueprint as _compose
 
     return _compose(Path(blueprint_yaml_path), Path(out_dir) if out_dir else DEFAULT_OUT)
@@ -270,7 +268,7 @@ def list_examples() -> list[str]:
     StarRocks, PuppyGraph, PhoenixAI) covering every template class, as a
     reference before onboarding a new engine."""
     names = sorted(p.stem.replace(".input", "") for p in EXAMPLES_DIR.glob("*.input.yaml"))
-    return names + ["dataspark/blueprint (multi-engine Blueprint, see examples/dataspark/)"]
+    return names
 
 
 @mcp.tool()

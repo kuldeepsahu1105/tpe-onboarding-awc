@@ -9,17 +9,15 @@ Blueprint) and then emits a single ``blueprint.yaml`` for the whole app.
 Blueprint input file::
 
     blueprint:
-      name: dataspark
-      owner: "DataSpark, Inc."
-      displayName: "DataSpark"
+      name: my-suite
+      owner: "Example, Inc."
+      displayName: "My Suite"
       description: "..."
       outcome: "End-to-end analytics"
       version: "1.0.0"
       kubernetesVersion: ">= 1.28.0"      # optional
     engines:
-      - input: dataspark-db.input.yaml      # onboard + include this engine
-      - input: dataspark-auth.input.yaml
-      - input: dataspark-api.input.yaml
+      - input: my-engine.input.yaml         # onboard + include this engine
       - existing:                           # engine already on the cluster
           engine: keycloak-ace-engine
           instance: keycloak-prod

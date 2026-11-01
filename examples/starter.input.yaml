@@ -33,7 +33,7 @@ dependencies:
 
 blueprint:
   needed: true                    # true = shows up as an app in the marketplace
-  outcome: "What users get, e.g. Graph database"
+  outcome: "Sample application"
 
 cluster:
   minCpu: "4"

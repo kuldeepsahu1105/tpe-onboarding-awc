@@ -19,6 +19,24 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 STANDARDS_DIR = REPO_ROOT / "standards"
 
 _PLACEHOLDER_RE = re.compile(r"<[a-zA-Z][a-zA-Z0-9_.\-/]*>")
+# A line that is only a Go action (if / range / end / else) is not YAML.
+_GO_ACTION_LINE = re.compile(r"^\s*\{\{-?.*?-?\}\}\s*$")
+_GO_EXPR = re.compile(r"\{\{-?.*?-?\}\}")
+
+
+def _yaml_with_go_neutralized(text: str) -> str:
+    """Make a Go-templated manifest parseable for the kind allow-list.
+
+    Control-flow lines are removed. Other ``{{ ... }}`` expressions become the
+    plain token GO so unquoted values still parse. Angle-bracket placeholders
+    are left untouched; the placeholder scan uses the original text.
+    """
+    lines = []
+    for line in text.splitlines():
+        if _GO_ACTION_LINE.match(line):
+            continue
+        lines.append(_GO_EXPR.sub("GO", line))
+    return "\n".join(lines)
 
 
 @dataclass
@@ -127,16 +145,14 @@ def validate_bundle(bundle_dir: Path, manifest: dict[str, Any]) -> ValidationRes
 
         template_text = _get_path(engine_doc, "spec.template") or ""
         try:
-            template_docs = list(yaml.safe_load_all(template_text))
+            template_docs = list(yaml.safe_load_all(_yaml_with_go_neutralized(template_text)))
         except yaml.YAMLError:
             template_docs = None
             result.add(
                 "warning",
                 "engine.yaml",
-                "spec.template could not be statically parsed as YAML -- this is "
-                "expected once it contains Go-template control-flow ({{- if }}, "
-                "{{- range }}, {{- end }}). Skipping the Kind/apiVersion allow-list "
-                "check for this file; review spec.template by eye.",
+                "spec.template could not be statically parsed as YAML. "
+                "Fix the manifest before publishing.",
             )
         for doc in template_docs or []:
             if not doc:

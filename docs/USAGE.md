@@ -47,7 +47,7 @@ cd /path/to/tpe-onboarding-awc
    Output defaults to `output/<partner-id>/ace/`. Do not edit session JSON or generated files.
 
 **C. Several engines in one Blueprint**
-1. One `*.input.yaml` per engine + a `blueprint.input.yaml` (see `examples/dataspark/`, `examples/phoenixai-suite/`).
+1. One `*.input.yaml` per engine, plus a `blueprint.input.yaml` you write when several of your engines install together. DataSpark and Phoenix AI are each a single file (`examples/dataspark.input.yaml`, `examples/phoenixai.input.yaml`).
    Follow the [copy commands, explicit vi commands and composer checklist](ONBOARDING_GUIDE.md#2-multi-engine-app-or-combining-with-existing-experiences);
    review each engine source and the composer source before running.
 2. `./awc blueprint blueprint.input.yaml` → one Blueprint, all engines, one `publish.sh`.

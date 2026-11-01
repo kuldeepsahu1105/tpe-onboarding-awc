@@ -28,10 +28,10 @@ flowchart TD
 ## Ready-made examples to copy
 | Pattern | File |
 |---|---|
-| helm-simple | `examples/neo4j.input.yaml` |
+| helm-simple | `examples/neo4j.input.yaml`, `examples/phoenixai.input.yaml` |
 | helm-multi-role | `examples/starrocks.input.yaml`, `examples/puppygraph.input.yaml` (hand-tuned reference: `examples/reference/puppygraph-nijjwol/`) |
-| helm-operator | `examples/phoenixai.input.yaml` |
-| native-k8s | `examples/dataspark/api.input.yaml` |
+| helm-operator | No bundled sample. Set `operator.group`, `operator.kind`, and `operator.resource` to the real CRD. This repo has no Phoenix AI CRD, so Phoenix AI is the helm-simple example. |
+| native-k8s | `examples/dataspark.input.yaml` |
 
 Picked wrong? Change the one `template:` line (and add/remove `roles` / `operator`) and run
 `./awc build` again. Nothing else is lost.

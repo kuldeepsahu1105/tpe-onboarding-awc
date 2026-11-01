@@ -72,14 +72,12 @@ rules:
     resources:
       - authconfigs
     verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
-[% if engine.template == "helm-operator" %]
-  # The CR(s) this Engine's template renders for the installed Operator to
-  # reconcile. Replace <group>/<resource> with the real CRD this operator
-  # exposes (e.g. postgresql.cnpg.io / clusters).
+[% if engine.template == "helm-operator" and operator.group is defined and operator.resource is defined and operator.group and operator.resource %]
+  # Custom resource this Engine renders for the installed Operator.
   - apiGroups:
-      - "<operator-crd-group>"
+      - "[[ operator.group ]]"
     resources:
-      - "<operator-crd-resource>"
+      - "[[ operator.resource ]]"
     verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
 [% endif %]
 [% for dep in dependencies.entries %]
