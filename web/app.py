@@ -170,7 +170,8 @@ def run_answers(answers: dict) -> dict:
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp)
         render_bundle(manifest, out)
-        return _bundle_result(out, validate_bundle(out, manifest).as_dict())
+        folder = (manifest.get("partner") or {}).get("id") or ""
+        return _bundle_result(out, validate_bundle(out, manifest).as_dict(), {"folder": folder})
 
 
 def run_blueprint(blueprint_text: str, engines: dict) -> dict:
@@ -220,6 +221,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._send({"done": question is None, "answered": done, "total": total,
                                "shortName": q._get(s.answers, "partner.id") or "",
                                "question": question and _qpayload(question, s.answers)})
+        if url.path == "/api/registry-answers":
+            s = Session.load(qs.get("session", "default"))
+            return self._send({
+                "folder": q._get(s.answers, "partner.id") or "",
+                "registry": q._get(s.answers, "publish.destinationRegistry") or "",
+                "repository": q._get(s.answers, "publish.namespace") or "",
+            })
         if url.path == "/api/launchpad/jobs":
             with _jobs_lock:
                 return self._send({"jobs": list(_jobs)})

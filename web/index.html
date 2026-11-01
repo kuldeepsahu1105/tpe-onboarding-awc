@@ -88,6 +88,11 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
 </section>
 <section id="publish" class="card hide">
  <p id="ltarget" class="help">Images go to the registry host, repository, image name, and tag below.</p>
+ <label for="lfolder">Product folder</label>
+ <select id="lfolder" onchange="pickFolder()"><option value="">Generate files first</option></select>
+ <p class="help">Filled in when you generate files. This is the folder on this computer.</p>
+ <div class="row"><button class="s" type="button" onclick="useRegistryAnswers()">Use registry from the questions</button></div>
+ <p class="help">Fills registry host and repository name from Guided questions. Does not upload.</p>
  <label for="lhost">Registry host</label>
  <input id="lhost" placeholder="registry.example.com" autocomplete="off">
  <p class="help">Where the images will be pushed. Any registry. Not tied to one cloud.</p>
@@ -165,13 +170,14 @@ function showTab(name){
 function openTab(name){showTab(name)}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const PLAIN={'partner.id':'Short name','partner.owner':'Who makes this product','engine.displayName':'Name shoppers see','engine.description':'What the product does','engine.template':'How the product is packaged','publish.destinationRegistry':'Image registry, optional','publish.namespace':'Folder on the registry'};
+const PLAIN={'partner.id':'Folder name','partner.owner':'Who makes this product','engine.displayName':'Name shoppers see','engine.description':'What the product does','engine.template':'How the product is packaged','publish.destinationRegistry':'Image registry, optional','publish.namespace':'Folder on the registry'};
 let cur=null,prev=null;
 const backBtn=n=>n>0?'<button class="s" onclick="goBack()">&larr; Back</button>':'';
 async function loadQ(){
  const r=await api('/api/question?session='+encodeURIComponent($('sid').value));
  window.nAns=r.answered;
  $('prog').style.width=(r.total?100*r.answered/r.total:0)+'%';
+ if(r.shortName) addFolderOption(r.shortName);
  if(r.done){$('qbox').innerHTML='<p class="ok">All questions answered.</p><div class="row">'+backBtn(1)+'<button class="p" onclick="runSession()">Generate &amp; validate</button></div>';return}
  cur=r.question;let f;
  if(prev&&prev.id===cur.id){cur.default=prev.value}prev=null;
@@ -180,9 +186,9 @@ async function loadQ(){
  else f=`<input id="ans" placeholder="${esc((cur.example||'').split('   or   ')[0].replace(/ \(.*$/,''))}" value="${esc(Array.isArray(cur.default)?cur.default.join(', '):(cur.default??''))}" onkeydown="if(event.key==='Enter')submitQ()">`;
  const plain=PLAIN[cur.id]?`<p class="kicker">${PLAIN[cur.id]}</p>`:'';
  let shown=cur.prompt;
- if(cur.id==='partner.id') shown="What is a short, unique name for this product? (lowercase, hyphens, no spaces -- e.g. 'starrocks', 'neo4j', 'dataspark')";
+ if(cur.id==='partner.id') shown="What folder name should we use for this product? (lowercase, hyphens, no spaces -- e.g. 'starrocks', 'neo4j', 'dataspark')";
  const nextNote=cur.id==='partner.id'
-  ? '<p class="help"><b>Next.</b> Saves this answer in the session file. The short name becomes the folder name. It does not push to a registry or install into a cluster.</p>'
+  ? '<p class="help"><b>Next.</b> Saves this answer in the session file. This becomes the folder name. It does not push to a registry or install into a cluster.</p>'
   : '<p class="help"><b>Next.</b> Saves this answer in the session file. It does not push images or install into a cluster. Safe to repeat.</p>';
  $('qbox').innerHTML=plain+`<h3>${esc(shown)}</h3>${cur.help?`<div class="help">${esc(cur.help)}</div>`:''}${cur.example?`<div class="help"><b>Example:</b> ${esc(cur.example)}</div>`:''}${f}<div id="qe" class="err"></div><div class="row">${backBtn(r.answered)}<button class="p" onclick="submitQ()">Next</button></div>`+nextNote;
  $('ans').focus()}
@@ -216,7 +222,41 @@ async function loadBpEx(){$('engs').innerHTML='';
  for(const n of ['db','auth','api'])addEng(n+'.input.yaml',(await api('/api/example?name=dataspark/'+n+'.input.yaml')).text)}
 async function runBp(){const engines={};$('engs').querySelectorAll('.card').forEach(c=>{const i=c.querySelector('input'),t=c.querySelector('textarea');if(i.value)engines[i.value]=t.value});
  show(await api('/api/run-blueprint',{blueprint:$('bpta').value,engines}))}
+function addFolderOption(name){
+ name=String(name||'').trim();
+ if(!name) return;
+ const sel=$('lfolder');
+ if(!sel) return;
+ let opt=[...sel.options].find(o=>o.value===name);
+ if(!opt){opt=document.createElement('option');opt.value=name;opt.textContent=name;sel.appendChild(opt)}
+ sel.value=name; window._folder=name}
+function pickFolder(){
+ window._folder=$('lfolder').value||'';
+ const image=$('limage');
+ if(image&&window._folder&&!image.value.trim()) image.value=window._folder;
+ paintTarget()}
+function selectedFolder(){return ($('lfolder')&&$('lfolder').value)||window._folder||''}
+function rememberBundle(r){
+ if(!r||r.error) return;
+ if(r.files&&Object.keys(r.files).length) window._filesReady=true;
+ if(r.folder){addFolderOption(r.folder); fillImageFromFolder()}}
+function filesReady(){
+ if(window._filesReady) return true;
+ $('lmsg').textContent='Create the product files on this computer first. Nothing was sent.';
+ $('lmsg').className='err';
+ return false}
+async function useRegistryAnswers(){
+ const session=($('lsess')&&$('lsess').value)||$('sid').value;
+ const r=await api('/api/registry-answers?session='+encodeURIComponent(session));
+ if(r.folder) addFolderOption(r.folder);
+ if(r.registry) $('lhost').value=r.registry;
+ if(r.repository) $('lrepo').value=r.repository;
+ paintTarget();
+ if(!r.registry&&!r.repository){$('lmsg').textContent='No registry was saved in the questions. Type the host and repository here.';$('lmsg').className='err';return}
+ $('lmsg').textContent='Filled registry host and repository name from the questions. Nothing was uploaded.';
+ $('lmsg').className='ok'}
 function show(r){const el=$('result');el.classList.remove('hide');
+ rememberBundle(r);
  if(r.error){el.innerHTML='<h3 class="err">'+esc(r.error)+'</h3>';return}
  const v=r.validation||{},reports=v.ok!==undefined?{bundle:v}:v;let h='<h3>Validation</h3>';
  for(const[k,x]of Object.entries(reports)){h+=`<div><b>${esc(k)}</b>: <span class="${x.ok?'ok':'err'}">${x.ok?'OK':'FAILED'}</span></div>`;
@@ -252,10 +292,11 @@ function paintJobs(jobs){
  $('lmsg').className=latest&&latest.status==='succeeded'?'ok help':'err'}
 async function refreshJobs(){const r=await api('/api/launchpad/jobs');paintJobs(r.jobs)}
 async function stageBundle(){
- const folder=window._folder||'';
+ const folder=selectedFolder();
  if(!folder){$('lmsg').textContent='Set the folder name on the first step before creating files.';$('lmsg').className='err';return}
  const r=await api('/api/launchpad/stage',{session:$('lsess').value,slug:folder});
  await refreshJobs();
+ if(r.ok) window._filesReady=true;
  if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
 function paintTarget(){
  const [host,repo,image,tag]=['lhost','lrepo','limage','ltag'].map(id=>$(id).value.trim());
@@ -288,7 +329,7 @@ function allowPush(){
 async function recordPush(action){
  const [host,repo,image,tag,user]=pushCoords();
  clearRegistryPassword();
- const r=await api('/api/launchpad/queue',{action,username:user,passwordPresent:true,registry:[host,repo,image].filter(Boolean).join('/')+(tag?':'+tag:''),slug:window._folder||image});
+ const r=await api('/api/launchpad/queue',{action,username:user,passwordPresent:true,registry:[host,repo,image].filter(Boolean).join('/')+(tag?':'+tag:''),slug:selectedFolder()||image});
  await refreshJobs();
  if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
 async function checkFiles(){
@@ -297,10 +338,10 @@ async function checkFiles(){
  show(r);
  $('lmsg').textContent='Check passed. Nothing was uploaded.';$('lmsg').className='ok'}
 async function copyImages(){
- if(!allowPush()||!pushReady()) return;
+ if(!filesReady()||!allowPush()||!pushReady()) return;
  await recordPush('copy')}
 async function publishProduct(){
- if(!allowPush()||!pushReady()) return;
+ if(!filesReady()||!allowPush()||!pushReady()) return;
  await recordPush('publish')}
 async function loadCatalog(){
  const r=await api('/api/launchpad/catalog',{username:$('catEmail').value,password:$('catPass').value,registry:$('lhost').value});
