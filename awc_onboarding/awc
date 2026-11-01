@@ -61,7 +61,7 @@ case "${1:-help}" in
               echo "Restarted http://127.0.0.1:8765"
             fi
             echo "Dev server reloads when you save a file. Open http://127.0.0.1:8765"
-            exec py -m web.app
+            py -m web.app
             ;;
   wizard)   ensure_env; py -m onboarding.cli wizard ;;
   new)      name="${2:?usage: ./awc new <name>}"; cp examples/starter.input.yaml "$name.input.yaml"
