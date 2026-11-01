@@ -1,0 +1,19 @@
+# DataSpark is one product. The API, authentication service, and metadata
+# database are images of this engine, not separate Marketplace apps.
+# The native Deployment runs the API image (the first entry).
+partner: {id: dataspark, owner: "DataSpark, Inc."}
+engine:
+  displayName: "DataSpark"
+  description: "DataSpark analytics platform with an API, authentication, and a metadata database."
+  template: native-k8s
+  version: "1.0.0"
+images:
+  - {id: api, ref: "docker.io/dataspark/api:1.0.0"}
+  - {id: auth, ref: "docker.io/dataspark/auth:1.0.0"}
+  - {id: db, ref: "docker.io/dataspark/db:1.0.0"}
+service: {port: 8080, hasLandingPage: true}
+capability: {exportsStructuredData: true, name: dataspark-connection, fields: "host:string, port:integer"}
+dependencies: {hasAny: false}
+blueprint: {needed: true, outcome: "End-to-end analytics"}
+cluster: {minCpu: "4", minMemory: "16Gi"}
+publish: {destinationRegistry: "registry.partner-corp.example.com", namespace: dataspark}

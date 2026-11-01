@@ -1,9 +1,22 @@
+# Phoenix AI is one product. This repo has no Phoenix AI operator CRD, so the
+# example ships as one Helm chart plus the server image. CAI, CDE, and CDF are
+# engines already on the cluster, not a second Phoenix AI app.
 partner: {id: phoenixai, owner: "PhoenixAI"}
-engine: {displayName: "PhoenixAI", description: "Operator-managed AI/ML model-serving platform.", template: helm-operator}
+engine:
+  displayName: "PhoenixAI"
+  description: "AI/ML model-serving platform."
+  template: helm-simple
+  version: "2.1.0"
 helm: {repoUrl: "https://charts.example.invalid/replace-me", chart: phoenixai, version: "2.1.0"}
-operator: {chartRepoUrl: "oci://registry.example.invalid/replace-me", chartName: phoenixai-operator, chartVersion: "2.1.0"}
+images:
+  - {id: server, ref: "registry.example.invalid/replace-me/image:replace-me"}
 service: {port: 8000, hasLandingPage: true}
-dependencies: {hasAny: false}
+dependencies:
+  hasAny: true
+  entries:
+    - {name: workbench, engine: cai-ace-engine, type: ref, instance: cai}
+    - {name: etl, engine: cde-ace-engine, type: optional, instance: cde}
+    - {name: streams, engine: cdf-ace-engine, type: optional, instance: cdf}
 blueprint: {needed: true, outcome: "AI model serving"}
 cluster: {minCpu: "8", minMemory: "32Gi", hasGPU: true}
 publish: {destinationRegistry: "registry.example.invalid", namespace: phoenixai}

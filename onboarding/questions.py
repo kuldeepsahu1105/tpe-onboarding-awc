@@ -224,6 +224,23 @@ QUESTIONS: list[Question] = [
         when=lambda a: _get(a, "engine.template") == "helm-operator",
         default="ace-operators",
     ),
+    Question(
+        id="operator.group",
+        prompt="API group of the custom resource this operator reconciles (for example postgresql.cnpg.io)?",
+        help="Required before an operator Engine is generated. The group is written into the CR and the Role.",
+        when=lambda a: _get(a, "engine.template") == "helm-operator",
+    ),
+    Question(
+        id="operator.kind",
+        prompt="Kind of that custom resource (for example Cluster)?",
+        when=lambda a: _get(a, "engine.template") == "helm-operator",
+    ),
+    Question(
+        id="operator.resource",
+        prompt="Plural resource name for RBAC (for example clusters)?",
+        help="Lowercase plural, as in a Role rule's resources list.",
+        when=lambda a: _get(a, "engine.template") == "helm-operator",
+    ),
     # --- Networking / UX -------------------------------------------------
     Question(
         id="service.port",

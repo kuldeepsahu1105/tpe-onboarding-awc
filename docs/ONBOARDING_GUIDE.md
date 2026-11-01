@@ -52,7 +52,7 @@ verify it fits the actual application; successful generation is not deployment a
 | When | Actual input keys to verify/update |
 |---|---|
 | `helm-multi-role` | `engine.roles[]` entries with `name`, `replicas`, and optional `cpu`, `memory`, `resources`. Replace the fallback coordinator/worker roles with your chart's real roles. The top-level `roles` key is not used. |
-| `helm-operator` | Required `operator.chartRepoUrl`, `operator.chartName`, `operator.chartVersion`; review `operator.namespace` (default `ace-operators`, must already exist). **These values do not complete the CR scaffold**; see the template limitation below. |
+| `helm-operator` | Required `operator.chartRepoUrl`, `operator.chartName`, `operator.chartVersion`, `operator.group`, `operator.kind`, and `operator.resource`. Review `operator.namespace` (default `ace-operators`, must already exist). The CR and Role are rendered only from those values. |
 | `capability.exportsStructuredData: true` | Review `capability.name` (default `<partner-id>-connection`) and `capability.fields` (`name:type` list, default host/port). For a nested contract, use `capability.schema` and `capability.fields: []`. Verify produced connection values; arbitrary field names do not implement their semantics automatically. |
 | `dependencies.hasAny: true` | Supply `dependencies.entries[]`: `name`, `engine`, `type` (`auto`, `optional`, `ref`), and `instance` for non-auto links where the default target name is wrong. Do not rely on the fallback entry with an empty engine. `auto` is private and omitted from Blueprint wiring. |
 | Chart needs custom values | `helm.values` for static nested values; `config.extras[]` with `name`, `type`, `default`, `description`, optional `title`, `minimum`, `valuesPath`; or `helm.valuesTemplate` for a full values-block replacement. Match real chart value paths. See [advanced options](ADVANCED_OPTIONS.md). |
@@ -81,13 +81,10 @@ contents. Never hand-edit generated `engine.yaml`, catalogs, `mirror.yaml`,
 scripts, or `examples/instance.yaml`: fix the input and regenerate. CLI session
 JSON is runtime state, not an operator config file.
 
-**Template limitation:** `helm-operator` intentionally emits `<operator.group>`
-and `<OperatorKind>` plus an example CR spec/health check. There are no input
-keys for replacing those CRD placeholders. A template maintainer must adapt the
-source with `vi templates/helm-operator/engine.yaml.j2`, verify the real CRD
-apiVersion/kind, `.Config.*`/`.Dependencies.*` mappings and health checks, and
-regenerate. Do not publish the placeholder scaffold even if validation says
-`"ok": true`. Likewise, `native-k8s` renders a fixed Deployment/PVC/Service
+**Template limitation:** `helm-operator` writes the custom resource and its Role
+rule from `operator.group`, `operator.kind`, and `operator.resource`. Generation
+does not fill those in, and it does not leave angle-bracket tokens. Supply the
+real CRD before generating. `native-k8s` renders a fixed Deployment/PVC/Service
 scaffold, not an import of arbitrary Kubernetes YAML; app-specific changes not
 expressible in inputs require a reviewed source-template change via
 `vi templates/native-k8s/engine.yaml.j2`. Template changes affect every app using
@@ -115,13 +112,8 @@ advanced options. For these, maintain `my-app.input.yaml` and use the file
 workflow (or load the complete YAML into a named session before generation).
 
 ## 2. Multi-engine app or combining with existing experiences
-Copy a coherent example set; keep relative input references together:
+DataSpark and Phoenix AI are each one engine: `examples/dataspark.input.yaml` and `examples/phoenixai.input.yaml`. Phoenix AI lists CAI, CDE, and CDF under `dependencies.entries` in that same file. A Blueprint that installs several of your own engines is a separate `blueprint.input.yaml` you write, with one `engines[].input` path per engine file. Keep those paths relative to the blueprint file.
 ```bash
-mkdir my-suite
-cp examples/dataspark/blueprint.input.yaml examples/dataspark/db.input.yaml examples/dataspark/auth.input.yaml examples/dataspark/api.input.yaml my-suite/
-vi my-suite/db.input.yaml
-vi my-suite/auth.input.yaml
-vi my-suite/api.input.yaml
 vi my-suite/blueprint.input.yaml
 ./awc blueprint my-suite/blueprint.input.yaml
 ```
@@ -142,7 +134,7 @@ Apply the engine checklists to **each** engine file before composition.
 - `existing:` pulls in an engine already on the cluster (`engine`, `instance`, `version`).
 - Declare links in an engine's `dependencies.entries` (`auto` / `optional` / `ref`).
 
-Examples: `examples/dataspark/` (3 engines), `examples/phoenixai-suite/` (own engine + CAI, CDE, CDF).
+Examples: `examples/dataspark.input.yaml` (one native app; API, auth, and database images), `examples/phoenixai.input.yaml` (one Helm app that depends on CAI, CDE, and CDF).
 
 ## 3. Web UI (no AI needed)
 ```bash
