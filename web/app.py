@@ -14,6 +14,7 @@ import base64
 import io
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -111,15 +112,16 @@ def _stage_bundle(d: dict) -> dict:
     slug = (d.get("slug") or "").strip()
     session_name = (d.get("session") or "").strip()
     if not slug:
-        job = _record_job("stage", "failed", "Short name is required. Nothing was written and nothing was pushed.")
+        job = _record_job("stage", "failed", "Set the folder name on the first step before creating files. Nothing was written.")
         return {"error": job["detail"], "job": job}
     if not session_name:
         job = _record_job("stage", "failed", "Session name is required. Nothing was staged.")
         return {"error": job["detail"], "job": job}
     result = run_answers(Session.load(session_name).answers)
-    if result.get("error"):
-        job = _record_job("stage", "failed", result["error"])
-        return {"error": result["error"], "job": job}
+    if result.get("ok") is False or result.get("problems") or result.get("error"):
+        detail = result.get("error") or " ".join(p["message"] for p in result.get("problems") or [])
+        job = _record_job("stage", "failed", detail or "The check failed. Nothing was written.")
+        return {"ok": False, "error": job["detail"], "problems": result.get("problems") or [], "job": job}
     count = len(result.get("files") or {})
     detail = (
         f"Staged {count} files for partners/{slug}/ in this UI process. "
@@ -150,6 +152,92 @@ def _qpayload(question, answers):
     }
 
 
+
+_FORM_KEYS = ("directory", "engine", "imageCatalog", "chartCatalog", "helm")
+
+
+def _plain(file: str, message: str) -> str:
+    """One sentence: what is wrong, and what to change."""
+    text = " ".join(str(message).split()).rstrip(".")
+    found = re.search(r"Missing required field spec path '([^']+)'", text)
+    if found:
+        name = file or "The file"
+        return f"{name} is missing {found.group(1)}. Add that field."
+    found = re.search(r"forbidden registry host '([^']+)'", text)
+    if found:
+        return f"{file or 'A file'} points at {found.group(1)}. Use your own registry instead."
+    if "Required file is missing" in text:
+        return f"{file or 'A required file'} was not produced. Add the inputs that create it."
+    found = re.match(r"blueprint\.(\w+) is required", text)
+    if found:
+        return f"The install guide needs a {found.group(1)}. Add blueprint.{found.group(1)}."
+    if "at least one engine" in text:
+        return "List at least one product under engines. Add an engine file name."
+    if "still need" in text:
+        return f"{text}. Fill that in before generating files."
+    if text.startswith(("Paste ", "This ", "The ", "List ", "Set ", "Check ")):
+        return f"{text}."
+    if not file:
+        return f"{text}."
+    if text.lower().startswith(str(file).lower()):
+        return f"{text}."
+    return f"{file}: {text}. Fix that before generating files."
+
+
+def _problem(field: str, file: str, message: str) -> dict:
+    return {"field": field, "file": file, "message": _plain(file, message)}
+
+
+def _fail(field: str, file: str, message: str) -> dict:
+    return {"ok": False, "problems": [_problem(field, file, message)]}
+
+
+def _is_input_form(data: dict) -> bool:
+    return isinstance(data, dict) and data.get("version") == "v1" and "directory" in data
+
+
+def _check_input_form(data: dict) -> list[str]:
+    """Same checks as engine-onboarding/validate_form.py. No second schema."""
+    problems: list[str] = []
+    if data.get("version") != "v1":
+        problems.append("The form version must be v1. Set version: v1.")
+    for key in _FORM_KEYS:
+        if key not in data:
+            problems.append(f"The form is missing {key}. Add that section.")
+    if problems:
+        return problems
+    import sys
+    eng = str(ROOT / "engine-onboarding")
+    if eng not in sys.path:
+        sys.path.insert(0, eng)
+    from generate_engine import validate_optional_schema
+
+    schema = ROOT / "engine-onboarding" / "input_form.schema.yaml"
+    try:
+        validate_optional_schema(data, schema)
+    except Exception as exc:
+        detail = getattr(exc, "message", None) or str(exc)
+        detail = " ".join(str(detail).split())
+        if "is a required property" in detail:
+            missing = detail.split()[0].strip("'")
+            problems.append(f"The form is missing {missing}. Add that field.")
+        else:
+            problems.append(f"The form does not match the expected shape. {detail}")
+    return problems
+
+
+def _answers_problem(field: str, file: str, answers: dict) -> dict | None:
+    q.fill_defaults(answers)
+    missing = q.next_question(answers)
+    if missing is None:
+        return None
+    prompt = missing.prompt.rstrip()
+    if not prompt.endswith("."):
+        prompt = prompt.rstrip("?") + "."
+    where = file or "The answers"
+    return _problem(field, file or missing.id, f"{where} is incomplete. {prompt} Fill that in before generating files.")
+
+
 def _bundle_result(directory: Path, validation: dict, extra: dict | None = None) -> dict:
     files = {str(p.relative_to(directory)): p.read_text() for p in sorted(directory.rglob("*")) if p.is_file() and p.suffix in (".yaml", ".sh")}
     buf = io.BytesIO()
@@ -161,28 +249,94 @@ def _bundle_result(directory: Path, validation: dict, extra: dict | None = None)
 
 
 def run_answers(answers: dict) -> dict:
-    answers = answers or {}
-    q.fill_defaults(answers)
-    missing = q.next_question(answers)
-    if missing:
-        return {"error": f"Still need '{missing.id}': {missing.prompt}"}
-    manifest = normalize(answers)
+    """Validate first. Files are returned only when the check passes."""
+    if not isinstance(answers, dict) or not answers:
+        return _fail("yaml", "input.yaml", "Paste the product YAML first. Add partner and engine fields.")
+    if _is_input_form(answers):
+        problems = [_problem("yaml", "input.yaml", item) for item in _check_input_form(answers)]
+        if problems:
+            return {"ok": False, "problems": problems}
+        return {"ok": True, "passed": "Check passed. The form has the required sections."}
+    gap = _answers_problem("yaml", "input.yaml", answers)
+    if gap:
+        return {"ok": False, "problems": [gap]}
+    try:
+        manifest = normalize(answers)
+    except Exception as exc:
+        return _fail("yaml", "input.yaml", str(exc))
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp)
         render_bundle(manifest, out)
+        report = validate_bundle(out, manifest).as_dict()
+        if not report["ok"]:
+            return {"ok": False, "problems": [_problem("yaml", e["file"], e["message"]) for e in report["errors"]]}
         folder = (manifest.get("partner") or {}).get("id") or ""
-        return _bundle_result(out, validate_bundle(out, manifest).as_dict(), {"folder": folder})
+        result = _bundle_result(out, report, {"folder": folder, "ok": True})
+        count = len(result.get("files") or {})
+        result["passed"] = f"Check passed. {count} files are ready."
+        return result
 
 
 def run_blueprint(blueprint_text: str, engines: dict) -> dict:
+    """Validate the install guide and each engine file before any bundle is returned."""
+    problems: list[dict] = []
+    if not (blueprint_text or "").strip():
+        return _fail("blueprint", "blueprint.input.yaml", "Paste the install guide first. Add blueprint.name and an engines list.")
+    try:
+        spec = yaml.safe_load(blueprint_text) or {}
+    except yaml.YAMLError:
+        return _fail("blueprint", "blueprint.input.yaml", "This is not valid YAML. Fix the broken line in the install guide.")
+    if not isinstance(spec, dict):
+        return _fail("blueprint", "blueprint.input.yaml", "The install guide must be named fields. Start with blueprint:.")
+    bp = spec.get("blueprint") or {}
+    for key in ("name", "owner", "displayName"):
+        if not bp.get(key):
+            problems.append(_problem("blueprint", "blueprint.input.yaml", f"blueprint.{key} is required"))
+    components = spec.get("engines") or []
+    if not components:
+        problems.append(_problem("blueprint", "blueprint.input.yaml", "engines must list at least one engine"))
+    for name, body in (engines or {}).items():
+        label = name or "engine file"
+        if not str(body or "").strip():
+            problems.append(_problem(label, label, f"{label} is empty. Paste that product YAML."))
+            continue
+        try:
+            data = yaml.safe_load(body) or {}
+        except yaml.YAMLError:
+            problems.append(_problem(label, label, f"{label} is not valid YAML. Fix the broken line in that file."))
+            continue
+        if not isinstance(data, dict):
+            problems.append(_problem(label, label, f"{label} must be named fields. Start with partner: or version:."))
+            continue
+        if _is_input_form(data):
+            for item in _check_input_form(data):
+                problems.append(_problem(label, label, item))
+            continue
+        gap = _answers_problem(label, label, data)
+        if gap:
+            problems.append(gap)
+    if problems:
+        return {"ok": False, "problems": problems}
     with tempfile.TemporaryDirectory() as tmp:
         base = Path(tmp)
-        for name, text in engines.items():
-            (base / Path(name).name).write_text(text)
-        spec = base / "blueprint.input.yaml"
-        spec.write_text(blueprint_text)
-        result = compose_blueprint(spec, base / "out")
-        return _bundle_result(Path(result["out_dir"]), result["validation"], {"ok": result["ok"]})
+        for name, body in engines.items():
+            (base / Path(name).name).write_text(body)
+        spec_path = base / "blueprint.input.yaml"
+        spec_path.write_text(blueprint_text)
+        try:
+            result = compose_blueprint(spec_path, base / "out")
+        except ValueError as exc:
+            return _fail("blueprint", "blueprint.input.yaml", str(exc))
+        reports = result.get("validation") or {}
+        for name, report in reports.items():
+            for err in report.get("errors") or []:
+                problems.append(_problem(name, err.get("file") or name, err.get("message") or "Check failed"))
+        if problems or not result.get("ok", True):
+            return {"ok": False, "problems": problems or [_problem("blueprint", "blueprint.yaml", "The install guide did not pass the check. Fix the items above.")]}
+        bundled = _bundle_result(Path(result["out_dir"]), reports, {"ok": True})
+        count = len(bundled.get("files") or {})
+        bundled["passed"] = f"Check passed. {count} files are ready."
+        return bundled
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -275,7 +429,16 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/run-session":
             return run_answers(Session.load(d["session"]).answers)
         if path == "/api/run-yaml":
-            return run_answers(yaml.safe_load(d["yaml"]))
+            raw = d.get("yaml") or ""
+            if not str(raw).strip():
+                return _fail("yaml", "input.yaml", "Paste the product YAML first. Add partner and engine fields.")
+            try:
+                loaded = yaml.safe_load(raw)
+            except yaml.YAMLError:
+                return _fail("yaml", "input.yaml", "This is not valid YAML. Fix the broken line and try again.")
+            if not isinstance(loaded, dict):
+                return _fail("yaml", "input.yaml", "The input must be named fields. Start with partner: and engine:.")
+            return run_answers(loaded)
         if path == "/api/run-blueprint":
             return run_blueprint(d["blueprint"], d.get("engines", {}))
         if path == "/api/launchpad/stage":
