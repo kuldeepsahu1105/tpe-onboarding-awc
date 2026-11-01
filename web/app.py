@@ -356,6 +356,9 @@ class Handler(BaseHTTPRequestHandler):
         if url.path == "/cloudera-logo.png":
             logo = INDEX.with_name("cloudera-logo.png")
             return self._send(logo.read_bytes(), ctype="image/png")
+        if url.path in ("/favicon.ico", "/cloudera-favicon.ico"):
+            icon = INDEX.with_name("favicon.ico")
+            return self._send(icon.read_bytes(), ctype="image/x-icon")
         if url.path.startswith("/fonts/") and ".." not in url.path:
             font = (INDEX.parent / url.path.lstrip("/")).resolve()
             if font.is_file() and font.parent == (INDEX.parent / "fonts").resolve():
