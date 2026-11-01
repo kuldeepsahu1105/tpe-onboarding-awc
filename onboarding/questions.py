@@ -138,6 +138,29 @@ def _default_recommended_cpu(a: Answers) -> str:
     return str(int(min_cpu) * 2) if str(min_cpu).isdigit() else "8"
 
 
+def _already_described(a: Answers) -> Optional[str]:
+    """Listing copy the partner already wrote, when engine.description was left blank."""
+    for key in ("blueprint.description", "description"):
+        text = _get(a, key)
+        if isinstance(text, str) and text.strip():
+            return text.strip()
+    return None
+
+
+def _blank_required_text(question: Question, value: Any) -> bool:
+    return question.required and question.kind == "text" and not str(value or "").strip()
+
+
+def is_answered(question: Question, answers: Answers) -> bool:
+    """False when the key is absent, or a required sentence was left blank."""
+    value = _get(answers, question.id, _SENTINEL)
+    if value is _SENTINEL:
+        return False
+    if _blank_required_text(question, value):
+        return False
+    return True
+
+
 # ---------------------------------------------------------------------------
 # The question graph, in interview order.
 # ---------------------------------------------------------------------------
@@ -162,6 +185,8 @@ QUESTIONS: list[Question] = [
     Question(
         id="engine.description",
         prompt="One or two sentences describing what this engine does, for the Marketplace listing.",
+        required=True,
+        default=_already_described,
     ),
     # --- Shape of the deployment ---------------------------------------
     Question(
@@ -427,10 +452,10 @@ def fill_defaults(answers: Answers) -> Answers:
     while changed:
         changed = False
         for question in applicable_questions(answers):
-            if _get(answers, question.id, _SENTINEL) is not _SENTINEL:
+            if is_answered(question, answers):
                 continue
             default = question.resolved_default(answers)
-            if default is None:
+            if default is None or (isinstance(default, str) and not default.strip()):
                 if question.required:
                     continue  # genuinely missing -- surfaced by next_question()
                 # Optional with nothing to default to (e.g. helm.imageRepository):
@@ -446,11 +471,11 @@ def fill_defaults(answers: Answers) -> Answers:
 
 def next_question(answers: Answers) -> Optional[Question]:
     """Return the next unanswered, applicable question, or None if done."""
-    for q in QUESTIONS:
-        if not q.is_applicable(answers):
+    for question in QUESTIONS:
+        if not question.is_applicable(answers):
             continue
-        if _get(answers, q.id, _SENTINEL) is _SENTINEL:
-            return q
+        if not is_answered(question, answers):
+            return question
     return None
 
 

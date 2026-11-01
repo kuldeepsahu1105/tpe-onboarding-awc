@@ -7,7 +7,7 @@ partner:
 
 engine:
   displayName: "My App"           # name shown in the AWC marketplace
-  description: "One sentence on what My App does."
+  description: "My App is a sample Helm service you can copy and change to list your own product on the Marketplace."
   version: "1.0.0"
   # helm-simple     = one Helm chart, one kind of pod  (Neo4j, PuppyGraph-like)
   # helm-multi-role = one chart, several pod types     (StarRocks FE/BE)

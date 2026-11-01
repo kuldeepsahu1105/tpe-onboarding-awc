@@ -152,6 +152,53 @@ def _qpayload(question, answers):
     }
 
 
+def _registry_text(data: dict, *paths: str) -> str:
+    if not isinstance(data, dict):
+        return ""
+    for path in paths:
+        value = q._get(data, path)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def _registry_payload(data: dict) -> dict:
+    """Host and repository for the Publish tab. Password is never read."""
+    host = _registry_text(data, "publish.host", "publish.registry")
+    if not host:
+        host = _registry_text(data, "publish.destinationRegistry")
+    repo = _registry_text(data, "publish.repository", "publish.repo")
+    if not repo:
+        repo = _registry_text(data, "publish.namespace")
+    return {
+        "folder": _registry_text(data, "partner.id"),
+        "registry": host,
+        "repository": repo,
+    }
+
+
+def _merge_registry(primary: dict, extra: dict) -> dict:
+    merged = dict(primary)
+    for key in ("folder", "registry", "repository"):
+        if not str(merged.get(key) or "").strip():
+            merged[key] = extra.get(key) or ""
+    return merged
+
+
+def _registry_from_request(session_id: str, raw_yaml: str = "") -> dict:
+    payload = _registry_payload(Session.load(session_id or "default").answers)
+    if str(raw_yaml or "").strip() and (
+        not payload["registry"] or not payload["repository"] or not payload["folder"]
+    ):
+        try:
+            loaded = yaml.safe_load(raw_yaml) or {}
+        except yaml.YAMLError:
+            loaded = {}
+        if isinstance(loaded, dict):
+            payload = _merge_registry(payload, _registry_payload(loaded))
+    return payload
+
+
 
 _FORM_KEYS = ("directory", "engine", "imageCatalog", "chartCatalog", "helm")
 
@@ -370,7 +417,15 @@ class Handler(BaseHTTPRequestHandler):
             path = (EXAMPLES / qs.get("name", "")).resolve()
             if EXAMPLES.resolve() not in path.parents or not path.is_file():
                 return self._send({"error": "not found"}, 404)
-            return self._send({"text": path.read_text()})
+            text = path.read_text()
+            loaded: dict = {}
+            try:
+                parsed = yaml.safe_load(text) or {}
+                if isinstance(parsed, dict):
+                    loaded = parsed
+            except yaml.YAMLError:
+                loaded = {}
+            return self._send({"text": text, **_registry_payload(loaded)})
         if url.path == "/api/question":
             s = Session.load(qs.get("session", "default"))
             question = s.next_question()
@@ -379,12 +434,7 @@ class Handler(BaseHTTPRequestHandler):
                                "shortName": q._get(s.answers, "partner.id") or "",
                                "question": question and _qpayload(question, s.answers)})
         if url.path == "/api/registry-answers":
-            s = Session.load(qs.get("session", "default"))
-            return self._send({
-                "folder": q._get(s.answers, "partner.id") or "",
-                "registry": q._get(s.answers, "publish.destinationRegistry") or "",
-                "repository": q._get(s.answers, "publish.namespace") or "",
-            })
+            return self._send(_registry_from_request(qs.get("session", "default")))
         if url.path == "/api/launchpad/jobs":
             with _jobs_lock:
                 return self._send({"jobs": list(_jobs)})
@@ -429,6 +479,8 @@ class Handler(BaseHTTPRequestHandler):
             s.answers = {}
             s.save()
             return {"ok": True}
+        if path == "/api/registry-answers":
+            return _registry_from_request(d.get("session") or "default", d.get("yaml") or "")
         if path == "/api/run-session":
             return run_answers(Session.load(d["session"]).answers)
         if path == "/api/run-yaml":

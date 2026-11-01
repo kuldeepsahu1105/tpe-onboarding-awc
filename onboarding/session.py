@@ -44,7 +44,7 @@ class Session:
         answered = sum(
             1
             for question in applicable
-            if _has_answer(self.answers, question.id)
+            if q.is_answered(question, self.answers)
         )
         return answered, len(applicable)
 
@@ -53,17 +53,10 @@ class Session:
         if question is None:
             raise ValueError(f"Unknown question id '{question_id}'")
         value = q.coerce(question, raw_value)
+        if question.required and question.kind == "text" and not str(value or "").strip():
+            raise ValueError("This question needs an answer.")
         q.set_answer(self.answers, question_id, value)
         self.save()
 
     def is_complete(self) -> bool:
         return self.next_question() is None
-
-
-def _has_answer(answers: dict[str, Any], dotted: str) -> bool:
-    cur: Any = answers
-    for part in dotted.split("."):
-        if not isinstance(cur, dict) or part not in cur:
-            return False
-        cur = cur[part]
-    return True
