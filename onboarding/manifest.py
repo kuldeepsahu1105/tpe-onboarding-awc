@@ -65,7 +65,7 @@ def normalize(answers: Manifest) -> Manifest:
     _set(engine, "template", "helm-simple")
     _set(engine, "version", m.get("helm", {}).get("version", "1.0.0"))
 
-    _set(engine, "apiVersion", "v1alpha9")
+    _set(engine, "apiVersion", "v1alpha10")
     m["apiVersion"] = f"ecosystem.awc.cloudera.com/{engine['apiVersion']}"
     _set(engine, "roleStorage", True)
     _set(engine, "configFromRoles", True)

@@ -11,7 +11,7 @@ first; not every advanced option is consumed by every template.
 
 | Key | What it does |
 |---|---|
-| `engine.apiVersion` | Engine CRD version (default `v1alpha9`; PuppyGraph uses `v1alpha10`). |
+| `engine.apiVersion` | Engine CRD version. Default `v1alpha10`, the version every engine in ace-engines uses. |
 | `engine.roleStorage` | `false` removes the per-role storage-size fields. |
 | `engine.configFromRoles` | `false` = do not auto-create replica/cpu/memory fields; define them yourself in `config.extras`. |
 | `engine.roles[].cpu` / `engine.roles[].memory` / `engine.roles[].resources: false` | Per-role sizing overrides, or drop the resources block for a role. |

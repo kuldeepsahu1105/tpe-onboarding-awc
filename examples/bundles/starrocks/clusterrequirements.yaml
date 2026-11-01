@@ -1,7 +1,7 @@
 # Infra sizing metadata. Only consumed by the Anywhere Cloud Console when this
 # product is part of a Blueprint; otherwise purely documentation for anyone
 # deploying the EngineInstance manually (Path B).
-apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
 kind: ClusterRequirements
 metadata:
   name: starrocks-requirements

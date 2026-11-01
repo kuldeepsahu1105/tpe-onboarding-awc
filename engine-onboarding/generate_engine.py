@@ -25,42 +25,78 @@ except ImportError as exc:  # pragma: no cover
 ACE_API = "ecosystem.awc.cloudera.com/v1alpha10"
 AUTH_API = "security.awc.cloudera.com/v1alpha1"
 
+def _write() -> list[str]:
+    return ["create", "delete", "get", "list", "patch", "update", "watch"]
+
+
+def _read() -> list[str]:
+    return ["get", "list", "watch"]
+
+# Chart resources plus Helm's own storage and readiness needs. Same split as
+# valkey/role.yaml and prometheus/role.yaml: namespaced writes only. A ClusterRole
+# may not write platform groups (core, apps, ...).
+_HELM_RELEASE_RULES: list[dict[str, Any]] = [
+    {
+        "apiGroups": [""],
+        "resources": [
+            "configmaps",
+            "persistentvolumeclaims",
+            "secrets",
+            "serviceaccounts",
+            "services",
+        ],
+        "verbs": _write(),
+    },
+    {
+        "apiGroups": ["apps"],
+        "resources": ["deployments", "statefulsets"],
+        "verbs": _write(),
+    },
+    {
+        "apiGroups": ["apps"],
+        "resources": ["replicasets"],
+        "verbs": _read(),
+    },
+    {
+        "apiGroups": ["discovery.k8s.io"],
+        "resources": ["endpointslices"],
+        "verbs": _read(),
+    },
+    {
+        "apiGroups": ["source.toolkit.fluxcd.io"],
+        "resources": ["helmrepositories"],
+        "verbs": _write(),
+    },
+    {
+        "apiGroups": ["helm.toolkit.fluxcd.io"],
+        "resources": ["helmreleases"],
+        "verbs": _write(),
+    },
+]
+
 RBAC_RULES: dict[str, list[dict[str, Any]]] = {
-    "helm-basic": [
-        {
-            "apiGroups": ["source.toolkit.fluxcd.io"],
-            "resources": ["helmrepositories"],
-            "verbs": ["create", "delete", "get", "list", "patch", "update", "watch"],
-        },
-        {
-            "apiGroups": ["helm.toolkit.fluxcd.io"],
-            "resources": ["helmreleases"],
-            "verbs": ["create", "delete", "get", "list", "patch", "update", "watch"],
-        },
-    ],
+    "helm-basic": list(_HELM_RELEASE_RULES),
     "helm-auth": [
-        {
-            "apiGroups": [""],
-            "resources": ["secrets"],
-            "verbs": ["create", "delete", "get", "list", "patch", "update", "watch"],
-        },
+        *_HELM_RELEASE_RULES,
         {
             "apiGroups": ["security.awc.cloudera.com"],
             "resources": ["authconfigs"],
-            "verbs": ["create", "delete", "get", "list", "patch", "update", "watch"],
-        },
-        {
-            "apiGroups": ["source.toolkit.fluxcd.io"],
-            "resources": ["helmrepositories"],
-            "verbs": ["create", "delete", "get", "list", "patch", "update", "watch"],
-        },
-        {
-            "apiGroups": ["helm.toolkit.fluxcd.io"],
-            "resources": ["helmreleases"],
-            "verbs": ["create", "delete", "get", "list", "patch", "update", "watch"],
+            "verbs": _write(),
         },
     ],
 }
+
+_ROLE_HEADER = """\
+# Namespaced writes under strict ACE RBAC. ace-hub aggregates this Role into the
+# engine's namespace-scoped role. Flux helm-controller applies the chart release
+# while impersonating the engine ServiceAccount. Legacy mode applies the
+# RoleBinding below as written.
+#
+# `secrets` is Helm's storage driver. Without list on secrets the release fails
+# before creating anything: "cannot list resource secrets in API group".
+# `patch` is required because applies go through server-side apply.
+# replicasets and endpointslices are read-only, for Helm wait.
+"""
 
 
 def load_form(path: Path) -> dict[str, Any]:
@@ -339,19 +375,25 @@ def render_role(form: dict[str, Any]) -> str | None:
         return None
 
     directory = form["directory"]
-    role_name = rbac.get("clusterRoleName") or f"{directory}-engine-role"
+    role_name = rbac.get("clusterRoleName") or f"{directory}-namespaced-role"
     binding_name = f"{role_name}-binding"
     rules = RBAC_RULES.get(preset)
     if rules is None:
         raise ValueError(f"unknown rbac preset {preset!r}")
 
+    role = {
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "kind": "Role",
+        "metadata": {"name": role_name},
+        "rules": rules,
+    }
     binding = {
         "apiVersion": "rbac.authorization.k8s.io/v1",
-        "kind": "ClusterRoleBinding",
+        "kind": "RoleBinding",
         "metadata": {"name": binding_name},
         "roleRef": {
             "apiGroup": "rbac.authorization.k8s.io",
-            "kind": "ClusterRole",
+            "kind": "Role",
             "name": role_name,
         },
         "subjects": [
@@ -362,17 +404,12 @@ def render_role(form: dict[str, Any]) -> str | None:
             }
         ],
     }
-    role = {
-        "apiVersion": "rbac.authorization.k8s.io/v1",
-        "kind": "ClusterRole",
-        "metadata": {"name": role_name},
-        "rules": rules,
-    }
     return (
-        "---\n"
-        + yaml.dump(binding, sort_keys=False, default_flow_style=False)
+        _ROLE_HEADER
         + "---\n"
         + yaml.dump(role, sort_keys=False, default_flow_style=False)
+        + "---\n"
+        + yaml.dump(binding, sort_keys=False, default_flow_style=False)
     )
 
 

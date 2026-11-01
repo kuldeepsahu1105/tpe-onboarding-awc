@@ -1,26 +1,28 @@
 ---
+# Namespaced writes under strict ACE RBAC. ace-hub aggregates this Role into the
+# engine's namespace-scoped role. This engine has no chart yet. The rules below
+# are the Helm shape to keep once a chart and template exist: release storage,
+# typical chart objects, the credential Secret, and AuthConfig.
+# Flux helm-controller applies a chart release while impersonating the engine
+# ServiceAccount. Legacy mode applies the RoleBinding below as written.
+#
+# `secrets` is Helm's storage driver. Without list on secrets the release fails
+# before creating anything: "cannot list resource secrets in API group".
+# `patch` is required because applies go through server-side apply.
+# replicasets and endpointslices are read-only, for Helm wait.
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: Role
 metadata:
-  name: tpe-onboarding-engine-role-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: tpe-onboarding-engine-role
-subjects:
-- kind: ServiceAccount
-  name: ace-operator-controller-manager
-  namespace: ace-operator-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: tpe-onboarding-engine-role
+  name: tpe-onboarding-engine-namespaced-role
 rules:
 - apiGroups:
   - ''
   resources:
+  - configmaps
+  - persistentvolumeclaims
   - secrets
+  - serviceaccounts
+  - services
   verbs:
   - create
   - delete
@@ -28,6 +30,35 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - security.awc.cloudera.com
@@ -65,3 +96,16 @@ rules:
   - patch
   - update
   - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tpe-onboarding-engine-namespaced-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tpe-onboarding-engine-namespaced-role
+subjects:
+- kind: ServiceAccount
+  name: ace-operator-controller-manager
+  namespace: ace-operator-system
