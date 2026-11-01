@@ -11,7 +11,7 @@ header .shell{height:64px;display:flex;align-items:center;gap:16px}
 header img{height:28px;width:auto;display:block}
 header h1{margin:0;color:#1a1a1a;font-size:20px;font-weight:600;line-height:1.2}
 .sub{margin:16px auto 0;color:#5C6570;font-size:15px}
-nav.shell{display:flex;flex-wrap:nowrap;gap:8px;margin-top:8px;border-bottom:1px solid #E4E6EB}
+nav.shell{display:flex;flex-wrap:nowrap;gap:8px;margin-top:8px;border-bottom:1px solid #E4E6EB;scroll-margin-top:8px}
 nav button{flex:0 0 auto;border:0;background:none;padding:12px 4px;margin-right:20px;cursor:pointer;font-size:14px;font-weight:400;color:#1B1B1B;border-bottom:3px solid transparent;white-space:nowrap}
 nav button.on{border-bottom-color:#5555f9;color:#5555f9;font-weight:600}
 main.shell{margin-top:16px;margin-bottom:32px}
@@ -95,7 +95,7 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  <select id="lfolder" onchange="pickFolder()"><option value="">Generate files first</option></select>
  <p class="help">Filled in when you generate files. This is the folder on this computer.</p>
  <div class="row"><button class="s" type="button" onclick="useRegistryAnswers()">Use registry from the questions</button></div>
- <p class="help">Fills registry host and repository name from Guided questions. Does not upload.</p>
+ <p class="help">Fills registry host and repository name from Guided questions or a loaded example. Does not upload.</p>
  <label for="lhost">Registry host</label>
  <input id="lhost" placeholder="registry.example.com" autocomplete="off">
  <p class="help">Where the images will be pushed. Any registry. Not tied to one cloud.</p>
@@ -173,10 +173,25 @@ const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringif
 function showTab(name){
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.t===name));
  ['guided','yaml','bp','publish','catalog'].forEach(t=>$(t).classList.toggle('hide',t!==name));
- if(name==='publish'){fillImageFromFolder(); paintReady()}
+ if(name==='publish'){fillImageFromFolder(); paintReady(); fillRegistryQuiet()}
  if(name==='catalog'){$('catReg').textContent=($('lhost').value||'').trim()}
 }
-function openTab(name){showTab(name)}
+function focusFirstEmptyPublish(){
+ const ids=['lhost','lrepo','limage','ltag','luser'];
+ const field=ids.map(id=>$(id)).find(el=>el && !String(el.value||'').trim()) || $('lhost');
+ if(!field) return;
+ try{field.focus({preventScroll:true})}catch(e){field.focus()}
+ field.scrollIntoView({behavior:'smooth', block:'center'});
+}
+function openTab(name){
+ const panel=$(name);
+ const already=!!(panel && !panel.classList.contains('hide'));
+ showTab(name);
+ if(name==='publish' && already){focusFirstEmptyPublish(); return}
+ const nav=document.getElementById('nav');
+ if(nav) nav.scrollIntoView({behavior:'smooth', block:'start'});
+ else if(panel) panel.scrollIntoView({behavior:'smooth', block:'start'});
+}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const PLAIN={'partner.id':'Folder name','partner.owner':'Who makes this product','engine.displayName':'Name shoppers see','engine.description':'What the product does','engine.template':'How the product is packaged','publish.destinationRegistry':'Image registry, optional','publish.namespace':'Folder on the registry'};
@@ -258,15 +273,33 @@ function filesReady(){
  $('lmsg').textContent='Create the product files on this computer first. Nothing was sent.';
  $('lmsg').className='err';
  return false}
-async function useRegistryAnswers(){
- const session=($('lsess')&&$('lsess').value)||$('sid').value;
- const r=await api('/api/registry-answers?session='+encodeURIComponent(session));
+function applyRegistry(r){
+ if(!r) return {host:'',repo:''};
+ const host=String(r.registry||'').trim();
+ const repo=String(r.repository||'').trim();
+ if(host && !$('lhost').value.trim()) $('lhost').value=host;
+ if(repo && !$('lrepo').value.trim()) $('lrepo').value=repo;
  if(r.folder) addFolderOption(r.folder);
- if(r.registry) $('lhost').value=r.registry;
- if(r.repository) $('lrepo').value=r.repository;
  paintTarget();
- if(!r.registry&&!r.repository){$('lmsg').textContent='No registry was saved in the questions. Type the host and repository here.';$('lmsg').className='err';return}
- $('lmsg').textContent='Filled registry host and repository name from the questions. Nothing was uploaded.';
+ return {host, repo}}
+async function registryFromSaved(){
+ const session=($('lsess')&&$('lsess').value)||$('sid').value;
+ const yaml=$('yamlta')?$('yamlta').value:'';
+ return api('/api/registry-answers',{session, yaml})}
+async function fillRegistryQuiet(){
+ try{
+  const r=await registryFromSaved();
+  if(!r) return;
+  const host=String(r.registry||'').trim();
+  const repo=String(r.repository||'').trim();
+  if(host && !$('lhost').value.trim()) $('lhost').value=host;
+  if(repo && !$('lrepo').value.trim()) $('lrepo').value=repo;
+  paintTarget();
+ }catch(e){}}
+async function useRegistryAnswers(){
+ const found=applyRegistry(await registryFromSaved());
+ if(!found.host&&!found.repo){$('lmsg').textContent='No registry was saved in the questions. Type the host and repository here.';$('lmsg').className='err';return}
+ $('lmsg').textContent='Filled registry host and repository name. Nothing was uploaded.';
  $('lmsg').className='ok'}
 function show(r){if(failed(r)||!r.files)return;const el=$('result');el.classList.remove('hide');
  rememberBundle(r);
@@ -278,7 +311,7 @@ function show(r){if(failed(r)||!r.files)return;const el=$('result');el.classList
  h+='<h3>Files</h3><div class="tabs">'+names.map((n,i)=>`<button class="s ${i?'':'on'}" onclick="tab(${i})">${esc(n)}</button>`).join('')+'</div><pre id="fv"></pre>'+
   '<div class="row"><button class="p" onclick="dl()">Download .zip</button></div>'+
   '<p class="ok">Check passed. Wrote '+names.length+' '+(names.length===1?'file':'files')+' on this computer. Next: open Publish.</p>'+
-  '<div class="row"><button class="s" type="button" onclick="openTab(\'publish\')">Open Publish</button></div>';
+  '<div class="row"><button class="s" type="button" id="open-publish" onclick="openTab(\'publish\')">Open Publish</button></div>';
  el.innerHTML=h;window._f=r.files;window._z=r.zip;window._n=names;if(names.length)tab(0);el.scrollIntoView()}
 function tab(i){$('fv').textContent=window._f[window._n[i]];document.querySelectorAll('.tabs button').forEach((b,j)=>b.classList.toggle('on',i==j))}
 function dl(){const b=atob(window._z),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);
@@ -387,6 +420,15 @@ async function loadCatalog(){
  $('catStatus').textContent=r.message||r.error||'';
  $('partnerEmpty').textContent=(r.partners&&r.partners.length)?'':'No partner products listed.';
  $('imageEmpty').textContent=(r.images&&r.images.length)?'':'No images listed yet.'}
-async function loadEx(t,sel){if(sel.value)$(t).value=(await api('/api/example?name='+encodeURIComponent(sel.value))).text}
+async function loadEx(t,sel){
+ if(!sel.value) return;
+ const r=await api('/api/example?name='+encodeURIComponent(sel.value));
+ if(r&&r.text) $(t).value=r.text;
+ const found=applyRegistry(r);
+ const msg=$('lmsg');
+ if(msg && (found.host||found.repo) && msg.textContent.indexOf('No registry was saved')===0){
+  msg.textContent='Filled registry host and repository name. Nothing was uploaded.';
+  msg.className='ok';
+ }}
 (async()=>{restoreRegistry();['lhost','lrepo','limage','ltag','luser'].forEach(id=>$(id).addEventListener('input',paintTarget));paintReady();const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
 </script></body></html>

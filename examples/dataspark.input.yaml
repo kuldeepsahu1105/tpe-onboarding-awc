@@ -4,7 +4,7 @@
 partner: {id: dataspark, owner: "DataSpark, Inc."}
 engine:
   displayName: "DataSpark"
-  description: "DataSpark analytics platform with an API, authentication, and a metadata database."
+  description: "DataSpark is an analytics platform with an API, an authentication service, and a metadata database. Customers install that whole product as one engine."
   template: native-k8s
   version: "1.0.0"
 images:

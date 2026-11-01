@@ -4,7 +4,7 @@
 partner: {id: phoenixai, owner: "PhoenixAI"}
 engine:
   displayName: "PhoenixAI"
-  description: "AI/ML model-serving platform."
+  description: "Phoenix AI serves machine-learning models from one Helm chart. It can connect to Cloudera AI, Data Engineering, and Data Flow engines already on the cluster."
   template: helm-simple
   version: "2.1.0"
 helm: {repoUrl: "oci://ghcr.io/phoenixai/charts", chart: phoenixai, version: "2.1.0"}
