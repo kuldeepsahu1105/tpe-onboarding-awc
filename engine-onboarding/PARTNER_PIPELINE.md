@@ -2,12 +2,12 @@
 
 ## Two tiers
 
-| | **This repo** [`tools/engine-onboarding/`](.) | **Extended toolkit** [tpe-onboarding-awc](https://github.com/kuldeepsahu1105/tpe-onboarding-awc/tree/kuldeepsahu1105-awc-engine-onboarding-toolkit) |
+| | **This repo** [`engine-onboarding/`](.) | **Extended toolkit** [tpe-onboarding-awc](https://github.com/kuldeepsahu1105/tpe-onboarding-awc/tree/kuldeepsahu1105-awc-engine-onboarding-toolkit) |
 |---|-----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Role | Lightweight **in-monorepo** subset: form → ACE YAML under `{directory}/`, `discover-images`, basic `mirror.sh` / `publish.sh`, Makefile wrappers; wizard/MCP via `AWC_ONBOARDING_REPO` | Full partner onboarding: wizard, Web UI, MCP, Helm ingest, multi-template scaffold, blueprint compose, richer validate |
 | When to use | Day-to-day engine plugins committed in **ace-engines**; CI-friendly scaffold | Partners need the full guided flow before merging hardened YAML here |
 
-Same `input_form`-style concepts; the extended toolkit lives on GitHub (`awc_onboarding/` on branch `kuldeepsahu1105-awc-engine-onboarding-toolkit`), not vendored in ace-engines.
+Same `input_form`-style concepts; the extended toolkit lives on GitHub (the repository root on branch `kuldeepsahu1105-awc-engine-onboarding-toolkit`), not vendored in ace-engines.
 
 **Other references (read-only):**
 
@@ -40,15 +40,15 @@ Nijjwol uses human gates (`--approve-scaffold`, `--approve-publish`). Here: **PR
 
 ```bash
 make discover-images REPO_URL=https://helm.neo4j.com/neo4j CHART=neo4j VERSION=2025.12.1 \
-  FORM=tools/engine-onboarding/examples/neo4j.input_form.yaml WRITE=1   # optional
-make validate-form FORM=tools/engine-onboarding/examples/neo4j.input_form.yaml
-make scaffold-engine FORM=tools/engine-onboarding/examples/neo4j.input_form.yaml FORCE=1
+  FORM=engine-onboarding/examples/neo4j.input_form.yaml WRITE=1   # optional
+make validate-form FORM=engine-onboarding/examples/neo4j.input_form.yaml
+make scaffold-engine FORM=engine-onboarding/examples/neo4j.input_form.yaml FORCE=1
 make mirror-engine DIR=neo4j
 make publish-engine DIR=neo4j
 make publish-engine DIR=neo4j PUSH=1
 make register-partner-registry CONFIG=neo4j/oci-register.config.example.yaml
 
-# Extended toolkit (clone tpe-onboarding-awc; set AWC_ONBOARDING_REPO to awc_onboarding/)
+# Extended toolkit (clone tpe-onboarding-awc; set AWC_ONBOARDING_REPO to the repository root)
 make onboarding-wizard
 make onboarding-mcp-config
 ```

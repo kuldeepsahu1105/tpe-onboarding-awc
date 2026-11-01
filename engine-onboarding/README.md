@@ -1,8 +1,8 @@
 # ACE engine onboarding (in-monorepo subset)
 
-[`tools/engine-onboarding/`](.) is the **lightweight** path for plugins that live in **ace-engines**: `input_form.yaml` → generated `{directory}/` (Engine, catalogs, optional Blueprint, basic mirror/publish scripts).
+[`engine-onboarding/`](.) is the **lightweight** path for plugins that live in **ace-engines**: `input_form.yaml` → generated `{directory}/` (Engine, catalogs, optional Blueprint, basic mirror/publish scripts).
 
-**Helm image discovery** runs in-repo (`discover_images.py`). **Wizard, Web UI, and MCP** delegate to **[tpe-onboarding-awc](https://github.com/kuldeepsahu1105/tpe-onboarding-awc/tree/kuldeepsahu1105-awc-engine-onboarding-toolkit)** (`awc_onboarding/` on branch `kuldeepsahu1105-awc-engine-onboarding-toolkit`) via `AWC_ONBOARDING_REPO` and Makefile wrappers — not vendored here. Typical flow: discover images / run the extended wizard, produce `input_form.yaml`, scaffold into ace-engines, then merge production-ready YAML.
+**Helm image discovery** runs in-repo (`discover_images.py`). **Wizard, Web UI, and MCP** delegate to **[tpe-onboarding-awc](https://github.com/kuldeepsahu1105/tpe-onboarding-awc/tree/kuldeepsahu1105-awc-engine-onboarding-toolkit)** (the repository root on branch `kuldeepsahu1105-awc-engine-onboarding-toolkit`) via `AWC_ONBOARDING_REPO` and Makefile wrappers — not vendored here. Typical flow: discover images / run the extended wizard, produce `input_form.yaml`, scaffold into ace-engines, then merge production-ready YAML.
 
 **In-repo subset + Neo4j sample on GitHub:** [ace-inrepo-onboarding-tool](https://github.com/kuldeepsahu1105/tpe-onboarding-awc/tree/ace-inrepo-onboarding-tool) (`tools/engine-onboarding` + `neo4j/`).
 
@@ -15,8 +15,8 @@ Partner pipeline comparison: **[PARTNER_PIPELINE.md](PARTNER_PIPELINE.md)** · r
 ```bash
 cd ace-engines
 
-make validate-form FORM=tools/engine-onboarding/input_form.minimal.example.yaml
-make scaffold-engine FORM=tools/engine-onboarding/input_form.minimal.example.yaml FORCE=1
+make validate-form FORM=engine-onboarding/input_form.minimal.example.yaml
+make scaffold-engine FORM=engine-onboarding/input_form.minimal.example.yaml FORCE=1
 ```
 
 Optional: **`make serve-engine-form`** (http://127.0.0.1:8766) exports the same YAML shape as the CLI form.
@@ -26,9 +26,9 @@ Neo4j example (includes generated `mirror.sh` / `publish.sh` when `publish.enabl
 ```bash
 # Optional: refresh imageCatalog.images from the upstream Helm chart (needs helm)
 make discover-images REPO_URL=https://helm.neo4j.com/neo4j CHART=neo4j VERSION=2025.12.1 \
-  FORM=tools/engine-onboarding/examples/neo4j.input_form.yaml WRITE=1
+  FORM=engine-onboarding/examples/neo4j.input_form.yaml WRITE=1
 
-make scaffold-engine FORM=tools/engine-onboarding/examples/neo4j.input_form.yaml FORCE=1
+make scaffold-engine FORM=engine-onboarding/examples/neo4j.input_form.yaml FORCE=1
 make mirror-engine DIR=neo4j
 make publish-engine DIR=neo4j              # dry run
 make publish-engine DIR=neo4j PUSH=1 APPROVE_PUBLISH=1   # after review (VPN/registry)
@@ -37,7 +37,7 @@ make publish-engine DIR=neo4j PUSH=1 APPROVE_PUBLISH=1   # after review (VPN/reg
 Extended toolkit (wizard / MCP) — clone once, then:
 
 ```bash
-export AWC_ONBOARDING_REPO=$HOME/tpe-onboarding-awc/awc_onboarding   # path to awc_onboarding/
+export AWC_ONBOARDING_REPO=$HOME/tpe-onboarding-awc   # repository root
 make onboarding-wizard
 make onboarding-mcp-config   # JSON for Cursor MCP settings
 ```

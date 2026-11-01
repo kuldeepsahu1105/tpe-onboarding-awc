@@ -733,8 +733,8 @@ def render_readme(form: dict[str, Any]) -> str | None:
         "",
         "## Generated plugin",
         "",
-        f"This directory was produced from [`input_form.yaml`](../tools/engine-onboarding/examples/{directory}.input_form.yaml) "
-        f"via [`generate_engine.py`](../tools/engine-onboarding/generate_engine.py). "
+        f"This directory was produced from [`input_form.yaml`](../engine-onboarding/examples/{directory}.input_form.yaml) "
+        f"via [`generate_engine.py`](../engine-onboarding/generate_engine.py). "
         "Edit the form and re-run the generator, or hand-edit files as needed.",
         "",
     ]
@@ -855,7 +855,7 @@ def main() -> int:
     parser.add_argument(
         "--repo-root",
         type=Path,
-        default=Path(__file__).resolve().parents[2],
+        default=Path(__file__).resolve().parents[1],
         help="ace-engines repository root (default: auto-detect)",
     )
     parser.add_argument(

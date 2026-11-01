@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Discover container images referenced by a Helm chart (helm template).
 
-Ported from tpe-onboarding-awc ``awc_onboarding/onboarding/discover.py`` for
+Ported from tpe-onboarding-awc ``onboarding/discover.py`` for
 ace-engines ``input_form.yaml`` (``imageCatalog.images`` uses ``registry``).
 
 Example::
 
-  python3 tools/engine-onboarding/discover_images.py \\
+  python3 engine-onboarding/discover_images.py \\
     --repo-url https://helm.neo4j.com/neo4j --chart neo4j --version 2025.12.1
 
   make discover-images REPO_URL=https://helm.neo4j.com/neo4j CHART=neo4j VERSION=2025.12.1 \\
-    FORM=tools/engine-onboarding/examples/neo4j.input_form.yaml WRITE=1
+    FORM=engine-onboarding/examples/neo4j.input_form.yaml WRITE=1
 """
 
 from __future__ import annotations

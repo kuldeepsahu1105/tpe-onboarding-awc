@@ -8,7 +8,7 @@ An **engine** is the definition of one service. A **blueprint** is the form and 
 
 **You create**
 
-- A git client, Python 3.9 or newer, Helm, and Docker (or a tool that can push images). The onboarding notes also use `skopeo` when you mirror images. See [tools/engine-onboarding/README.md](../tools/engine-onboarding/README.md). PyYAML is required for the form tools. `jsonschema` is optional.
+- A git client, Python 3.9 or newer, Helm, and Docker (or a tool that can push images). The onboarding notes also use `skopeo` when you mirror images. See [engine-onboarding/README.md](../../engine-onboarding/README.md). PyYAML is required for the form tools. `jsonschema` is optional.
 - Your own OCI registry: a place that stores your container images and Helm charts. You need permission to push to it.
 
 **Cloudera gives you**
@@ -36,7 +36,7 @@ Done looks like: you can point at `bluemetrix-stms/blueprint.yaml` and say what 
 
 ## 2. What to install on your machine
 
-Install git, Python 3.9+, Helm, and Docker. Install `skopeo` before you copy images to your registry. That list matches [tools/engine-onboarding/README.md](../tools/engine-onboarding/README.md) (Python and PyYAML for the form tools; Helm for charts).
+Install git, Python 3.9+, Helm, and Docker. Install `skopeo` before you copy images to your registry. That list matches [engine-onboarding/README.md](../../engine-onboarding/README.md) (Python and PyYAML for the form tools; Helm for charts).
 
 Check:
 
@@ -190,7 +190,7 @@ make mirror-engine DIR=bluemetrix-stms
 make publish-engine DIR=bluemetrix-stms
 ```
 
-`make publish-engine` without `PUSH` does not push the marketplace record. [tools/engine-onboarding/PARTNER_PIPELINE.md](../tools/engine-onboarding/PARTNER_PIPELINE.md) says to stay on the dry run until a reviewer says yes. Do not run the real push until a Cloudera reviewer has seen that dry run.
+`make publish-engine` without `PUSH` does not push the marketplace record. [engine-onboarding/PARTNER_PIPELINE.md](../../engine-onboarding/PARTNER_PIPELINE.md) says to stay on the dry run until a reviewer says yes. Do not run the real push until a Cloudera reviewer has seen that dry run.
 
 The real push is:
 
@@ -198,7 +198,7 @@ The real push is:
 make publish-engine DIR=bluemetrix-stms PUSH=1 APPROVE_PUBLISH=1
 ```
 
-`PUSH=1` asks `publish.sh` to run with `--push`. [tools/engine-onboarding/scripts/publish_engine.sh](../tools/engine-onboarding/scripts/publish_engine.sh) refuses that unless `APPROVE_PUBLISH=1`. The draft `publish.sh` still refuses `--push` while `mirror.yaml` is a placeholder, even if both flags are set.
+`PUSH=1` asks `publish.sh` to run with `--push`. [engine-onboarding/scripts/publish_engine.sh](../../engine-onboarding/scripts/publish_engine.sh) refuses that unless `APPROVE_PUBLISH=1`. The draft `publish.sh` still refuses `--push` while `mirror.yaml` is a placeholder, even if both flags are set.
 
 `mirror.sh` needs `helm`, `skopeo`, and a registry login (`helm registry login` / `skopeo login`) only after the lists are real. It does not call them while the lists are empty.
 
@@ -212,9 +212,9 @@ Do this only after a real publish. The draft example is [oci-register.config.exa
 make register-partner-registry CONFIG=<path-to-your-filled-oci-register.config.yaml>
 ```
 
-The script runs `awc-oci-register verify` and then `apply` on the control plane. Details are in [tools/engine-onboarding/scripts/register_partner_registry.sh](../tools/engine-onboarding/scripts/register_partner_registry.sh). The example comment matches Neo4j: this registers pull credentials and `MARKETPLACE_REGISTRIES` until CCF-95.
+The script runs `awc-oci-register verify` and then `apply` on the control plane. Details are in [engine-onboarding/scripts/register_partner_registry.sh](../../engine-onboarding/scripts/register_partner_registry.sh). The example comment matches Neo4j: this registers pull credentials and `MARKETPLACE_REGISTRIES` until CCF-95.
 
-What you will see in the console: after publish and this registration, the marketplace shows a tile for "Bluemetrix SecureToken STMS". Opening it shows the form (external URLs and secret names) and a hardware size. Deploying it creates engine instances. The repo docs do not list the clicks. They call the last step "Console → Marketplace → Deploy" in [PARTNER_PIPELINE.md](../tools/engine-onboarding/PARTNER_PIPELINE.md). Neo4j's publish script says the catalog sync takes about 60 seconds after a push.
+What you will see in the console: after publish and this registration, the marketplace shows a tile for "Bluemetrix SecureToken STMS". Opening it shows the form (external URLs and secret names) and a hardware size. Deploying it creates engine instances. The repo docs do not list the clicks. They call the last step "Console → Marketplace → Deploy" in [PARTNER_PIPELINE.md](../../engine-onboarding/PARTNER_PIPELINE.md). Neo4j's publish script says the catalog sync takes about 60 seconds after a push.
 
 Done looks like: the tile is listed, the form shows the fields from step 5, and a deploy creates an engine instance rather than only a blueprint.
 

@@ -52,7 +52,7 @@ kubectl describe engineinstance neo4j
 Regenerate from form when changing publish settings:
 
 ```bash
-make scaffold-engine FORM=tools/engine-onboarding/examples/neo4j.input_form.yaml FORCE=1
+make scaffold-engine FORM=engine-onboarding/examples/neo4j.input_form.yaml FORCE=1
 ```
 
 Sequence (VPN, `docker login`, `helm registry login`, `awc-marketplace` on `PATH`):
@@ -63,7 +63,7 @@ make publish-engine DIR=neo4j
 make publish-engine DIR=neo4j PUSH=1
 ```
 
-[`publish.sh`](publish.sh) validates then publishes engine + blueprint with `--skip-images --skip-charts` after mirror. See [PARTNER_PIPELINE.md](../tools/engine-onboarding/PARTNER_PIPELINE.md).
+[`publish.sh`](publish.sh) validates then publishes engine + blueprint with `--skip-images --skip-charts` after mirror. See [PARTNER_PIPELINE.md](../../engine-onboarding/PARTNER_PIPELINE.md).
 
 Control-plane registry registration (if needed): [`oci-register.config.example.yaml`](oci-register.config.example.yaml) + `make register-partner-registry CONFIG=neo4j/oci-register.config.example.yaml`.
 

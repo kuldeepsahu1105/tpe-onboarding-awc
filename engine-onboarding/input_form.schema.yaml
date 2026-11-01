@@ -1,4 +1,4 @@
-# JSON Schema for tools/engine-onboarding/input_form.yaml (version v1).
+# JSON Schema for engine-onboarding/input_form.yaml (version v1).
 # Validate with: python3 -c "import yaml,jsonschema,yaml; ..."
 $schema: https://json-schema.org/draft/2020-12/schema
 title: ACEEngineOnboardingForm

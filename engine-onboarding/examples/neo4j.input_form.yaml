@@ -1,8 +1,8 @@
 # Example input form — regenerates the neo4j/ plugin (Helm-first pattern).
 # Usage from repo root:
 #   make discover-images REPO_URL=https://helm.neo4j.com/neo4j CHART=neo4j VERSION=2025.12.1 \
-#     FORM=tools/engine-onboarding/examples/neo4j.input_form.yaml WRITE=1
-#   make scaffold-engine FORM=tools/engine-onboarding/examples/neo4j.input_form.yaml FORCE=1
+#     FORM=engine-onboarding/examples/neo4j.input_form.yaml WRITE=1
+#   make scaffold-engine FORM=engine-onboarding/examples/neo4j.input_form.yaml FORCE=1
 version: v1
 directory: neo4j
 

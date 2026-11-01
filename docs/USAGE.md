@@ -8,7 +8,7 @@ Pick whichever you like. **Requirements:** Python 3.10+. Optional: `helm` (image
 `skopeo` (mirroring), `awc-marketplace` (publishing), `kubectl` (smoke test). Run `./awc doctor`.
 
 ```
-cd awc_onboarding
+cd /path/to/tpe-onboarding-awc
 ```
 
 ---
@@ -61,7 +61,7 @@ cd awc_onboarding
    For Copilot CLI, open `vi ~/.copilot/mcp-config.json` and merge the printed
    `mcpServers.awc-onboarding` entry without overwriting other servers.
    Verify `command` is the absolute toolkit `.venv/bin/python`, `args` is
-   `["-m", "mcp_server.server"]`, and `cwd` is this checkout's `awc_onboarding`
+   `["-m", "mcp_server.server"]`, and `cwd` is this repository
    directory. Other clients may require a different enclosing schema; do not
    paste `mcpServers` verbatim into a client that expects `servers`. These are
    client connection settings, not engine/environment inputs; no credentials

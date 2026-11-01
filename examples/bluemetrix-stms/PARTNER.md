@@ -98,11 +98,11 @@ The full table of secret keys is in [README.md](README.md).
 
 ## 3. Publishing and uploading
 
-Read [tools/engine-onboarding/PARTNER_PIPELINE.md](../tools/engine-onboarding/PARTNER_PIPELINE.md) and [tools/engine-onboarding/README.md](../tools/engine-onboarding/README.md). The Makefile targets are in the repo root [Makefile](../Makefile).
+Read [engine-onboarding/PARTNER_PIPELINE.md](../../engine-onboarding/PARTNER_PIPELINE.md) and [engine-onboarding/README.md](../../engine-onboarding/README.md). The Makefile targets are in the repo root [Makefile](../Makefile).
 
 Draft scripts are in this folder: [mirror.sh](mirror.sh), [publish.sh](publish.sh), [mirror.yaml](mirror.yaml), and [oci-register.config.example.yaml](oci-register.config.example.yaml). They follow Neo4j's shape. They are not for a real push. The chart list and both image lines in `mirror.yaml` are empty comments. `REGISTRY`, `NAMESPACE`, and `VERSION` default to empty. No image catalog or chart catalog is in this folder, so the scripts refuse before `helm`, `skopeo`, or `awc-marketplace` run.
 
-The Makefile targets call [tools/engine-onboarding/scripts/mirror_engine.sh](../tools/engine-onboarding/scripts/mirror_engine.sh) and [tools/engine-onboarding/scripts/publish_engine.sh](../tools/engine-onboarding/scripts/publish_engine.sh), which exec `mirror.sh` and `publish.sh` in this directory.
+The Makefile targets call [engine-onboarding/scripts/mirror_engine.sh](../../engine-onboarding/scripts/mirror_engine.sh) and [engine-onboarding/scripts/publish_engine.sh](../../engine-onboarding/scripts/publish_engine.sh), which exec `mirror.sh` and `publish.sh` in this directory.
 
 ```bash
 make mirror-engine DIR=bluemetrix-stms
@@ -113,7 +113,7 @@ Both exit non-zero today. That is the safe dry run: nothing is copied and nothin
 
 When `mirror.yaml` lists a real chart, the STMS image, and the agent sidecar image, and `REGISTRY`, `NAMESPACE`, and `VERSION` are set, `publish.sh` matches [neo4j/publish.sh](../neo4j/publish.sh): `awc-marketplace validate` on the directory and the blueprint, then publish with `--skip-images --skip-charts`. Without `--push` it prints `Dry run complete`. Do not copy Neo4j's sample registry host.
 
-[PARTNER_PIPELINE.md](../tools/engine-onboarding/PARTNER_PIPELINE.md) says to keep the dry run until `PUSH=1`. The shared wrapper refuses `--push` unless `APPROVE_PUBLISH=1`. This draft also refuses `--push` while the chart or image list is still a placeholder, even if those flags are set.
+[PARTNER_PIPELINE.md](../../engine-onboarding/PARTNER_PIPELINE.md) says to keep the dry run until `PUSH=1`. The shared wrapper refuses `--push` unless `APPROVE_PUBLISH=1`. This draft also refuses `--push` while the chart or image list is still a placeholder, even if those flags are set.
 
 ```bash
 make publish-engine DIR=bluemetrix-stms PUSH=1 APPROVE_PUBLISH=1
@@ -140,7 +140,7 @@ Third-party CI, when you are ready to merge a real engine, is [docs/thirdparty-e
 
 ## 4. Integrating to the marketplace
 
-The onboarding docs describe this as: mirror, publish, then register the registry (`MARKETPLACE_REGISTRIES` via `awc-oci-register`). Step 8 in [PARTNER_PIPELINE.md](../tools/engine-onboarding/PARTNER_PIPELINE.md) is "Console → Marketplace → Deploy". They do not describe click-by-click screens.
+The onboarding docs describe this as: mirror, publish, then register the registry (`MARKETPLACE_REGISTRIES` via `awc-oci-register`). Step 8 in [PARTNER_PIPELINE.md](../../engine-onboarding/PARTNER_PIPELINE.md) is "Console → Marketplace → Deploy". They do not describe click-by-click screens.
 
 Registration command:
 
@@ -148,7 +148,7 @@ Registration command:
 make register-partner-registry CONFIG=<path-to-your-filled-oci-register.config.yaml>
 ```
 
-That runs [tools/engine-onboarding/scripts/register_partner_registry.sh](../tools/engine-onboarding/scripts/register_partner_registry.sh), which runs `awc-oci-register verify` and `awc-oci-register apply` on the **control plane** cluster. Start from [oci-register.config.example.yaml](oci-register.config.example.yaml). Replace `<your-registry>`, `<your-namespace>`, `<registry-username>`, and `<path-to-registry-password-file>`. The password file must not be committed. Do not point this command at the example until those placeholders are gone. The comment matches Neo4j: this registers pull credentials and `MARKETPLACE_REGISTRIES` until CCF-95. The repo does not describe a Cloudera Cloud Factory UI. Use the script.
+That runs [engine-onboarding/scripts/register_partner_registry.sh](../../engine-onboarding/scripts/register_partner_registry.sh), which runs `awc-oci-register verify` and `awc-oci-register apply` on the **control plane** cluster. Start from [oci-register.config.example.yaml](oci-register.config.example.yaml). Replace `<your-registry>`, `<your-namespace>`, `<registry-username>`, and `<path-to-registry-password-file>`. The password file must not be committed. Do not point this command at the example until those placeholders are gone. The comment matches Neo4j: this registers pull credentials and `MARKETPLACE_REGISTRIES` until CCF-95. The repo does not describe a Cloudera Cloud Factory UI. Use the script.
 
 After publish and registry registration, the marketplace can list the blueprint. The blueprint's `ui.displayName` is the name. `minimumVersion` on each instance is the version floor. The customer then fills the engine form (Ranger URL, LDAP, KDC fields only if external Ranger KMS is on, S3 bucket, region, endpoint, and secret **names** for credentials and certs) and picks the hardware tier. Deploy creates engine instances. The blueprint alone does not.
 

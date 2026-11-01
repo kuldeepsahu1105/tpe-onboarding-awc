@@ -4,6 +4,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV="$ROOT/.venv"
+TOOL="$ROOT/engine-onboarding"
 cd "$ROOT"
 
 ensure_env() {
@@ -25,11 +26,11 @@ case "${1:-help}" in
               port_cwd="$(lsof -a -p "$port_pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')"
               same=0
               case "$port_cmd" in
-                *awc_onboarding/web/app.py*|*'./awc ui'*|*'awc ui'*|*'-m web.app'*)
+                *"$ROOT/web/app.py"*|*'./awc ui'*|*'awc ui'*|*'-m web.app'*)
                   case "$port_cmd" in
                     *'-m web.app'*)
                       case "$port_cwd" in
-                        */awc_onboarding) same=1 ;;
+                        "$ROOT"|"$ROOT/") same=1 ;;
                       esac
                       ;;
                     *) same=1 ;;
@@ -75,6 +76,22 @@ case "${1:-help}" in
               printf '{\n  "mcpServers": {\n    "awc-onboarding": {\n      "command": "%s/bin/python",\n      "args": ["-m", "mcp_server.server"],\n      "cwd": "%s"\n    }\n  }\n}\n' "$VENV" "$ROOT"
             else py -m mcp_server.server; fi ;;
   examples) ls examples/*.input.yaml examples/*/blueprint.input.yaml; echo; echo "Pre-built output: examples/bundles/" ;;
+  mirror)
+            dir="${2:?usage: ./awc mirror <folder>}"
+            exec bash "$TOOL/scripts/mirror_engine.sh" "$dir" ;;
+  publish)
+            dir="${2:?usage: ./awc publish <folder> [--push]}"
+            shift 2
+            exec bash "$TOOL/scripts/publish_engine.sh" "$dir" "$@" ;;
+  validate)
+            form="${2:?usage: ./awc validate <form.yaml>}"
+            ensure_env
+            exec "$VENV/bin/python" "$TOOL/validate_form.py" --form "$form" ;;
+  scaffold)
+            form="${2:?usage: ./awc scaffold <form.yaml>}"
+            shift 2
+            ensure_env
+            exec "$VENV/bin/python" "$TOOL/generate_engine.py" --form "$form" --repo-root "$ROOT" "$@" ;;
   doctor)   for t in python3 helm skopeo awc-marketplace kubectl; do
               if command -v $t >/dev/null; then echo "  ok       $t"; else echo "  missing  $t  $(case $t in
                 helm) echo '(only for ./awc images)';; skopeo) echo '(only for mirror.sh)';;
@@ -92,6 +109,10 @@ AWC onboarding toolkit
   ./awc mcp                    start the MCP server for AI assistants (./awc mcp config prints client JSON)
   ./awc examples               list ready-made examples
   ./awc doctor                 check which optional tools you have
+  ./awc validate <form.yaml>   check an input form
+  ./awc scaffold <form.yaml>   write a product folder from a form
+  ./awc mirror <folder>        copy charts and images
+  ./awc publish <folder>       dry run; add --push only to send
 
 Docs: README.md, docs/USAGE.md
 USAGE

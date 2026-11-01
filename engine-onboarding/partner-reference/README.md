@@ -5,7 +5,7 @@ We do **not** port agent code, MCP server implementation, `helm-profile.json`, o
 ## Links
 
 - [awc-partner-engine-agents](https://github.com/Nijjwol23/awc-partner-engine-agents) — Neo4j marketplace run (reference pipeline)
-- [tpe-onboarding-awc](https://github.com/kuldeepsahu1105/tpe-onboarding-awc/tree/kuldeepsahu1105-awc-engine-onboarding-toolkit) — extended onboarding (wizard / MCP / ingest); ace-engines [`tools/engine-onboarding/`](../) is the in-monorepo subset
+- [tpe-onboarding-awc](https://github.com/kuldeepsahu1105/tpe-onboarding-awc/tree/kuldeepsahu1105-awc-engine-onboarding-toolkit) — extended onboarding (wizard / MCP / ingest); ace-engines [`engine-onboarding/`](../) is the in-monorepo subset
 - [awc-oci-register](https://github.com/agupta-git/awc-oci-register)
 - [starrocks-ace-engine](https://github.com/agupta-git/starrocks-ace-engine) — engine YAML patterns
 
