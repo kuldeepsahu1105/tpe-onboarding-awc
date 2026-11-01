@@ -1,5 +1,5 @@
 # Apply on an AWC cluster to deploy this engine directly (no Blueprint).
-apiVersion: ecosystem.awc.cloudera.com/v1alpha9
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
 kind: EngineInstance
 metadata:
   name: starrocks

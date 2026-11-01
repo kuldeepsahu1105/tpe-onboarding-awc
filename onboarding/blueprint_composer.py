@@ -43,7 +43,7 @@ from .generator import render_bundle
 from .manifest import normalize
 from .validator import validate_bundle
 
-API_VERSION = "ecosystem.awc.cloudera.com/v1alpha9"
+API_VERSION = "ecosystem.awc.cloudera.com/v1alpha10"
 
 
 def _load_yaml(path: Path) -> dict:

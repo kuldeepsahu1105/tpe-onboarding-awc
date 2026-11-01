@@ -1,27 +1,46 @@
-# RBAC so the ACE operator (running as the ace-operator-controller-manager
-# ServiceAccount) is allowed to manage the resources this Engine's template
-# renders. Adjust apiGroups/resources if you add/remove objects from the
-# Engine template.
+# Namespaced writes under strict ACE RBAC. ace-hub aggregates this Role into the
+# engine's namespace-scoped role. Flux helm-controller applies a chart release
+# while impersonating the engine ServiceAccount. Legacy mode applies the
+# RoleBinding below as written, to ace-operator-controller-manager.
+#
+# A ClusterRole may not write platform groups (core, apps, and the chart's
+# other namespaced objects). Those rules live in this Role.
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: Role
 metadata:
-  name: starrocks-ace-engine-role-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: starrocks-ace-engine-role
-subjects:
-  - kind: ServiceAccount
-    name: ace-operator-controller-manager
-    namespace: ace-operator-system
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: starrocks-ace-engine-role
+  name: starrocks-ace-engine-namespaced-role
 rules:
+  # `secrets` is Helm's storage driver. Without list on secrets the release
+  # fails before creating anything: "cannot list resource secrets in API group".
+  # configmaps, persistentvolumeclaims, serviceaccounts and services are what a
+  # typical chart renders. `patch` is required: applies go through server-side apply.
+  - apiGroups: [""]
+    resources:
+      - configmaps
+      - persistentvolumeclaims
+      - secrets
+      - serviceaccounts
+      - services
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  # A chart renders a Deployment, a StatefulSet, or both.
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  # Readiness checking, not workload management. helm-controller installs with
+  # wait enabled. Helm walks a Deployment to its ReplicaSets, and a Service to
+  # its EndpointSlices. Both are read-only.
+  - apiGroups: ["apps"]
+    resources:
+      - replicasets
+    verbs: ["get", "list", "watch"]
+  - apiGroups:
+      - discovery.k8s.io
+    resources:
+      - endpointslices
+    verbs: ["get", "list", "watch"]
   - apiGroups:
       - source.toolkit.fluxcd.io
     resources:
@@ -42,3 +61,16 @@ rules:
     resources:
       - authconfigs
     verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: starrocks-ace-engine-namespaced-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: starrocks-ace-engine-namespaced-role
+subjects:
+  - kind: ServiceAccount
+    name: ace-operator-controller-manager
+    namespace: ace-operator-system

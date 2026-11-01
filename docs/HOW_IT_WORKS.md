@@ -64,7 +64,7 @@ Folder such as `output/neo4j/` (pre-built copies in `examples/bundles/`):
 | `chartcatalog.yaml` / `imagecatalog.yaml` | Pinned Helm chart and image locations per version | Engine templates |
 | `capability.yaml` | Contract other engines can depend on (if you exported one) | Other engines |
 | `clusterrequirements.yaml` | Min/recommended nodes, CPU, memory, disk | Cluster provisioning |
-| `role.yaml` | RBAC the Engine needs | Cluster |
+| `role.yaml` | Namespaced Role for strict ACE RBAC, plus a RoleBinding | Namespace |
 | `mirror.yaml` + `mirror.sh` | List and script to copy chart and images to your registry | You (once per version) |
 | `publish.sh` | `awc-marketplace validate` / `publish` (dry run by default) | You |
 | `examples/instance.yaml` | Ready-to-apply EngineInstance with default config | You (test install) |

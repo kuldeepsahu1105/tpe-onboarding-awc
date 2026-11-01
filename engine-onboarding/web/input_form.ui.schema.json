@@ -276,7 +276,7 @@
         },
         "clusterRoleName": {
           "type": "string",
-          "description": "Defaults to {directory}-engine-role."
+          "description": "Role name. Defaults to {directory}-namespaced-role."
         }
       }
     },

@@ -1,26 +1,29 @@
 ---
+# Namespaced writes under strict ACE RBAC. ace-hub aggregates this Role into the
+# engine's namespace-scoped role. Flux helm-controller applies the chart release
+# while impersonating the engine ServiceAccount. Legacy mode applies the
+# RoleBinding below as written.
+#
+# `secrets` is Helm's storage driver and the credential Secret this engine's
+# template renders. Without list on secrets the release fails before creating
+# anything: "cannot list resource secrets in API group".
+# configmaps, persistentvolumeclaims, serviceaccounts and services are what the
+# Neo4j chart renders. `patch` is required because applies go through
+# server-side apply.
+# replicasets and endpointslices are read-only, for Helm wait.
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: Role
 metadata:
-  name: neo4j-engine-role-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: neo4j-engine-role
-subjects:
-- kind: ServiceAccount
-  name: ace-operator-controller-manager
-  namespace: ace-operator-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: neo4j-engine-role
+  name: neo4j-engine-namespaced-role
 rules:
 - apiGroups:
   - ''
   resources:
+  - configmaps
+  - persistentvolumeclaims
   - secrets
+  - serviceaccounts
+  - services
   verbs:
   - create
   - delete
@@ -28,6 +31,35 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - security.awc.cloudera.com
@@ -65,3 +97,16 @@ rules:
   - patch
   - update
   - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: neo4j-engine-namespaced-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: neo4j-engine-namespaced-role
+subjects:
+- kind: ServiceAccount
+  name: ace-operator-controller-manager
+  namespace: ace-operator-system
