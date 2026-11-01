@@ -1,0 +1,17 @@
+# Not for a real push. The onboarding workbench chart and image are not published yet.
+# Mirror plan — consumed by mirror.sh (helm + skopeo).
+# Not an ACE CRD.
+#
+# mirror.sh exits non-zero while charts and images are empty or still
+# contain angle-bracket placeholders. Registry host, repository, image name,
+# and tag are filled at publish time. Do not commit a registry password.
+
+charts: []
+# - repository: "<helm-repo-url>"
+#   name: "<tpe-onboarding-chart>"
+#   version: "<chart-version>"
+#   destination: "oci://<registry-host>/<repository>/charts"
+
+images: []
+# - source: "<source-registry>/<image-name>:<tag>"
+#   destination: "<registry-host>/<repository>/<image-name>:<tag>"

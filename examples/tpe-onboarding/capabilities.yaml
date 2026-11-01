@@ -1,0 +1,23 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Capability
+metadata:
+  name: tpe-onboarding-workbench
+spec:
+  schema:
+    type: object
+    description: >
+      Address of the onboarding workbench. No password is part of this
+      capability. Registry details are entered on the Publish screen.
+    required:
+    - endpoint
+    properties:
+      endpoint:
+        type: object
+        required:
+        - host
+        - port
+        properties:
+          host:
+            type: string
+          port:
+            type: integer

@@ -1,0 +1,18 @@
+# Not for a real push. Fill registry host and repository at publish time.
+# Example awc-oci-register config (apply on the AWC control plane cluster).
+# https://github.com/agupta-git/awc-oci-register
+#
+# Copy this file, replace every <placeholder>, then:
+#   awc-oci-register verify -f oci-register.config.yaml
+#   awc-oci-register apply  -f oci-register.config.yaml
+#
+# Until CCF-95 lands, this registers pull creds + MARKETPLACE_REGISTRIES.
+# The password file must not be committed. Do not put a password in this file.
+# There is no default cloud registry.
+---
+registryHost: "<registry-host>"
+marketplacePrefix: "<repository>"
+auth:
+  kind: basic
+  username: "<registry-username>"
+  passwordFile: "<path-to-registry-password-file>"

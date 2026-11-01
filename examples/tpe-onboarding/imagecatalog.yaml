@@ -1,0 +1,8 @@
+# Not published yet. Leave images empty until an image exists.
+# Do not invent a digest, tag, or registry host.
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: ImageCatalog
+metadata:
+  name: tpe-onboarding-images-unpublished
+spec:
+  images: []
