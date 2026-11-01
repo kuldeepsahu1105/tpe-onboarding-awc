@@ -43,7 +43,7 @@ INDEX = Path(__file__).with_name("index.html")
 # In-memory only. Passwords are never stored. Restarting the UI clears the table.
 _jobs_lock = threading.Lock()
 _jobs: list[dict] = []
-_QUEUE_ACTIONS = {"validate", "mirror", "publish"}
+_QUEUE_ACTIONS = {"validate", "mirror", "publish", "copy"}
 _LAUNCHPAD_ABSENT = (
     "The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer. "
     "The password was not stored or sent. "
@@ -69,24 +69,40 @@ def _creds_present(username: str, password: str) -> bool:
     return bool((username or "").strip()) and bool(password)
 
 
-def launchpad_queue(action: str, username: str, password: str, registry: str, slug: str) -> dict:
-    """Accept a queue click. Empty VPN credentials fail closed. Filled credentials are discarded."""
+_COPY_ABSENT = (
+    "Nothing was copied. The product list cannot be loaded yet, so this only updates the list on this page. "
+    "Your files stay on this computer. The password was not stored or sent."
+)
+_PUBLISH_ABSENT = (
+    "The product list cannot be loaded yet, so this only updates the list on this page. "
+    "Your files stay on this computer. The password was not stored or sent."
+)
+
+
+def launchpad_queue(action: str, username: str, password_present: bool, registry: str, slug: str) -> dict:
+    """Record a copy or publish click. The password itself is never accepted or stored."""
     if action not in _QUEUE_ACTIONS:
-        job = _record_job(action or "queue", "failed", f"Unknown queue action: {action}")
+        job = _record_job(action or "publish", "failed", "That action is not available. Nothing was sent.")
         return {"error": job["detail"], "job": job}
     if not (slug or "").strip():
-        job = _record_job(action, "failed", "Short name is required. Nothing was queued and nothing was pushed.")
+        job = _record_job(action, "failed", "Set the folder name on the first step before sending images. Nothing was sent.")
         return {"error": job["detail"], "job": job}
     if not (registry or "").strip():
-        job = _record_job(action, "failed", "Target registry is empty. Nothing was queued.")
+        job = _record_job(action, "failed", "Registry host is empty. Nothing was sent.")
         return {"error": job["detail"], "job": job}
-    if not _creds_present(username, password):
+    if not (username or "").strip() or not password_present:
         job = _record_job(
             action, "failed",
             "Registry username and password are required to push. Nothing was sent. The password is not saved.",
         )
         return {"error": job["detail"], "job": job}
-    job = _record_job(action, "failed", _LAUNCHPAD_ABSENT)
+    if action == "copy":
+        detail = _COPY_ABSENT
+    elif action == "publish":
+        detail = _PUBLISH_ABSENT
+    else:
+        detail = _LAUNCHPAD_ABSENT
+    job = _record_job(action, "failed", detail)
     return {"error": job["detail"], "job": job}
 
 
@@ -257,15 +273,17 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/launchpad/stage":
             return _stage_bundle(d)
         if path == "/api/launchpad/queue":
-            password = d.get("password") or ""
-            result = launchpad_queue(
+            # Presence only. The password string is dropped and never stored or logged.
+            password = d.pop("password", None)
+            password_present = bool(password) or bool(d.get("passwordPresent"))
+            del password
+            return launchpad_queue(
                 d.get("action") or "",
                 d.get("username") or "",
-                password,
+                password_present,
                 d.get("registry") or "",
                 d.get("slug") or "",
             )
-            return result
         if path == "/api/launchpad/catalog":
             return launchpad_catalog(d.get("username") or "", d.get("password") or "", d.get("registry") or "")
         return {"error": "not found"}

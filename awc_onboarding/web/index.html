@@ -37,6 +37,9 @@ h3{margin:20px 0 8px;font-size:18px;font-weight:600;line-height:1.45}
 .actions button{height:40px}
 label{font-weight:600;display:block;margin:16px 0 8px}
 .help + input,.help + select,.help + textarea,label + input,label + select,label + textarea{margin-top:8px}
+.checkrow{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:16px;margin-bottom:8px}
+.checkrow input{width:18px;height:18px;margin:0;flex:0 0 auto}
+.checkrow label{margin:0}
 .err{color:#b00020;margin:8px 0 0}.ok{color:#0a7d33}.warn{color:#9a6700}
 pre{background:#1B1B1B;color:#f2f2f2;padding:12px;border-radius:6px;overflow:auto;max-height:420px;font-size:13px;white-space:pre-wrap;word-break:break-word}
 .tabs{display:flex;flex-wrap:wrap;gap:8px}.tabs button.on{background:#fff;color:#5555f9;border-bottom:3px solid #5555f9}
@@ -84,6 +87,7 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  <p class="help">Writes one install guide from the products listed and checks it on this computer. Existing engines are reused, not installed again. Nothing is pushed.</p>
 </section>
 <section id="publish" class="card hide">
+ <p id="ltarget" class="help">Images go to the registry host, repository, image name, and tag below.</p>
  <label for="lhost">Registry host</label>
  <input id="lhost" placeholder="registry.example.com" autocomplete="off">
  <p class="help">Where the images will be pushed. Any registry. Not tied to one cloud.</p>
@@ -101,6 +105,12 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  <label for="lpass">Registry password or token</label>
  <input id="lpass" type="password" autocomplete="new-password" value="">
  <p id="lneed" class="help">Required to push. The password is not saved.</p>
+ <div class="checkrow">
+  <input id="lallow" type="checkbox">
+  <label for="lallow">Allow push</label>
+  <button class="s" type="button" onclick="saveRegistry()">Save registry</button>
+ </div>
+ <p class="help">Saves the registry host, repository, image name, tag, and username in this browser. The password is not saved. Leave Allow push off until you are ready to send images.</p>
  <details>
   <summary>Advanced</summary>
   <label for="lpid">Id on the product list</label>
@@ -117,8 +127,8 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  </div>
  <p class="help">Create local files writes the product folder on this computer. Does not upload anything.</p>
  <p class="help">Check files checks the YAML. Does not upload.</p>
- <p class="help">Copy images pushes the image to registry host / repository name : tag. Nothing is copied if any of those, or the username or password, is empty.</p>
- <p class="help">Publish the product sends the install guide after the image exists. The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer.</p>
+ <p class="help">Copy images pushes the image to registry host / repository name : tag. Nothing is copied if any of those, or the username or password, is empty, or Allow push is off.</p>
+ <p class="help">Publish the product sends the install guide after the image exists. Nothing is sent if Allow push is off. The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer.</p>
  <div class="row"><button class="s" type="button" onclick="refreshJobs()">Refresh status</button></div>
  <p class="help">Updates the job list on this page.</p>
  <p id="lmsg" class="help"></p>
@@ -146,12 +156,14 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
 <script>
 const $=id=>document.getElementById(id);
 const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{});return r.json()};
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
- document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x==b));
- ['guided','yaml','bp','publish','catalog'].forEach(t=>$(t).classList.toggle('hide',t!=b.dataset.t));
- if(b.dataset.t==='publish') fillImageFromFolder();
- if(b.dataset.t==='catalog'){$('catReg').textContent=($('lhost').value||'').trim()}
- $('result').classList.add('hide')});
+function showTab(name){
+ document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.t===name));
+ ['guided','yaml','bp','publish','catalog'].forEach(t=>$(t).classList.toggle('hide',t!==name));
+ if(name==='publish') fillImageFromFolder();
+ if(name==='catalog'){$('catReg').textContent=($('lhost').value||'').trim()}
+}
+function openTab(name){showTab(name)}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const PLAIN={'partner.id':'Short name','partner.owner':'Who makes this product','engine.displayName':'Name shoppers see','engine.description':'What the product does','engine.template':'How the product is packaged','publish.destinationRegistry':'Image registry, optional','publish.namespace':'Folder on the registry'};
 let cur=null,prev=null;
@@ -210,10 +222,12 @@ function show(r){const el=$('result');el.classList.remove('hide');
  for(const[k,x]of Object.entries(reports)){h+=`<div><b>${esc(k)}</b>: <span class="${x.ok?'ok':'err'}">${x.ok?'OK':'FAILED'}</span></div>`;
   (x.errors||[]).forEach(e=>h+=`<div class="err">✖ ${esc(e.file)}: ${esc(e.message)}</div>`);
   (x.warnings||[]).forEach(e=>h+=`<div class="warn">⚠ ${esc(e.file)}: ${esc(e.message)}</div>`)}
- const names=Object.keys(r.files);
+ const names=Object.keys(r.files||{});
  h+='<h3>Files</h3><div class="tabs">'+names.map((n,i)=>`<button class="s ${i?'':'on'}" onclick="tab(${i})">${esc(n)}</button>`).join('')+'</div><pre id="fv"></pre>'+
-  '<div class="row"><button class="p" onclick="dl()">Download .zip</button></div>';
- el.innerHTML=h;window._f=r.files;window._z=r.zip;window._n=names;tab(0);el.scrollIntoView()}
+  '<div class="row"><button class="p" onclick="dl()">Download .zip</button></div>'+
+  '<p class="help">Files are on this computer. Open Publish to copy the images and send the install guide.</p>'+
+  '<div class="row"><button class="s" type="button" onclick="openTab(\'publish\')">Open Publish</button></div>';
+ el.innerHTML=h;window._f=r.files;window._z=r.zip;window._n=names;if(names.length)tab(0);el.scrollIntoView()}
 function tab(i){$('fv').textContent=window._f[window._n[i]];document.querySelectorAll('.tabs button').forEach((b,j)=>b.classList.toggle('on',i==j))}
 function dl(){const b=atob(window._z),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);
  const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([a],{type:'application/zip'}));l.download='awc-bundle.zip';l.click()}
@@ -243,18 +257,51 @@ async function stageBundle(){
  const r=await api('/api/launchpad/stage',{session:$('lsess').value,slug:folder});
  await refreshJobs();
  if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
+function paintTarget(){
+ const [host,repo,image,tag]=['lhost','lrepo','limage','ltag'].map(id=>$(id).value.trim());
+ const bits=[host,repo,image].filter(Boolean);
+ let line=bits.join('/');
+ if(tag) line+=(line?':':'')+tag;
+ $('ltarget').textContent=line?('Images go to '+line):'Images go to the registry host, repository, image name, and tag below.'}
+function saveRegistry(){
+ const saved={host:$('lhost').value.trim(),repo:$('lrepo').value.trim(),image:$('limage').value.trim(),tag:$('ltag').value.trim(),user:$('luser').value.trim(),allow:$('lallow').checked};
+ localStorage.setItem('awcRegistry', JSON.stringify(saved));
+ $('lmsg').textContent='Saved on this computer. The password was not saved.';
+ $('lmsg').className='ok'}
+function restoreRegistry(){
+ try{
+  const saved=JSON.parse(localStorage.getItem('awcRegistry')||'null');
+  if(!saved) return;
+  if(!$('lhost').value) $('lhost').value=saved.host||'';
+  if(!$('lrepo').value) $('lrepo').value=saved.repo||'';
+  if(!$('limage').value) $('limage').value=saved.image||'';
+  if(!$('ltag').value) $('ltag').value=saved.tag||'';
+  if(!$('luser').value) $('luser').value=saved.user||'';
+  $('lallow').checked=!!saved.allow;
+ }catch(e){}
+ paintTarget()}
+function allowPush(){
+ if($('lallow').checked) return true;
+ $('lmsg').textContent='Turn on Allow push before sending images. Nothing was sent.';
+ $('lmsg').className='err';
+ return false}
+async function recordPush(action){
+ const [host,repo,image,tag,user]=pushCoords();
+ clearRegistryPassword();
+ const r=await api('/api/launchpad/queue',{action,username:user,passwordPresent:true,registry:[host,repo,image].filter(Boolean).join('/')+(tag?':'+tag:''),slug:window._folder||image});
+ await refreshJobs();
+ if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
 async function checkFiles(){
  const r=await api('/api/run-session',{session:$('lsess').value});
- if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err';return}
+ if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err';show(r);return}
+ show(r);
  $('lmsg').textContent='Check passed. Nothing was uploaded.';$('lmsg').className='ok'}
 async function copyImages(){
- if(!pushReady()) return;
- clearRegistryPassword();
- $('lmsg').textContent='Nothing was copied. The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer.';$('lmsg').className='err'}
+ if(!allowPush()||!pushReady()) return;
+ await recordPush('copy')}
 async function publishProduct(){
- if(!pushReady()) return;
- clearRegistryPassword();
- $('lmsg').textContent='The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer.';$('lmsg').className='err'}
+ if(!allowPush()||!pushReady()) return;
+ await recordPush('publish')}
 async function loadCatalog(){
  const r=await api('/api/launchpad/catalog',{username:$('catEmail').value,password:$('catPass').value,registry:$('lhost').value});
  $('catPass').value='';
@@ -264,5 +311,5 @@ async function loadCatalog(){
  $('partnerEmpty').textContent=(r.partners&&r.partners.length)?'':'No partner products listed.';
  $('imageEmpty').textContent=(r.images&&r.images.length)?'':'No images listed yet.'}
 async function loadEx(t,sel){if(sel.value)$(t).value=(await api('/api/example?name='+encodeURIComponent(sel.value))).text}
-(async()=>{const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')&&!e.includes('/')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
+(async()=>{restoreRegistry();['lhost','lrepo','limage','ltag'].forEach(id=>$(id).addEventListener('input',paintTarget));const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')&&!e.includes('/')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
 </script></body></html>
