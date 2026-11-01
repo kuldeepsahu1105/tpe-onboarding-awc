@@ -83,7 +83,7 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
 </section>
 <section id="bp" class="card hide">
  <p class="help">One blueprint is one install guide. List your products, each in its own YAML, and any engines already on the cluster.</p>
- <label>blueprint.input.yaml</label><textarea id="bpta" style="min-height:200px"></textarea>
+ <label>blueprint.input.yaml</label><textarea id="bpta" style="min-height:320px" placeholder="blueprint:&#10;  name: neo4j&#10;  owner: &quot;Neo4j, Inc.&quot;&#10;  displayName: &quot;Neo4j&quot;&#10;  description: &quot;Native graph database (Community) with Browser UI and Bolt.&quot;&#10;  outcome: &quot;Graph database&quot;&#10;  version: &quot;1.0.0&quot;&#10;engines:&#10;  - input: neo4j.input.yaml&#10;  - existing:&#10;      engine: keycloak-ace-engine&#10;      instance: keycloak-prod&#10;      version: &quot;24.0&quot;"></textarea>
  <div id="bpErr" class="err"></div>
  <label>Engine input files referenced above</label><div id="engs"></div>
  <div class="row"><button class="s" onclick="addEng()">+ Add engine file</button>
