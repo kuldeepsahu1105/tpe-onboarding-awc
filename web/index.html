@@ -183,10 +183,6 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const PLAIN={'partner.id':'Folder name','partner.owner':'Who makes this product','engine.displayName':'Name shoppers see','engine.description':'What the product does','engine.template':'How the product is packaged','publish.destinationRegistry':'Image registry, optional','publish.namespace':'Folder on the registry'};
 let cur=null,prev=null;
 const backBtn=n=>n>0?'<button class="s" onclick="goBack()">&larr; Back</button>':'';
-function showStart(){
- $('prog').style.width='0';
- $('qbox').innerHTML='<p class="help">Click Start / resume to open a saved setup. Click Reset to begin at the first question.</p>';
-}
 async function loadQ(){
  const r=await api('/api/question?session='+encodeURIComponent($('sid').value));
  window.nAns=r.answered;
@@ -396,5 +392,5 @@ async function loadCatalog(){
  $('partnerEmpty').textContent=(r.partners&&r.partners.length)?'':'No partner products listed.';
  $('imageEmpty').textContent=(r.images&&r.images.length)?'':'No images listed yet.'}
 async function loadEx(t,sel){if(sel.value)$(t).value=(await api('/api/example?name='+encodeURIComponent(sel.value))).text}
-(async()=>{restoreRegistry();['lhost','lrepo','limage','ltag','luser'].forEach(id=>$(id).addEventListener('input',paintTarget));paintReady();const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')).map(e=>`<option>${esc(e)}</option>`).join('');showStart()})();
+(async()=>{restoreRegistry();['lhost','lrepo','limage','ltag','luser'].forEach(id=>$(id).addEventListener('input',paintTarget));paintReady();const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
 </script></body></html>
