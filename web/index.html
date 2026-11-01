@@ -188,7 +188,7 @@ async function loadQ(){
  window.nAns=r.answered;
  $('prog').style.width=(r.total?100*r.answered/r.total:0)+'%';
  if(r.shortName) addFolderOption(r.shortName);
- if(r.done){$('qbox').innerHTML='<p class="ok">All questions answered.</p><div class="row">'+backBtn(1)+'<button class="p" onclick="runSession()">Generate &amp; validate</button></div><div id="genErr" class="err"></div>';return}
+ if(r.done){$('qbox').innerHTML='<p class="ok">If you want a fresh start, click Reset to start the questions again from the beginning.</p><div class="row">'+backBtn(1)+'<button class="p" onclick="resetS()">Reset and start from the first question</button><button class="s" onclick="runSession()">Generate &amp; validate</button></div><div id="genErr" class="err"></div>';return}
  cur=r.question;let f;
  if(prev&&prev.id===cur.id){cur.default=prev.value}prev=null;
  if(cur.kind==='choice')f='<select id="ans">'+cur.choices.map(c=>`<option ${c==cur.default?'selected':''}>${esc(c)}</option>`).join('')+'</select>';
