@@ -76,7 +76,7 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  <label for="exsel">Load an example</label>
  <select id="exsel" onchange="loadEx('yamlta',this)"></select>
  <p class="help">Optional fields get a default. A Marketplace tile needs its short tagline. Generate stops when a required field is missing.</p>
- <textarea id="yamlta" placeholder="partner: {id: neo4j, owner: \"Neo4j, Inc.\"}&#10;engine: {displayName: Neo4j, description: \"Graph database\", template: helm-simple}&#10;helm: {repoUrl: \"https://helm.neo4j.com/neo4j\", chart: neo4j, version: \"5.26.0\"}&#10;(or pick a ready-made example above)"></textarea>
+ <textarea id="yamlta" placeholder="partner: {id: neo4j, owner: &quot;Neo4j, Inc.&quot;}&#10;engine: {displayName: &quot;Neo4j&quot;, description: &quot;Native graph database (Community) with Browser UI and Bolt.&quot;, template: helm-simple}&#10;helm: {repoUrl: &quot;https://helm.neo4j.com/neo4j&quot;, chart: neo4j, version: &quot;5.26.0&quot;}&#10;blueprint: {outcome: &quot;Graph database&quot;}"></textarea>
  <div id="yamlErr" class="err"></div>
  <div class="row"><button class="p" onclick="runYaml()">Generate &amp; validate</button></div>
  <p class="help">Checks the YAML first. Files are kept only when the check passes. A failed check leaves earlier files as they were.</p>
