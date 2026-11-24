@@ -17,3 +17,8 @@ The [Qbeast reference](examples/qbeast/README.md) organizes its supplied
 manifests and a derived capability contract. Download it from **Paste input.yaml** in the workbench, or create
 `qbeast.zip` with `./awc package qbeast`. It requires separately supplied
 catalogs and platform dependencies; it is not generated from an input form.
+
+Blueprint generation defaults to the current marketplace `hardwareTiers` shape.
+Use `blueprint.format: legacy` to retain the earlier generator output. See the
+[Blueprint and dependency guide](docs/ONBOARDING_GUIDE.md#2-multi-engine-app-or-combining-with-existing-experiences)
+and `examples/polaris-udf.blueprint.input.yaml` for the shared-UDF distinction.

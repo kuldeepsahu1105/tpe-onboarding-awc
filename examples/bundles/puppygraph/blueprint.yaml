@@ -3,44 +3,32 @@ kind: Blueprint
 metadata:
   name: puppygraph
 spec:
-  owner: "PuppyGraph"
-  displayName: "PuppyGraph"
-  description: "Zero ETL graph on lakehouse data via Helm on AWC."
-  outcome: "Zero-ETL graph queries"
-
-  versionMatrix:
-    - displayVersion: "1.1.0"
-      instances:
-        - name: "puppygraph"
-          version: "1.1.0"
-
+  owner: PuppyGraph
+  description: Zero ETL graph on lakehouse data via Helm on AWC.
+  outcome: Zero-ETL graph queries
   instances:
-    - name: "puppygraph"
-      engine: "puppygraph-ace-engine"
-
-  cluster:
-    kubernetesVersion: ">= 1.28.0"
-    networkStorage:
-      default: "200Gi"
-      minimum: "100Gi"
-      hint: "Shared storage for PuppyGraph"
-    nodeGroups:
-      - id: "puppygraph-nodes"
-        category: "worker"
-        displayName: "PuppyGraph Nodes"
+  - name: puppygraph
+    engine: puppygraph-ace-engine
+    minimumVersion: 1.1.0
+  hardwareTiers:
+  - name: default
+    cluster:
+      nodeGroups:
+      - id: puppygraph-nodes
+        category: worker
+        displayName: PuppyGraph Nodes
         nodeCount:
           default: 2
           minimum: 1
         resources:
           minimum:
-            cpu: "8"
-            memory: "32Gi"
+            cpu: '8'
+            memory: 32Gi
             hasGPU: false
-          recommended:
-            cpu: "16"
-            memory: "32Gi"
-            hasGPU: false
+          hint: 'Recommended: 16 CPU and 32Gi memory per node.'
         storage:
           disk:
-            default: "200Gi"
-            minimum: "100Gi"
+            default: 200Gi
+            minimum: 100Gi
+  ui:
+    displayName: PuppyGraph

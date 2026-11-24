@@ -212,7 +212,7 @@ def resolve_engine_dependencies(form: dict[str, Any]) -> list[dict[str, Any]] | 
 
 
 def dependency_blueprint_instance(dep: dict[str, Any]) -> dict[str, Any] | None:
-    """Blueprint lists ref/optional deps; auto deps stay private to the engine (Polaris/HMS)."""
+    """Legacy form behavior: list ref/optional deps, not auto dependencies."""
     dep_type = dep.get("type", "ref")
     if dep_type == "auto":
         return None
@@ -232,25 +232,40 @@ def dependency_blueprint_instance(dep: dict[str, Any]) -> dict[str, Any] | None:
 def build_blueprint_instances(form: dict[str, Any]) -> list[dict[str, Any]]:
     bp = form.get("blueprint") or {}
     if bp.get("instances"):
-        return list(bp["instances"])
+        instances = list(bp["instances"])
+        names = [instance["name"] for instance in instances]
+        if len(set(names)) != len(names):
+            raise ValueError("Blueprint instance names must be unique")
+        if bp.get("format", "current") == "current" and any(
+            not all(instance.get(key) for key in ("name", "engine", "minimumVersion"))
+            for instance in instances
+        ):
+            raise ValueError("Blueprint instances require name, engine and minimumVersion")
+        return instances
 
     engine = form["engine"]
     instance_name = bp.get("instanceName") or form["directory"]
-    version = str(bp.get("minimumVersion", "0.0.0"))
+    if bp.get("format", "current") == "current" and not bp.get("minimumVersion"):
+        raise ValueError("blueprint.minimumVersion is required for current output")
+    version = str(bp.get("minimumVersion") or "0.0.0")
 
     instances: list[dict[str, Any]] = []
-    seen: set[str] = set()
+    seen: dict[str, dict[str, Any]] = {}
 
     def add(inst: dict[str, Any] | None) -> None:
         if not inst:
             return
         key = inst["name"]
         if key in seen:
+            if seen[key] != inst:
+                raise ValueError(f"Conflicting Blueprint instance: {key}")
             return
-        seen.add(key)
+        seen[key] = inst
         instances.append(inst)
 
     for ex in bp.get("existingEngines") or []:
+        if bp.get("format", "current") == "current" and not (ex.get("minimumVersion") or ex.get("version")):
+            raise ValueError(f"{ex['name']}: minimumVersion is required")
         add(
             {
                 "name": ex["name"],
@@ -260,6 +275,8 @@ def build_blueprint_instances(form: dict[str, Any]) -> list[dict[str, Any]]:
         )
 
     for extra in bp.get("additionalInstances") or []:
+        if bp.get("format", "current") == "current" and not (extra.get("minimumVersion") or extra.get("version")):
+            raise ValueError(f"{extra['name']}: minimumVersion is required")
         add(
             {
                 "name": extra["name"],
@@ -268,8 +285,15 @@ def build_blueprint_instances(form: dict[str, Any]) -> list[dict[str, Any]]:
             }
         )
 
-    for dep in resolve_engine_dependencies(form) or []:
-        add(dependency_blueprint_instance(dep))
+    blueprint_deps = (form.get("dependencies") or {}).get("entries") or form["engine"].get("dependencies") or []
+    for dep in blueprint_deps:
+        if bp.get("format", "current") == "legacy":
+            add(dependency_blueprint_instance(dep))
+        elif dep.get("includeInBlueprint"):
+            if dep.get("type") == "auto" or not dep.get("instance") or not dep.get("minimumVersion"):
+                raise ValueError("A Blueprint dependency instance requires non-auto type, instance and minimumVersion")
+            add({"name": dep["instance"], "engine": dep["engine"],
+                 "minimumVersion": str(dep["minimumVersion"])})
 
     add(
         {
@@ -417,6 +441,9 @@ def render_blueprint(form: dict[str, Any]) -> str | None:
     bp = form.get("blueprint") or {}
     if not bp.get("enabled", True):
         return None
+    format_ = bp.get("format", "current")
+    if format_ not in ("current", "legacy"):
+        raise ValueError("blueprint.format must be current or legacy")
 
     engine = form["engine"]
     ht = bp.get("hardwareTier") or {}
@@ -489,6 +516,14 @@ def render_blueprint(form: dict[str, Any]) -> str | None:
             },
         },
     }
+    if format_ == "current":
+        cluster = doc["spec"]["hardwareTiers"][0]["cluster"]
+        cluster.pop("kubernetesVersion")
+        for node in cluster["nodeGroups"]:
+            recommended = node["resources"].pop("recommended")
+            node["resources"]["hint"] += (
+                f" Recommended: {recommended['cpu']} CPU and {recommended['memory']} memory per node."
+            )
     return yaml.dump(doc, sort_keys=False, default_flow_style=False, width=1000)
 
 

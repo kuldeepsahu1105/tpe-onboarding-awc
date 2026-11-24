@@ -54,7 +54,7 @@ verify it fits the actual application; successful generation is not deployment a
 | `helm-multi-role` | `engine.roles[]` entries with `name`, `replicas`, and optional `cpu`, `memory`, `resources`. Replace the fallback coordinator/worker roles with your chart's real roles. The top-level `roles` key is not used. |
 | `helm-operator` | Required `operator.chartRepoUrl`, `operator.chartName`, `operator.chartVersion`, `operator.group`, `operator.kind`, and `operator.resource`. Review `operator.namespace` (default `ace-operators`, must already exist). The CR and Role are rendered only from those values. |
 | `capability.exportsStructuredData: true` | Review `capability.name` (default `<partner-id>-connection`) and `capability.fields` (`name:type` list, default host/port). For a nested contract, use `capability.schema` and `capability.fields: []`. Verify produced connection values; arbitrary field names do not implement their semantics automatically. |
-| `dependencies.hasAny: true` | Supply `dependencies.entries[]`: `name`, `engine`, `type` (`auto`, `optional`, `ref`), and `instance` for non-auto links where the default target name is wrong. Do not rely on the fallback entry with an empty engine. `auto` is private and omitted from Blueprint wiring. |
+| `dependencies.hasAny: true` | Supply `dependencies.entries[]`: `name`, `engine`, `type` (`auto`, `optional`, `ref`) and verified versions. Use `runtimeInstance` for an explicitly known shared runtime target; it is not the same as a Blueprint instance. `auto` is private and omitted from the Blueprint. |
 | Chart needs custom values | `helm.values` for static nested values; `config.extras[]` with `name`, `type`, `default`, `description`, optional `title`, `minimum`, `valuesPath`; or `helm.valuesTemplate` for a full values-block replacement. Match real chart value paths. See [advanced options](ADVANCED_OPTIONS.md). |
 | Custom multi-role settings | Review `engine.configFromRoles`, `engine.roleStorage`, and `config.extras[]`; disabling auto-config means you must define the fields used by your values template. |
 | Custom routing/exports | Review `service.landingHost`, `service.landingHostPrefix`, `service.domainPrefix`, `service.landingBackend`, `service.endpointHost`, `service.endpointUrl`, and `provides[]` when defaults do not match actual Services/contracts. Support varies by template; inspect rendered output without editing it. |
@@ -123,16 +123,51 @@ Apply the engine checklists to **each** engine file before composition.
 | Composer input checklist | Requirement / action |
 |---|---|
 | `blueprint.name`, `blueprint.owner`, `blueprint.displayName` | Required; set the app's real identity. Output goes to `output/<blueprint.name>/`. |
-| `blueprint.description`, `blueprint.outcome`, `blueprint.version`, `blueprint.kubernetesVersion` | Optional; description is derived from display name, outcome is omitted when absent, version defaults to `1.0.0`, Kubernetes constraint to `>= 1.28.0`. Pin intended versions explicitly. |
+| `blueprint.description`, `blueprint.outcome`, `blueprint.version` | Optional; pin the publishing version explicitly. `blueprint.format: legacy` opts into the older `versionMatrix`/`cluster` shape; current `hardwareTiers` is the default. |
 | `engines[]` | Required nonempty list. Each entry should specify either `input` or `existing`, not both. |
 | `engines[].input` | Path to an engine source file, relative to the composer file's directory (e.g. `db.input.yaml`). |
-| `engines[].existing.engine`, `engines[].existing.instance`, `engines[].existing.version` | Engine/instance required for an existing entry; version defaults to the Blueprint version. Verify the actual target-cluster engine name, instance name and version; CAI/CDE/CDF example identifiers are not discovery. |
+| `engines[].existing.engine`, `engines[].existing.instance`, `engines[].existing.minimumVersion` | Explicitly list an engine available in the marketplace, the Blueprint instance name, and its verified minimum engine version (`version` is also accepted). This does not select an already-running instance. |
 | Included engine `blueprint.instanceName`, `blueprint.nodeGroupId`, `engine.name`, `partner.id` | Keep identifiers unique across included components and verify non-auto `dependencies.entries[].instance` targets. |
 | Included engine `publish.destinationRegistry`, `publish.namespace` | Verify each engine's mirror target. The combined publish script takes its default registry/namespace from the **first included input engine**; use consistent destinations across the suite. For existing-only composition, its defaults are `<registry>`/`<namespace>` and must be supplied at invocation. |
 
 - `input:` includes and generates one of your engines (its own Blueprint is suppressed).
-- `existing:` pulls in an engine already on the cluster (`engine`, `instance`, `version`).
-- Declare links in an engine's `dependencies.entries` (`auto` / `optional` / `ref`).
+- `existing:` lists another marketplace engine in the Blueprint; verify version and sizing.
+- An existing-only composition requires explicit `blueprint.nodeGroups`. See
+  `examples/polaris-udf.blueprint.input.yaml`; its versions and development
+  sizing must be checked against the target platform.
+- A `ref` or `optional` Engine dependency is not bound by listing a Blueprint
+  instance. Set `dependencies.entries[].runtimeInstance` to a verified existing
+  EngineInstance name to include an example runtime binding. Leave it empty
+  when unknown. `auto` dependencies are private and are not listed.
+- To request a new dependency instance in a single-engine Blueprint, set
+  `includeInBlueprint: true` and provide an explicit `instance` and
+  `minimumVersion`. This does not establish a runtime binding or mean reuse of
+  a shared cluster instance. Optional dependencies are not added implicitly.
+- `examples/udf-ref.input.yaml` shows an Engine ref declaration, but does not
+  implement a Ranger client or policy provisioning. Supply a real
+  `runtimeInstance` only when the target is known.
+- For Harmony, obtain the real engine name, minimum version and capability
+  contract; this toolkit does not guess them. Confirm cross-cluster connectivity
+  and Console support before enabling shared references.
+
+The current format follows the checked-in `ace-engines` marketplace Blueprints:
+`hardwareTiers`, `instances[].minimumVersion`, and `ui.displayName`. It omits
+the removed Kubernetes version and recommended resource fields. Recommendations
+are rendered as resource hints. Verify the actual marketplace schema and use
+real engine artifact versions (not blindly chart versions) before publishing.
+Current output does not generate the removed `ClusterRequirements` resource;
+remove any stale legacy `clusterrequirements.yaml` from an existing output
+directory before regenerating. `blueprint.format: legacy` retains it.
+Scoped ACE RBAC, operator namespace watching, registry enforcement and
+cross-cluster connectivity depend on the target platform and actual charts;
+generated RBAC is a starting point, not proof of chart compatibility.
+The current ACE reference uses namespaced write grants and aggregates scoped
+roles; the generated operator ClusterRole no longer adds a broad explicit
+ClusterRoleBinding. Verify the chart's actual resources, service accounts,
+namespace-scoped operator watch configuration, and cross-cluster mesh and
+authentication setup before deployment. Platform feature flags, registry
+policies, topology headers, TLS, and Knox trust must be confirmed on the target;
+the generator does not assume or configure them.
 
 Examples: `examples/dataspark.input.yaml` (one native app; API, auth, and database images), `examples/phoenixai.input.yaml` (one Helm app that depends on CAI, CDE, and CDF).
 
@@ -178,7 +213,7 @@ Generated bundle (besides the ACE YAML):
 | `mirror.sh` | `helm pull/push` charts and `skopeo copy --all` images into your registry | helm, skopeo, registry logins |
 | `publish.sh` | `awc-marketplace validate` + `publish` engine + Blueprint (+ `catalog fetch`). Dry run by default; `--push` pushes | awc-marketplace CLI |
 
-Also generated: `examples/instance.yaml` (ready-to-apply EngineInstance with config defaults)
+Also generated: `examples/instance.yaml` (example EngineInstance with config defaults; review required bindings)
 and `examples/smoke-test.sh` (kubectl + port-forward probe). Ready-made, pre-rendered bundles
 for Neo4j, StarRocks (FE/BE) and PuppyGraph (controlplane/leader/compute) are in
 `examples/bundles/<name>/`; their sources are `examples/<name>.input.yaml`.

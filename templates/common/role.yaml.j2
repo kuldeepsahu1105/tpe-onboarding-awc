@@ -1,7 +1,6 @@
 # Namespaced writes under strict ACE RBAC. ace-hub aggregates this Role into the
 # engine's namespace-scoped role. Flux helm-controller applies a chart release
-# while impersonating the engine ServiceAccount. Legacy mode applies the
-# RoleBinding below as written, to ace-operator-controller-manager.
+# while impersonating the engine ServiceAccount. Review chart-specific grants.
 #
 # A ClusterRole may not write platform groups (core, apps, and the chart's
 # other namespaced objects). Those rules live in this Role.
@@ -115,17 +114,4 @@ rules:
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
     verbs: ["create", "get", "list", "patch", "update", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: [[ rolePrefix ]]-cluster-role-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: [[ rolePrefix ]]-cluster-role
-subjects:
-  - kind: ServiceAccount
-    name: ace-operator-controller-manager
-    namespace: ace-operator-system
 [% endif %]

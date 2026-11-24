@@ -84,7 +84,7 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
  <p class="help">Checks the YAML first. Files are kept only when the check passes. A failed check leaves earlier files as they were.</p>
 </section>
 <section id="bp" class="card hide">
- <p class="help">One blueprint is one install guide. List your products, each in its own YAML, and any engines already on the cluster.</p>
+ <p class="help">One Blueprint is one install guide. List product inputs and marketplace engines to provision. Existing shared instances require separate runtime bindings.</p>
  <label>blueprint.input.yaml</label><textarea id="bpta" style="min-height:320px" placeholder="blueprint:&#10;  name: neo4j&#10;  owner: &quot;Neo4j, Inc.&quot;&#10;  displayName: &quot;Neo4j&quot;&#10;  description: &quot;Native graph database (Community) with Browser UI and Bolt.&quot;&#10;  outcome: &quot;Graph database&quot;&#10;  version: &quot;1.0.0&quot;&#10;engines:&#10;  - input: neo4j.input.yaml&#10;  - existing:&#10;      engine: keycloak-ace-engine&#10;      instance: keycloak-prod&#10;      version: &quot;24.0&quot;"></textarea>
  <div id="bpErr" class="err"></div>
  <label>Engine input files referenced above</label><div id="engs"></div>
@@ -140,10 +140,31 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
   <button class="s" type="button" onclick="copyImages()">Copy images</button>
   <button class="p" type="button" onclick="publishProduct()">Publish the product</button>
  </div>
- <p class="help">Create local files writes the product folder on this computer. Does not upload anything.</p>
+ <p class="help">Create local files and the job list record intent only; they do not write a bundle or upload anything.</p>
  <p class="help">Check files checks the YAML. Does not upload.</p>
- <p class="help">Copy images pushes the image to registry host / repository name : tag. Nothing is copied if any of those, or the username or password, is empty, or Allow push is off.</p>
- <p class="help">Publish the product sends the install guide after the image exists. Nothing is sent if Allow push is off. The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer.</p>
+ <p class="help">Copy images and Publish the product above are not connected: they do not copy or publish. Use the reviewed operations below instead.</p>
+ <details>
+  <summary>Run reviewed registry and bundle operations</summary>
+  <p class="help">These controls run real local tools, unlike the job list above. Use the workbench on localhost, review your target and scripts first, and authenticate in your terminal. No registry passwords are entered here.</p>
+  <label for="regconfig">Local awc-oci-register config path</label>
+  <input id="regconfig" placeholder="/path/to/registry-config.yaml" autocomplete="off">
+  <p class="help">Init creates a new file without overwriting. Plan and verify inspect the configured control plane. Review their detailed output and the target Kubernetes context in a terminal before applying. Apply changes control-plane secrets and may restart the Console.</p>
+  <div class="row">
+   <button class="s opbtn" type="button" onclick="runOperation('registry-init')">Init config</button>
+   <button class="s opbtn" type="button" onclick="runOperation('registry-plan')">Plan</button>
+   <button class="s opbtn" type="button" onclick="runOperation('registry-verify')">Verify</button>
+   <button class="s opbtn" type="button" onclick="runOperation('registry-apply')">Apply registry</button>
+  </div>
+  <label for="bundlepath">Reviewed bundle directory under output/</label>
+  <input id="bundlepath" placeholder="output/my-product" autocomplete="off">
+  <p class="help">Build with ./awc build or ./awc blueprint first, or extract a reviewed downloaded bundle under output/. Mirror copies artifacts; publish dry-run runs marketplace validation and publishing without --push; publish pushes. For a multi-engine Blueprint, mirror each engine directory first.</p>
+  <div class="row">
+   <button class="s opbtn" type="button" onclick="runOperation('mirror')">Mirror artifacts</button>
+   <button class="s opbtn" type="button" onclick="runOperation('publish-dry-run')">Publish dry-run</button>
+   <button class="p opbtn" type="button" onclick="runOperation('publish')">Publish to registry</button>
+  </div>
+  <p id="opstatus" class="help" role="status"></p>
+ </details>
  <div class="row"><button class="s" type="button" onclick="refreshJobs()">Refresh status</button></div>
  <p class="help">Updates the job list on this page.</p>
  <p id="lmsg" class="help"></p>
@@ -172,6 +193,18 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
 <script>
 const $=id=>document.getElementById(id);
 const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{});return r.json()};
+async function runOperation(action){
+ const path=$(action.startsWith('registry-')?'regconfig':'bundlepath').value.trim(),status=$('opstatus');
+ if(!path){status.textContent='Enter the local path first.';status.className='err';return}
+ if(!confirm(`Run ${action} for ${path}? Review the target and scripts first.`))return;
+ document.querySelectorAll('.opbtn').forEach(b=>b.disabled=true);
+ status.textContent='Running; leave this page open until the operation completes.';status.className='help';
+ try{
+  const response=await fetch('/api/operations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,path,confirmed:true})});
+  const result=await response.json();status.textContent=result.message||result.error;status.className=result.ok?'ok':'err';
+ }catch(error){status.textContent='The request failed. Check the local workbench; the operation may still be running.';status.className='err'}
+ finally{document.querySelectorAll('.opbtn').forEach(b=>b.disabled=false)}
+}
 function showTab(name){
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.t===name));
  ['guided','yaml','bp','publish','catalog'].forEach(t=>$(t).classList.toggle('hide',t!==name));
@@ -230,14 +263,15 @@ async function submitQ(){
  if(cur.id==='dependencies.hasAny'&&v===true)return depForm();
  loadQ()}
 function depForm(){
- $('qbox').innerHTML=`<h3>Dependencies on other engines</h3><div class="help">Internal, Cloudera-native (CDE, CAI, CDF...) or third-party engines. auto = private; optional/ref = wired in the Blueprint.</div>
+ $('qbox').innerHTML=`<h3>Dependencies on other engines</h3><div class="help">auto = private; optional/ref = runtime references. Listing an engine in a Blueprint does not bind it to a shared instance.</div>
  <label>Name (key used in templates)</label><input id="dn" placeholder="database"><label>Engine resource name</label><input id="de" placeholder="cde-ace-engine">
  <label>Type</label><select id="dt"><option>auto</option><option>optional</option><option>ref</option></select>
- <label>Target instance (optional/ref only)</label><input id="di" placeholder="hive-metastore"><div id="dl" class="help"></div>
+ <label>Minimum engine version for ref/optional (if known)</label><input id="dm" placeholder="1.6.0">
+ <label>Existing runtime instance for example (optional/ref; leave blank if unknown)</label><input id="di" placeholder="hive-metastore"><div id="dl" class="help"></div>
  <div class="row"><button class="s" onclick="goBack()">&larr; Back</button><button class="s" onclick="addDep()">Add dependency</button><button class="p" onclick="loadQ()">Done</button></div>`}
 async function addDep(){
- const r=await api('/api/dependency',{session:$('sid').value,name:$('dn').value,engine:$('de').value,type:$('dt').value,instance:$('di').value||null});
- $('dl').textContent='Added: '+r.entries.map(e=>e.name+' → '+e.engine).join(', ');['dn','de','di'].forEach(i=>$(i).value='')}
+ const r=await api('/api/dependency',{session:$('sid').value,name:$('dn').value,engine:$('de').value,type:$('dt').value,instance:$('di').value||null,minimumVersion:$('dm').value||null});
+ $('dl').textContent='Added: '+r.entries.map(e=>e.name+' → '+e.engine).join(', ');['dn','de','di','dm'].forEach(i=>$(i).value='')}
 async function resetS(){await api('/api/reset',{session:$('sid').value});loadQ()}
 function failed(r){return !r||r.ok===false||!!r.error||(r.problems&&r.problems.length)}
 function problemsOf(r){if(r.problems&&r.problems.length)return r.problems;if(r.error)return [{field:'',file:'',message:r.error}];return []}

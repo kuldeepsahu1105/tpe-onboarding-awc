@@ -113,18 +113,22 @@ def _collect_dependencies(session: Session) -> None:
         engine = _ask_raw("Name of the Engine resource it depends on (e.g. 'postgres-engine')")
         dep_type = _ask_raw(
             "Dependency wiring type? auto=private/same-lifecycle (operator auto-creates "
-            "a child, invisible to the Console), optional=user may wire an existing "
-            "instance or omit it, ref=user must pick an existing instance.",
+            "a child), optional=an optional runtime reference, ref=a required runtime reference.",
             default="auto",
             choices=["auto", "optional", "ref"],
         )
         entry = {"name": name, "engine": engine, "type": dep_type}
         if dep_type != "auto":
-            entry["instance"] = _ask_raw(
-                f"Blueprint instance name of that existing '{engine}' (what the Console "
-                "lists it as, so this engine's Blueprint entry can wire to it)?",
-                default=engine.removesuffix("-engine"),
+            entry["minimumVersion"] = _ask_raw(
+                "Minimum compatible engine version (leave empty if unknown)", default=""
+            ) or None
+            entry["runtimeInstance"] = _ask_raw(
+                f"Existing EngineInstance name for the example binding to '{engine}' "
+                "(leave empty if unknown)",
+                default="",
             )
+            if entry["runtimeInstance"]:
+                entry["instance"] = entry["runtimeInstance"]
         items.append(entry)
         index += 1
         if not _ask_bool("Add another dependency?", default=False):

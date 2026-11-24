@@ -112,6 +112,15 @@ def validate_bundle(bundle_dir: Path, manifest: dict[str, Any]) -> ValidationRes
     sizing = yaml.safe_load((STANDARDS_DIR / "sizing-baselines.yaml").read_text())
 
     template_class = manifest["engine"]["template"]
+    for dep in manifest["dependencies"]["entries"]:
+        if dep["type"] == "ref" and not dep.get("runtimeInstance"):
+            result.add("warning", "examples/instance.yaml",
+                       f"Required dependency '{dep['name']}' has no verified runtime instance binding.")
+    if manifest["blueprint"].get("format", "current") == "current" and (bundle_dir / "clusterrequirements.yaml").exists():
+        result.add(
+            "error", "clusterrequirements.yaml",
+            "Stale legacy ClusterRequirements file: remove it from this generated output before using the current format.",
+        )
     required_files = rules["requiredFilesByTemplate"].get(template_class, [])
     for fname in required_files:
         if fname == "blueprint.yaml" and not manifest["blueprint"].get("needed", True):
@@ -181,11 +190,20 @@ def validate_bundle(bundle_dir: Path, manifest: dict[str, Any]) -> ValidationRes
     bp_path = bundle_dir / "blueprint.yaml"
     if bp_path.is_file():
         bp_doc = _load_yaml(bp_path)[0]
-        for req in rules["requiredBlueprintFields"]:
+        format_ = manifest["blueprint"].get("format", "current")
+        format_rules = "requiredLegacyBlueprintFields" if format_ == "legacy" else "requiredCurrentBlueprintFields"
+        for req in rules["requiredBlueprintFields"] + rules[format_rules]:
             if _get_path(bp_doc, req) is None:
                 result.add("error", "blueprint.yaml", f"Missing required field spec path '{req}'.")
 
-        node_groups = _get_path(bp_doc, "spec.cluster.nodeGroups") or []
+        if format_ == "legacy":
+            node_groups = _get_path(bp_doc, "spec.cluster.nodeGroups") or []
+        else:
+            tiers = _get_path(bp_doc, "spec.hardwareTiers") or []
+            node_groups = [ng for tier in tiers for ng in tier.get("cluster", {}).get("nodeGroups", [])]
+            for inst in _get_path(bp_doc, "spec.instances") or []:
+                if not all(inst.get(field) for field in ("name", "engine", "minimumVersion")):
+                    result.add("error", "blueprint.yaml", "Each instance needs name, engine and minimumVersion.")
         baseline = sizing.get(template_class, sizing["defaults"])
         for ng in node_groups:
             cpu = _get_path(ng, "resources.minimum.cpu")

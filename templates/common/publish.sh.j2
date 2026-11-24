@@ -36,6 +36,11 @@ echo "==> Publishing blueprint [[ blueprint.name ]] $VERSION"
 "$AWC" publish --version "$VERSION" --namespace "$NAMESPACE" \
   --destination-registry "$REGISTRY" --schema-version "$SCHEMA_VERSION" \
   --blueprint "$DIR/blueprint.yaml" \
+[% if blueprint.format == "current" %]
+[% for dep in dependencies.entries if dep.get("includeInBlueprint") %]
+  --instance "[[ dep.instance ]]=[[ dep.engine ]]:[[ dep.minimumVersion ]]" \
+[% endfor %]
+[% endif %]
   --instance "[[ blueprint.instanceName ]]=[[ engine.name ]]:$VERSION" \
   ${PUSH[@]+"${PUSH[@]}"} --force
 [% endif %]

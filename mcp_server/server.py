@@ -131,6 +131,7 @@ def add_dependency(
     engine: str,
     dep_type: str = "auto",
     instance: Optional[str] = None,
+    minimum_version: Optional[str] = None,
 ) -> dict:
     """Add ONE dependency this engine has on another engine already (or
     about to be) available on the cluster -- internal sibling, Cloudera
@@ -140,18 +141,17 @@ def add_dependency(
     dep_type:
       - "auto": private, same-lifecycle dependency; the AWC operator
         auto-creates/owns the child instance. Invisible to the Console.
-      - "optional": Console-wireable; the Blueprint lists it so an admin can
-        point it at an existing instance.
-      - "ref": like "optional" but for a required (non-optional) reference
-        that must be wired at Blueprint-instantiation time.
+      - "optional": optional runtime reference.
+      - "ref": required runtime reference.
 
-    instance: for non-"auto" types, the real target EngineInstance name to
-    wire by default (falls back to '<engine>' with any '-engine' suffix
-    stripped if omitted).
+    instance: optional real target EngineInstance name for the example binding.
+    minimum_version: optional verified engine version floor for ref/optional.
+    Listing an instance in a Blueprint does not establish a runtime binding.
     """
     session = Session.load(session_id)
     entries = q._get(session.answers, "dependencies.entries") or []
-    entries.append({"name": name, "engine": engine, "type": dep_type, "instance": instance})
+    entries.append({"name": name, "engine": engine, "type": dep_type, "instance": instance,
+                    "runtimeInstance": instance, "minimumVersion": minimum_version})
     q.set_answer(session.answers, "dependencies.hasAny", True)
     q.set_answer(session.answers, "dependencies.entries", entries)
     session.save()

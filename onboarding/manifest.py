@@ -173,6 +173,11 @@ def normalize(answers: Manifest) -> Manifest:
             dep_list = []
     for dep in dep_list:
         _set(dep, "type", "auto")
+        if dep["type"] not in ("auto", "ref", "optional"):
+            raise ValueError(f"Unknown dependency type: {dep['type']}")
+        if not dep.get("name") or not dep.get("engine"):
+            raise ValueError("Each dependency requires a name and engine")
+        dep.setdefault("_instanceExplicit", bool(dep.get("instance")))
         # `instance` is the target's real Blueprint *instance* name (e.g.
         # "keycloak"). Only meaningful for optional/ref
         # deps -- Blueprint never lists "auto" deps (the operator wires those
@@ -182,6 +187,9 @@ def normalize(answers: Manifest) -> Manifest:
         if not dep.get("instance"):
             dep["instance"] = re.sub(r"-engine$", "", str(dep.get("engine", "")))
     dependencies["entries"] = dep_list
+    names = [dep["name"] for dep in dep_list]
+    if len(names) != len(set(names)):
+        raise ValueError("Dependency names must be unique")
 
     blueprint = m.setdefault("blueprint", {})
     _set(blueprint, "needed", True)
@@ -191,6 +199,10 @@ def normalize(answers: Manifest) -> Manifest:
     _set(blueprint, "instanceName", partner_id)
     _set(blueprint, "nodeGroupId", f"{partner_id}-nodes")
     _set(blueprint, "nodeGroupDisplayName", f"{engine['displayName']} Nodes")
+    _set(blueprint, "format", "current")
+    if blueprint["format"] not in ("current", "legacy"):
+        raise ValueError("blueprint.format must be current or legacy")
+    _set(blueprint, "minimumVersion", engine["version"])
 
     cluster = m.setdefault("cluster", {})
     _set(cluster, "kubernetesVersion", ">= 1.28.0")

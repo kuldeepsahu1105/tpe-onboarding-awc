@@ -3,8 +3,8 @@
     python -m web.app [--port 8765]
 
 Same engine as the CLI/MCP server: guided questions, paste-YAML one-shot,
-and a multi-engine Blueprint composer. Publish & OCI and OCI catalog are
-local panels: they record intent and never call Partner Launchpad or ECR.
+and a multi-engine Blueprint composer. The legacy launchpad panels record
+intent only; separately confirmed local operations invoke external tools.
 """
 
 from __future__ import annotations
@@ -45,6 +45,7 @@ INDEX = Path(__file__).with_name("index.html")
 # In-memory only. Passwords are never stored. Restarting the UI clears the table.
 _jobs_lock = threading.Lock()
 _jobs: list[dict] = []
+_operations_lock = threading.Lock()
 _QUEUE_ACTIONS = {"validate", "mirror", "publish", "copy"}
 _LAUNCHPAD_ABSENT = (
     "The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer. "
@@ -141,6 +142,70 @@ def launchpad_catalog(username: str, password: str, registry: str) -> dict:
         "registry": (registry or "").strip(),
         "message": "The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer.",
     }
+
+
+def run_local_operation(action: str, path: str, confirmed: bool) -> dict:
+    """Run a reviewed local script or the external registry CLI without exposing its output."""
+    registry_actions = {"registry-init", "registry-plan", "registry-verify", "registry-apply"}
+    bundle_actions = {"mirror", "publish-dry-run", "publish"}
+    if not isinstance(action, str) or action not in registry_actions | bundle_actions:
+        return {"ok": False, "error": "Unknown operation."}
+    if confirmed is not True:
+        return {"ok": False, "error": "Confirm the operation before running it."}
+    if not isinstance(path, str) or not path.strip() or "\0" in path:
+        return {"ok": False, "error": "Enter a local path."}
+    try:
+        target = Path(path).expanduser()
+        target = (target if target.is_absolute() else ROOT / target).resolve()
+        env = os.environ.copy()
+        if action in registry_actions:
+            subcommand = action.removeprefix("registry-")
+            if subcommand != "init" and not target.is_file():
+                return {"ok": False, "error": "Registry configuration file not found."}
+            if subcommand == "init" and target.exists():
+                return {"ok": False, "error": "The configuration file already exists; choose a new path."}
+            if subcommand == "apply":
+                env["APPROVE_REGISTRY_APPLY"] = "1"
+            command = ["bash", str(ROOT / "engine-onboarding/scripts/registry.sh"), subcommand, str(target)]
+            help_command = f"./awc registry {subcommand} <config-path>"
+        else:
+            base_path = ROOT / "output"
+            if base_path.is_symlink() or not base_path.is_dir():
+                return {"ok": False, "error": "Build a bundle under output/ first."}
+            base = base_path.resolve()
+            if target == base or base not in target.parents or not target.is_dir():
+                return {"ok": False, "error": "Choose a bundle directory inside this repository's output/."}
+            script_name = "mirror.sh" if action == "mirror" else "publish.sh"
+            script = target / script_name
+            if script.is_symlink() or not script.is_file():
+                return {"ok": False, "error": f"The selected bundle has no regular {script_name}."}
+            if action == "mirror":
+                command = ["bash", str(ROOT / "engine-onboarding/scripts/mirror_engine.sh"), str(target)]
+                help_command = "./awc mirror <bundle-directory>"
+            else:
+                command = ["bash", str(ROOT / "engine-onboarding/scripts/publish_engine.sh"), str(target)]
+                help_command = "./awc publish <bundle-directory>"
+                if action == "publish":
+                    command.append("--push")
+                    env["APPROVE_PUBLISH"] = "1"
+                    help_command += " --push (with APPROVE_PUBLISH=1)"
+        if not _operations_lock.acquire(blocking=False):
+            return {"ok": False, "error": "Another operation is running; wait for it to finish."}
+        try:
+            result = subprocess.run(command, env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        finally:
+            _operations_lock.release()
+    except (OSError, ValueError) as exc:
+        return {"ok": False, "error": f"Cannot start operation: {exc}"}
+    if result.returncode:
+        return {"ok": False, "error": (
+            f"Operation failed (exit {result.returncode}). Run {help_command} in a terminal for details; "
+            "its output may contain sensitive information."
+        )}
+    message = f"{action} completed. Verify the target state before proceeding."
+    if action in {"registry-plan", "registry-verify", "publish-dry-run"}:
+        message += f" Output is hidden here to avoid exposing credentials. Run {help_command} in a terminal to review details."
+    return {"ok": True, "message": message}
 
 
 def _qpayload(question, answers):
@@ -454,9 +519,24 @@ class Handler(BaseHTTPRequestHandler):
         self._send({"error": "not found"}, 404)
 
     def do_POST(self):
+        path = urlparse(self.path).path
+        if path == "/api/operations":
+            host = self.headers.get("Host", "")
+            port = self.server.server_address[1]
+            local_hosts = {f"localhost:{port}", f"127.0.0.1:{port}"}
+            if (self.server.server_address[0] != "127.0.0.1" or self.client_address[0] != "127.0.0.1"
+                    or host not in local_hosts or self.headers.get("Origin") != f"http://{host}"
+                    or self.headers.get_content_type() != "application/json"):
+                return self._send({"ok": False, "error": "Operations require the local workbench origin."}, 403)
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError:
+                return self._send({"ok": False, "error": "Invalid request length."}, 400)
+            if not 0 < length <= 16384:
+                return self._send({"ok": False, "error": "Invalid request length."}, 400)
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
         try:
-            self._send(self._post(urlparse(self.path).path, data))
+            self._send(self._post(path, data))
         except Exception as exc:  # surface errors to the UI, not a stack trace
             self._send({"error": str(exc)}, 400)
 
@@ -483,7 +563,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/dependency":
             s = Session.load(d["session"])
             entries = q._get(s.answers, "dependencies.entries") or []
-            entries.append({k: d.get(k) for k in ("name", "engine", "type", "instance")})
+            entries.append({**{k: d.get(k) for k in ("name", "engine", "type")},
+                            "instance": d.get("instance"),
+                            "runtimeInstance": d.get("instance"),
+                            "minimumVersion": d.get("minimumVersion")})
             q.set_answer(s.answers, "dependencies.entries", entries)
             s.save()
             return {"entries": entries}
@@ -509,6 +592,8 @@ class Handler(BaseHTTPRequestHandler):
             return run_answers(loaded)
         if path == "/api/run-blueprint":
             return run_blueprint(d["blueprint"], d.get("engines", {}))
+        if path == "/api/operations":
+            return run_local_operation(d.get("action"), d.get("path"), d.get("confirmed"))
         if path == "/api/launchpad/stage":
             return _stage_bundle(d)
         if path == "/api/launchpad/queue":

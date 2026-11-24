@@ -40,7 +40,10 @@ _COMMON_CONDITIONAL_FILES = {
         "capability.yaml",
         lambda m: m["capability"].get("exportsStructuredData"),
     ),
-    "clusterrequirements.yaml.j2": ("clusterrequirements.yaml", lambda m: True),
+    "clusterrequirements.yaml.j2": (
+        "clusterrequirements.yaml",
+        lambda m: m["blueprint"]["format"] == "legacy",
+    ),
     "mirror.yaml.j2": (
         "mirror.yaml",
         lambda m: not m["mirror"].get("skip"),
@@ -120,7 +123,13 @@ def render_bundle(manifest: Manifest, output_dir: Path) -> dict[str, str]:
 
     for tpl_name, (out_name, predicate) in _COMMON_CONDITIONAL_FILES.items():
         if predicate(manifest):
-            rendered[out_name] = _render_one(env, tpl_name, manifest)
+            if out_name == "blueprint.yaml" and manifest["blueprint"]["format"] == "current":
+                import yaml
+                from .blueprints import single_blueprint
+
+                rendered[out_name] = yaml.safe_dump(single_blueprint(manifest), sort_keys=False)
+            else:
+                rendered[out_name] = _render_one(env, tpl_name, manifest)
 
     rendered["examples/instance.yaml"] = _instance_example(manifest, rendered["engine.yaml"])
     rendered["examples/smoke-test.sh"] = _smoke_test(manifest)
@@ -135,7 +144,7 @@ def render_bundle(manifest: Manifest, output_dir: Path) -> dict[str, str]:
 
 
 def _instance_example(manifest: Manifest, engine_text: str) -> str:
-    """Ready-to-apply EngineInstance whose config comes from configSchema defaults."""
+    """Example EngineInstance whose config comes from configSchema defaults."""
     import yaml
 
     doc = next(d for d in yaml.safe_load_all(engine_text) if d and d.get("kind") == "Engine")
@@ -151,7 +160,21 @@ def _instance_example(manifest: Manifest, engine_text: str) -> str:
             "config": config,
         },
     }
-    return "# Apply on an AWC cluster to deploy this engine directly (no Blueprint).\n" + yaml.safe_dump(
+    deps = [
+        {"name": dep["name"], "instance": dep["runtimeInstance"]}
+        for dep in manifest["dependencies"]["entries"]
+        if dep["type"] != "auto" and dep.get("runtimeInstance")
+    ]
+    if deps:
+        inst["spec"]["dependencies"] = deps
+    missing = [
+        dep["name"] for dep in manifest["dependencies"]["entries"]
+        if dep["type"] == "ref" and not dep.get("runtimeInstance")
+    ]
+    header = "# Apply on an AWC cluster to deploy this engine directly (no Blueprint).\n"
+    if missing:
+        header += "# Required runtime dependency bindings must be supplied for: " + ", ".join(missing) + "\n"
+    return header + yaml.safe_dump(
         inst, sort_keys=False
     )
 

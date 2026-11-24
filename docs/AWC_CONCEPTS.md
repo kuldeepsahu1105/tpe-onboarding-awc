@@ -8,15 +8,19 @@
 | **ChartCatalog / ImageCatalog** | Registry locations of Helm charts / images. | `chartcatalog.yaml`, `imagecatalog.yaml` |
 | **Operator** | Installs a K8s operator for `helm-operator` engines. | `operator.yaml` |
 | **Role** | RBAC for the engine. | `role.yaml` |
-| **ClusterRequirements / Mirror** | Cluster prerequisites; chart/image mirroring. | `clusterrequirements.yaml`, `mirror.yaml` |
+| **ClusterRequirements / Mirror** | Legacy cluster prerequisites; chart/image mirroring. | Legacy `clusterrequirements.yaml`, `mirror.yaml` |
 
 ## Engine template classes
 `helm-simple`, `helm-multi-role`, `helm-operator`, `native-k8s`.
 
 ## Dependency types
 - `auto`: private, same lifecycle; the operator creates it. **Not** shown in a Blueprint.
-- `optional`: Console-wireable to an existing instance; listed in the Blueprint.
-- `ref`: a required reference to an existing instance; listed in the Blueprint.
+- `optional`: an optional runtime reference to another engine instance.
+- `ref`: a required runtime reference to another engine instance.
+
+Current Blueprints list engine instances to provision; listing one does not
+bind a shared running instance. Configure and verify the runtime dependency
+binding separately. Auto dependencies are never listed in the Blueprint.
 
 A dependency's `engine` can be an engine you onboard yourself, a Cloudera-native
 engine (CDE, CAI, CDF, ...), or any third-party engine already on the cluster.

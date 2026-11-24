@@ -1,0 +1,29 @@
+# Reference based on the checked-in ace-engines Polaris Blueprint.
+# Version floors and node sizing must be verified for the target marketplace.
+# Listing UDF here requests a Blueprint instance; it does not bind a shared UDF.
+blueprint:
+  name: polaris-with-udf
+  owner: Cloudera
+  displayName: Apache Polaris with UDF
+  description: Apache Polaris catalog and UDF authorization.
+  outcome: Iceberg catalog
+  version: "2.0.0"
+  nodeGroups:
+    - id: polaris-nodes
+      category: worker
+      displayName: Polaris Nodes
+      nodeCount: {default: 1, minimum: 1}
+      resources:
+        minimum: {cpu: "2", memory: "4Gi", hasGPU: false}
+        hint: "For production HA, review sizing and replica requirements."
+      storage:
+        disk: {default: "50Gi", minimum: "20Gi"}
+engines:
+  - existing:
+      engine: udf-plugin
+      instance: udf
+      minimumVersion: "1.6.0"
+  - existing:
+      engine: polaris-plugin
+      instance: polaris
+      minimumVersion: "2.0.0"

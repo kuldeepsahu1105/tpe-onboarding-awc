@@ -18,6 +18,7 @@ help:
 	@echo "  ./awc scaffold <form.yaml>       write a product folder"
 	@echo "  ./awc mirror <folder>            copy charts and images"
 	@echo "  ./awc publish <folder>           dry run; --push only to send"
+	@echo "  ./awc registry <action> <config> init, plan, verify, or apply registry access"
 	@echo "  ./awc help                       same list, plus wizard, mcp, examples"
 	@echo "Make runs those same actions:"
 	@echo "  make scaffold-engine FORM=path/to.input_form.yaml [FORCE=1] [DRY_RUN=1]"

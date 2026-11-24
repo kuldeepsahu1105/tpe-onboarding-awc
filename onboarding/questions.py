@@ -354,10 +354,10 @@ QUESTIONS: list[Question] = [
         prompt="Short outcome/tagline shown on the Marketplace tile (e.g. 'Graph database', 'OLAP analytics')?",
         when=lambda a: _get(a, "blueprint.needed") is True,
     ),
-    # --- Cluster sizing (ClusterRequirements / Blueprint.cluster) ----------
+    # --- Cluster sizing (ClusterRequirements / Blueprint hardware tier) ---
     Question(
         id="cluster.kubernetesVersion",
-        prompt="Minimum supported Kubernetes version constraint (e.g. '>= 1.24.0')?",
+        prompt="Kubernetes version constraint for ClusterRequirements and legacy Blueprints (e.g. '>= 1.24.0')?",
         default=">= 1.28.0",
     ),
     Question(

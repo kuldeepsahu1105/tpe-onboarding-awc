@@ -1,0 +1,25 @@
+# Illustrates a required UDF ref; it does not implement Ranger policy creation.
+# Replace example artifact details before building. Supply runtimeInstance only
+# after identifying an actual shared UDF EngineInstance.
+partner: {id: udf-ref-demo, owner: Example}
+engine:
+  displayName: "UDF reference example"
+  description: "Illustrates declaring a UDF engine reference."
+  template: helm-simple
+  version: "1.0.0"
+helm: {repoUrl: "oci://registry.example.com/example/charts", chart: example, version: "1.0.0"}
+images:
+  - {id: example, ref: "registry.example.com/example/app:1.0.0"}
+service: {port: 8080, hasLandingPage: true}
+dependencies:
+  hasAny: true
+  entries:
+    - name: ranger
+      engine: udf-plugin
+      type: ref
+      minimumVersion: "1.6.0"
+      # runtimeInstance: "<actual-existing-udf-instance>"
+blueprint: {needed: true, outcome: "UDF reference example"}
+cluster: {minCpu: "4", minMemory: "16Gi"}
+publish: {destinationRegistry: "registry.example.com", namespace: example}
+mirror: {skip: true}

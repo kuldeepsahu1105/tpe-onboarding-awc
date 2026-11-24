@@ -15,18 +15,16 @@ Blueprint input file::
       description: "..."
       outcome: "End-to-end analytics"
       version: "1.0.0"
-      kubernetesVersion: ">= 1.28.0"      # optional
+      format: current                      # or legacy
     engines:
       - input: my-engine.input.yaml         # onboard + include this engine
-      - existing:                           # engine already on the cluster
+      - existing:                           # engine available in the marketplace
           engine: keycloak-ace-engine
           instance: keycloak-prod
-          version: "24.0"
+          minimumVersion: "24.0"
 
-Wiring: every non-``auto`` dependency of an included engine is wired in the
-Blueprint. If the dependency targets another engine in this Blueprint, the
-instance name is resolved automatically. ``auto`` dependencies are private to
-the engine and never appear in a Blueprint.
+Current Blueprints list instances but do not bind runtime dependencies.
+Bindings to shared EngineInstances must be configured separately.
 """
 
 from __future__ import annotations
@@ -37,6 +35,7 @@ from typing import Any
 import yaml
 
 from . import questions as q
+from .blueprints import add_explicit_dependencies, add_instance, current_blueprint, node_group
 from .generator import render_bundle
 from .manifest import normalize
 from .validator import validate_bundle
@@ -60,6 +59,9 @@ def compose_blueprint(spec_path: Path, out_root: Path) -> dict[str, Any]:
 
     out_dir = out_root / bp["name"]
     version = str(bp.get("version", "1.0.0"))
+    format_ = bp.get("format", "current")
+    if format_ not in ("current", "legacy"):
+        raise ValueError("blueprint.format must be current or legacy")
     instances: list[dict] = []
     node_groups: list[dict] = []
     manifests: list[dict] = []
@@ -72,11 +74,13 @@ def compose_blueprint(spec_path: Path, out_root: Path) -> dict[str, Any]:
     for comp in components:
         if "existing" in comp:
             ex = comp["existing"]
+            if format_ == "current" and not (ex.get("minimumVersion") or ex.get("version")):
+                raise ValueError(f"{ex.get('instance', 'Existing engine')}: minimumVersion is required")
             instances.append(
                 {
                     "name": ex["instance"],
                     "engine": ex["engine"],
-                    "version": str(ex.get("version", version)),
+                    "version": str(ex.get("minimumVersion") or ex.get("version") or version),
                     "_deps": [],
                 }
             )
@@ -118,7 +122,7 @@ def compose_blueprint(spec_path: Path, out_root: Path) -> dict[str, Any]:
             {
                 "name": manifest["blueprint"]["instanceName"],
                 "engine": manifest["engine"]["name"],
-                "version": str(manifest["engine"]["version"]),
+                "version": str(manifest["blueprint"]["minimumVersion"]),
                 "_deps": [d for d in manifest["dependencies"]["entries"] if d["type"] != "auto"],
             }
         )
@@ -162,6 +166,28 @@ def compose_blueprint(spec_path: Path, out_root: Path) -> dict[str, Any]:
             },
         },
     }
+    if format_ == "current":
+        current_instances: list[dict] = []
+        for manifest in manifests:
+            add_explicit_dependencies(current_instances, manifest)
+        seen_components: set[str] = set()
+        for inst in instances:
+            if inst["name"] in seen_components:
+                raise ValueError(f"Duplicate Blueprint instance: {inst['name']}")
+            seen_components.add(inst["name"])
+            add_instance(current_instances, inst["name"], inst["engine"], inst["version"])
+        blueprint = current_blueprint(
+            name=bp["name"], owner=bp["owner"], display_name=bp["displayName"],
+            description=bp.get("description", f"{bp['displayName']} on Cloudera Anywhere Cloud."),
+            outcome=bp.get("outcome") or bp["displayName"],
+            instances=current_instances,
+            groups=[node_group(m) for m in manifests] + list(bp.get("nodeGroups") or []),
+            api_version=API_VERSION,
+        )
+        instances = [
+            {"name": inst["name"], "engine": inst["engine"], "version": inst["minimumVersion"]}
+            for inst in current_instances
+        ]
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "blueprint.yaml").write_text(yaml.safe_dump(blueprint, sort_keys=False))
     _write_publish_script(out_dir, bp, version, instances, manifests)

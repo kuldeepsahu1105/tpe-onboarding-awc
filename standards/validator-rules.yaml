@@ -17,10 +17,16 @@ requiredEngineFields:
 
 requiredBlueprintFields:
   - spec.owner
+  - spec.instances
+
+requiredLegacyBlueprintFields:
   - spec.displayName
   - spec.versionMatrix
-  - spec.instances
   - spec.cluster
+
+requiredCurrentBlueprintFields:
+  - spec.hardwareTiers
+  - spec.ui.displayName
 
 forbiddenRegistryHosts:
   - docker-private.infra.cloudera.com

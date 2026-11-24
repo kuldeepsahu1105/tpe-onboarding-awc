@@ -78,6 +78,7 @@ case "${1:-help}" in
   examples) ls examples/*.input.yaml examples/*/blueprint.input.yaml; echo; echo "Pre-built output: examples/bundles/"; echo "Hand-authored reference: examples/qbeast/ (./awc package qbeast)" ;;
   package)  ensure_env; name="${2:?usage: ./awc package qbeast [output.zip]}"
             py -m onboarding.reference_package "$name" "${3:-$name.zip}" ;;
+  registry) exec bash "$TOOL/scripts/registry.sh" "${2:-}" "${3:-}" ;;
   mirror)
             dir="${2:?usage: ./awc mirror <folder>}"
             exec bash "$TOOL/scripts/mirror_engine.sh" "$dir" ;;
@@ -94,10 +95,11 @@ case "${1:-help}" in
             shift 2
             ensure_env
             exec "$VENV/bin/python" "$TOOL/generate_engine.py" --form "$form" --repo-root "$ROOT" "$@" ;;
-  doctor)   for t in python3 helm skopeo awc-marketplace kubectl; do
+  doctor)   for t in python3 helm skopeo awc-marketplace awc-oci-register kubectl; do
               if command -v $t >/dev/null; then echo "  ok       $t"; else echo "  missing  $t  $(case $t in
                 helm) echo '(only for ./awc images)';; skopeo) echo '(only for mirror.sh)';;
-                awc-marketplace) echo '(only for publish.sh)';; kubectl) echo '(only for smoke-test.sh)';; esac)"; fi
+                awc-marketplace) echo '(only for publish.sh)';; awc-oci-register) echo '(only for registry registration; AWC_OCI_REGISTER may override)';;
+                kubectl) echo '(only for smoke-test.sh and registry registration)';; esac)"; fi
             done ;;
   *) cat <<USAGE
 AWC onboarding toolkit
@@ -111,6 +113,7 @@ AWC onboarding toolkit
   ./awc mcp                    start the MCP server for AI assistants (./awc mcp config prints client JSON)
   ./awc examples               list ready-made examples
   ./awc package qbeast [file]  create the Qbeast reference ZIP
+  ./awc registry <action> <config>  init, plan, verify, or apply registry access
   ./awc doctor                 check which optional tools you have
   ./awc validate <form.yaml>   check an input form
   ./awc scaffold <form.yaml>   write a product folder from a form

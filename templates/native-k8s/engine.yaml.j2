@@ -18,6 +18,16 @@ spec:
     - name: [[ dep.name ]]
       engine: [[ dep.engine ]]
       type: [[ dep.type ]]
+[% if dep.get("version") is not none %]
+      version: "[[ dep.version ]]"
+[% endif %]
+[% if dep.get("minimumVersion") is not none %]
+      minimumVersion: "[[ dep.minimumVersion ]]"
+[% endif %]
+[% if dep.get("config") %]
+      config:
+[[ dep.config | toyaml | indent(8, true) ]]
+[% endif %]
 [% endfor %]
 
 [% endif %]

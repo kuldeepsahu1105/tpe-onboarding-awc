@@ -96,7 +96,7 @@ properties:
     type: object
     description: >
       Engine dependencies (Polaris/HMS/CDE pattern). auto = provisioned with instance;
-      ref/optional = expect existing EngineInstance or Blueprint instance.
+      ref/optional require separate runtime instance bindings.
     properties:
       entries:
         type: array
@@ -122,7 +122,14 @@ properties:
               description: Pinned version for type auto (e.g. postgres 18.0.0).
             minimumVersion:
               type: string
+              description: Required for current Blueprint output; set the verified engine artifact version floor.
               description: Minimum version for type ref or optional.
+            includeInBlueprint:
+              type: boolean
+              description: Explicitly request a new Blueprint instance; does not bind a shared runtime instance.
+            instance:
+              type: string
+              description: Blueprint instance name when includeInBlueprint is true.
             config:
               type: object
               description: Passed to auto dependency EngineInstance config.
@@ -206,6 +213,10 @@ properties:
   blueprint:
     type: object
     properties:
+      format:
+        type: string
+        enum: [current, legacy]
+        description: Current marketplace shape by default; legacy preserves earlier generator behavior.
       enabled:
         type: boolean
         default: true
@@ -245,7 +256,7 @@ properties:
               type: string
       existingEngines:
         type: array
-        description: Engines already on the cluster; listed in Blueprint only (see tpe-onboarding blueprint compose).
+        description: Marketplace engines to list as Blueprint instances; does not bind existing running instances.
         items:
           type: object
           required:

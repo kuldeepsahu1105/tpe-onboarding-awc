@@ -4,6 +4,7 @@
 
 All three methods use the same engine and produce the same bundle (Engine, Blueprint, catalogs,
 Role, `publish.sh`, `mirror.sh`, `examples/instance.yaml`, `examples/smoke-test.sh`).
+Current output omits the removed ClusterRequirements resource; legacy output retains it.
 Pick whichever you like. **Requirements:** Python 3.10+. Optional: `helm` (image discovery),
 `skopeo` (mirroring), `awc-marketplace` (publishing), `kubectl` (smoke test). Run `./awc doctor`.
 
@@ -56,7 +57,8 @@ Read its README for the external catalogs and other deployment prerequisites.
    Follow the [copy commands, explicit vi commands and composer checklist](ONBOARDING_GUIDE.md#2-multi-engine-app-or-combining-with-existing-experiences);
    review each engine source and the composer source before running.
 2. `./awc blueprint blueprint.input.yaml` → one Blueprint, all engines, one `publish.sh`.
-   Reuse existing marketplace engines (CDE, CAI, CDF, ...) with `existing:` entries.
+   List other marketplace engines (CDE, CAI, CDF, ...) with `existing:` entries.
+   Shared running instances require separate runtime bindings; listing an engine does not reuse one.
 
 ## Method 3 — AI assistant via MCP (optional)
 
@@ -90,6 +92,37 @@ First complete the [offline validation sequence and credential/source guidance](
 Never edit generated files to fix configuration; update the input and regenerate.
 The operations below are **not** part of a local/offline check and need approval
 for the target registry/cluster.
+
+### Register the marketplace registry
+
+Install [awc-oci-register](https://github.com/agupta-git/awc-oci-register) separately
+and add it to `PATH` or set `AWC_OCI_REGISTER` to its executable. It registers
+registry access; it does not mirror artifacts or publish Blueprints. Set up the
+provider CLI and credentials according to its instructions, outside the UI.
+
+```sh
+./awc registry init /path/to/registry.yaml
+# Edit the config with your registry, credential-file paths, and AWC settings.
+./awc registry plan /path/to/registry.yaml
+./awc registry verify /path/to/registry.yaml
+# After reviewing the plan, target Kubernetes context and authorization:
+APPROVE_REGISTRY_APPLY=1 ./awc registry apply /path/to/registry.yaml
+```
+
+`init` will not overwrite an existing file; if initialization fails, inspect or
+remove the empty file before retrying. `plan` can access the cluster and resolve
+credentials. `apply` verifies first, then can modify pull credentials and marketplace
+registration and restart the console. Check the upstream configuration and your
+target cluster before running it.
+
+The web **Publish → Run reviewed registry and bundle operations** section also runs
+these commands after confirmation. It accepts paths, not passwords; subprocess
+output is hidden to avoid exposing credentials, so inspect plan and verification
+details in a terminal. Real operations require the localhost UI, and bundle scripts
+must be reviewed and located under this checkout's `output/`. The older job-list
+buttons are simulations, not publishing.
+
+### Mirror and publish
 
 Run from the generated folder, e.g. `output/my-app/`:
 

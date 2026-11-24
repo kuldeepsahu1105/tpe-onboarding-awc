@@ -28,7 +28,7 @@ flowchart LR
 | **Service**: port, web UI port | `7687`, `7474` | Service, HTTPRoute (landing page link) |
 | **Capability** (optional) | `neo4j-connection: host, boltPort` | Contract other engines can consume |
 | **Dependencies** (optional) | `hive-metastore` (auto / optional / ref) | Engine dependencies and Blueprint instances |
-| **Cluster sizing** | min 4 CPU / 16Gi, disk | ClusterRequirements, validator warnings |
+| **Cluster sizing** | min 4 CPU / 16Gi, disk | Blueprint hardware tier, validator warnings |
 | **Publish**: registry + namespace | `registry.example.com` / `neo4j` | Where mirror/publish scripts push |
 
 Defaults are conveniences, not verified environment settings. In particular the
@@ -63,11 +63,11 @@ Folder such as `output/neo4j/` (pre-built copies in `examples/bundles/`):
 | `blueprint.yaml` | The Marketplace tile: name, outcome, which engines/instances | Marketplace |
 | `chartcatalog.yaml` / `imagecatalog.yaml` | Pinned Helm chart and image locations per version | Engine templates |
 | `capability.yaml` | Contract other engines can depend on (if you exported one) | Other engines |
-| `clusterrequirements.yaml` | Min/recommended nodes, CPU, memory, disk | Cluster provisioning |
+| `clusterrequirements.yaml` | Legacy-only cluster requirements | Legacy deployments |
 | `role.yaml` | Namespaced Role for strict ACE RBAC, plus a RoleBinding | Namespace |
 | `mirror.yaml` + `mirror.sh` | List and script to copy chart and images to your registry | You (once per version) |
 | `publish.sh` | `awc-marketplace validate` / `publish` (dry run by default) | You |
-| `examples/instance.yaml` | Ready-to-apply EngineInstance with default config | You (test install) |
+| `examples/instance.yaml` | Example EngineInstance; review config and dependency bindings before applying | You (test install) |
 | `examples/smoke-test.sh` | `kubectl` checks that it came up | You |
 
 ## 4. Worked example (Neo4j)

@@ -3,44 +3,32 @@ kind: Blueprint
 metadata:
   name: neo4j
 spec:
-  owner: "Neo4j, Inc."
-  displayName: "Neo4j"
-  description: "Native graph database (Community) with Browser UI and Bolt."
-  outcome: "Graph database"
-
-  versionMatrix:
-    - displayVersion: "5.26.0"
-      instances:
-        - name: "neo4j"
-          version: "5.26.0"
-
+  owner: Neo4j, Inc.
+  description: Native graph database (Community) with Browser UI and Bolt.
+  outcome: Graph database
   instances:
-    - name: "neo4j"
-      engine: "neo4j-ace-engine"
-
-  cluster:
-    kubernetesVersion: ">= 1.28.0"
-    networkStorage:
-      default: "100Gi"
-      minimum: "50Gi"
-      hint: "Shared storage for Neo4j"
-    nodeGroups:
-      - id: "neo4j-nodes"
-        category: "worker"
-        displayName: "Neo4j Nodes"
+  - name: neo4j
+    engine: neo4j-ace-engine
+    minimumVersion: 5.26.0
+  hardwareTiers:
+  - name: default
+    cluster:
+      nodeGroups:
+      - id: neo4j-nodes
+        category: worker
+        displayName: Neo4j Nodes
         nodeCount:
           default: 1
           minimum: 1
         resources:
           minimum:
-            cpu: "4"
-            memory: "16Gi"
+            cpu: '4'
+            memory: 16Gi
             hasGPU: false
-          recommended:
-            cpu: "8"
-            memory: "32Gi"
-            hasGPU: false
+          hint: 'Recommended: 8 CPU and 32Gi memory per node.'
         storage:
           disk:
-            default: "100Gi"
-            minimum: "50Gi"
+            default: 100Gi
+            minimum: 50Gi
+  ui:
+    displayName: Neo4j
