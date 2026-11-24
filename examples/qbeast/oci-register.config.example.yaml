@@ -1,8 +1,20 @@
-# Example only: replace these values with the approved partner registry.
-# The password file stays outside this package and source control.
+# awc-oci-register config, applied on the AWC control-plane (Console) cluster:
+# it adds a registry's pull credentials to awc-console-registry-creds and its
+# marketplace namespace to MARKETPLACE_REGISTRIES.
+#
+#   awc-oci-register verify -f oci-register.config.yaml
+#   awc-oci-register apply  -f oci-register.config.yaml
+#
+# Needed only for a registry the Console doesn't know yet, such as the one you
+# publish Qbeast to. Not for the Qbeast registry: clusters pull Qbeast from your
+# copies, never from registry.example.invalid.
+#
+# The Console reads the registry list when it starts: restart awc-console after
+# an apply that adds a marketplace namespace.
 registryHost: registry.example.com
-marketplacePrefix: qbeast
+marketplacePrefix: awc-marketplace
 auth:
   kind: basic
   username: replace-with-registry-user
+  # A file outside this bundle and source control.
   passwordFile: /path/to/registry-password

@@ -15,11 +15,11 @@ Partner pipeline comparison: **[PARTNER_PIPELINE.md](PARTNER_PIPELINE.md)** · r
 ```bash
 cd ace-engines
 
-make validate-form FORM=engine-onboarding/input_form.minimal.example.yaml
-make scaffold-engine FORM=engine-onboarding/input_form.minimal.example.yaml FORCE=1
+make validate-form FORM=engine-onboarding/examples/input_form.minimal.example.yaml
+make scaffold-engine FORM=engine-onboarding/examples/input_form.minimal.example.yaml FORCE=1
 ```
 
-Optional: **`make serve-engine-form`** (http://127.0.0.1:8766) exports the same YAML shape as the CLI form.
+Optional: **`make serve-engine-form`** (http://127.0.0.1:8766/web/) exports the same YAML shape as the CLI form.
 
 Neo4j example (includes generated `mirror.sh` / `publish.sh` when `publish.enabled: true` in form):
 
@@ -61,7 +61,7 @@ Requirements: Python 3.9+, PyYAML. Optional: `jsonschema` for schema validation.
 | `blueprint` | Optional Blueprint; `existingEngines[]` for refs already on cluster |
 | `provides`, `configSchema`, `healthChecks`, `capabilities`, `features`, `rbac` | As in existing engines |
 
-Schema: [`input_form.schema.yaml`](input_form.schema.yaml). Examples: [`input_form.minimal.example.yaml`](input_form.minimal.example.yaml), [`examples/neo4j.input_form.yaml`](examples/neo4j.input_form.yaml), [`examples/hms-style.input_form.yaml`](examples/hms-style.input_form.yaml).
+Schema: [`input_form.schema.yaml`](input_form.schema.yaml). Examples: [`examples/input_form.minimal.example.yaml`](examples/input_form.minimal.example.yaml), [`examples/neo4j.input_form.yaml`](examples/neo4j.input_form.yaml), [`examples/hms-style.input_form.yaml`](examples/hms-style.input_form.yaml).
 
 ---
 

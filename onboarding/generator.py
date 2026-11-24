@@ -37,7 +37,7 @@ _COMMON_FILES = {
 _COMMON_CONDITIONAL_FILES = {
     "blueprint.yaml.j2": ("blueprint.yaml", lambda m: m["blueprint"]["needed"]),
     "capability.yaml.j2": (
-        "capability.yaml",
+        "capabilities.yaml",
         lambda m: m["capability"].get("exportsStructuredData"),
     ),
     "clusterrequirements.yaml.j2": (

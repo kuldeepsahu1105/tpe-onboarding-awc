@@ -1,0 +1,24 @@
+# Mirror plan: every chart and image the engine needs, from the Qbeast registry
+# to the marketplace registry. Not an ACE CRD; mirror.sh reads it.
+#
+# Destinations follow awc-marketplace publish's layout,
+# <DEST_REGISTRY>/<DEST_NAMESPACE>/images/<name> and .../charts/<name>, so
+# publish.sh finds the copies already there and only rewrites the catalogs.
+# mirror.sh fills DEST_REGISTRY and DEST_NAMESPACE from the environment.
+#
+# Keep in sync with imagecatalog.yaml and chartcatalog.yaml.
+charts:
+  - source: "oci://registry.example.invalid/replace-me/chart-1"
+    name: "use-endpoint"
+    version: "1.24.0"
+    destination: "oci://${DEST_REGISTRY}/${DEST_NAMESPACE}/charts"
+  - source: "oci://registry.example.invalid/replace-me/chart-2"
+    name: "portal"
+    version: "1.8.0"
+    destination: "oci://${DEST_REGISTRY}/${DEST_NAMESPACE}/charts"
+
+images:
+  - source: "registry.example.invalid/replace-me/image-1:aws-use-v0.10.7"
+    destination: "${DEST_REGISTRY}/${DEST_NAMESPACE}/images/use:aws-use-v0.10.7"
+  - source: "registry.example.invalid/replace-me/image-2:v0.8.5"
+    destination: "${DEST_REGISTRY}/${DEST_NAMESPACE}/images/environment-portal:v0.8.5"

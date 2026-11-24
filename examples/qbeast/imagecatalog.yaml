@@ -1,0 +1,20 @@
+# Qbeast images of USE release 0.10.1, at their source: the Qbeast registry
+# (registry.example.invalid), which serves license holders the released artifacts.
+# publish.sh copies them into the marketplace registry and repoints this catalog
+# at the copies (awc-marketplace publish); mirror.sh copies them ahead of it.
+# Both images are multi-arch (linux/amd64, linux/arm64). The Spark executors and
+# the MCP sessions run the use image too: the charts pull no other image.
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: ImageCatalog
+metadata:
+  name: qbeast-ace-default
+spec:
+  images:
+    - id: use
+      registry: registry.example.invalid
+      repository: replace-me/image-1
+      tag: "aws-use-v0.10.7"
+    - id: portal
+      registry: registry.example.invalid
+      repository: replace-me/image-2
+      tag: "v0.8.5"

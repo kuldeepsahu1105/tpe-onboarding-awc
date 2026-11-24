@@ -4,7 +4,7 @@
 |---|---|---|
 | **Blueprint** | The Marketplace app (e.g. DataSpark). Lists engine *instances*, how they are wired, versions and cluster sizing. | `blueprint.yaml` |
 | **Engine** | One deployable component: config schema, what it `provides`, `dependencies`, health checks, and a Go-template `spec.template`. | `engine.yaml` |
-| **Capability** | A typed contract an engine exports (e.g. a DB connection). | `capability.yaml` |
+| **Capability** | A typed contract an engine exports (e.g. a DB connection). | `capabilities.yaml` |
 | **ChartCatalog / ImageCatalog** | Registry locations of Helm charts / images. | `chartcatalog.yaml`, `imagecatalog.yaml` |
 | **Operator** | Installs a K8s operator for `helm-operator` engines. | `operator.yaml` |
 | **Role** | RBAC for the engine. | `role.yaml` |

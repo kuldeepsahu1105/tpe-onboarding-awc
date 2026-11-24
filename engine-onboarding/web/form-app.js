@@ -78,56 +78,16 @@ function suggestMakeCommand(directory) {
 }
 
 async function loadDefaultStartVal() {
-  try {
-    const res = await fetch("../input_form.minimal.example.yaml");
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return yamlToStartValue(await res.text());
-  } catch {
-    return {
-      version: "v1",
-      directory: "my-service",
-      engine: {
-        name: "my-service-engine",
-        displayName: "My Service",
-        description: "Short description.",
-      },
-      imageCatalog: {
-        name: "my-service-images-1-0-0",
-        images: [
-          {
-            id: "myService",
-            registry: "docker-private.infra.cloudera.com",
-            repository: "cloudera_thirdparty/hardened/my-service",
-            tag: "1.0.0-r0-202601010000",
-          },
-        ],
-      },
-      chartCatalog: {
-        name: "my-service-charts-1-0-0",
-        charts: [
-          {
-            id: "myService",
-            registry: "docker-private.infra.cloudera.com",
-            repository: "cloudera-thirdparty-helm/my-service",
-            version: "1.0.0",
-          },
-        ],
-      },
-      helm: {
-        chartID: "myService",
-        values:
-          'fullnameOverride: {{ .Metadata.Name | quote }}\nimage:\n  registry: {{ .Image.myService.registry | quote }}\n',
-      },
-      rbac: { preset: "helm-basic" },
-      blueprint: { enabled: true, minimumVersion: "1.0.0" },
-    };
-  }
+  const res = await fetch("../examples/input_form.minimal.example.yaml");
+  if (!res.ok) throw new Error(`Cannot load the example form (HTTP ${res.status}). Start with make serve-engine-form.`);
+  return yamlToStartValue(await res.text());
 }
 
 let editor;
 
 async function init() {
   const schemaRes = await fetch("./input_form.ui.schema.json");
+  if (!schemaRes.ok) throw new Error(`Cannot load the form schema (HTTP ${schemaRes.status}).`);
   const schema = await schemaRes.json();
   const startval = await loadDefaultStartVal();
 

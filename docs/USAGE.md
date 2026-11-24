@@ -29,7 +29,7 @@ cd /path/to/tpe-onboarding-awc
    **Paste input.yaml** tab (Neo4j, StarRocks, PuppyGraph, ...) and run it, or use the **Blueprint** tab to
    combine several engines.
    For Qbeast, use **Download Qbeast reference ZIP** in that tab instead. This
-   packages the supplied manifests and a derived capability contract, not a generated input.
+   packages the supplied Qbeast manifests and catalogs, not a generated input.
 6. Go to **Publish** section below.
 
 ## Method 2 — CLI (no AI)

@@ -33,7 +33,7 @@ help:
 
 scaffold-engine:
 ifndef FORM
-	$(error FORM is required. Example: make scaffold-engine FORM=$(ONBOARDING)/input_form.minimal.example.yaml FORCE=1)
+	$(error FORM is required. Example: make scaffold-engine FORM=$(ONBOARDING)/examples/input_form.minimal.example.yaml FORCE=1)
 endif
 	$(PYTHON) $(ONBOARDING)/generate_engine.py --form $(FORM) --repo-root . \
 		$(if $(FORCE),--force,) $(if $(DRY_RUN),--dry-run,)
@@ -45,8 +45,8 @@ endif
 	$(PYTHON) $(ONBOARDING)/validate_form.py --form $(FORM)
 
 serve-engine-form:
-	@echo "Open http://127.0.0.1:$(WEB_PORT)/"
-	$(PYTHON) -m http.server $(WEB_PORT) --directory $(ONBOARDING)/web
+	@echo "Open http://127.0.0.1:$(WEB_PORT)/web/"
+	$(PYTHON) -m http.server $(WEB_PORT) --bind 127.0.0.1 --directory $(ONBOARDING)
 
 build-ui-schema:
 	$(PYTHON) $(ONBOARDING)/scripts/build_ui_schema.py

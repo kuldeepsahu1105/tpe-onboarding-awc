@@ -62,7 +62,7 @@ Folder such as `output/neo4j/` (pre-built copies in `examples/bundles/`):
 | `engine.yaml` | The Engine: how to deploy, user config schema, what it provides, health checks | AWC at install time |
 | `blueprint.yaml` | The Marketplace tile: name, outcome, which engines/instances | Marketplace |
 | `chartcatalog.yaml` / `imagecatalog.yaml` | Pinned Helm chart and image locations per version | Engine templates |
-| `capability.yaml` | Contract other engines can depend on (if you exported one) | Other engines |
+| `capabilities.yaml` | Contract other engines can depend on (if you exported one) | Other engines |
 | `clusterrequirements.yaml` | Legacy-only cluster requirements | Legacy deployments |
 | `role.yaml` | Namespaced Role for strict ACE RBAC, plus a RoleBinding | Namespace |
 | `mirror.yaml` + `mirror.sh` | List and script to copy chart and images to your registry | You (once per version) |

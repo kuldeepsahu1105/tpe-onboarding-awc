@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGES = {
     "qbeast": (
         "README.md", "blueprint.yaml", "engine.yaml", "role.yaml",
-        "capability.yaml", "oci-register.config.example.yaml",
-        "imagecatalog.example.yaml", "chartcatalog.example.yaml", "mirror.example.yaml",
+        "capabilities.yaml", "oci-register.config.example.yaml",
+        "imagecatalog.yaml", "chartcatalog.yaml", "mirror.yaml", "mirror.sh", "publish.sh",
     )
 }
 
@@ -26,12 +26,12 @@ def reference_files(name: str) -> dict[str, bytes]:
     files = {filename: (folder / filename).read_bytes() for filename in PACKAGES[name]}
     docs = {
         filename: list(yaml.safe_load_all(files[filename]))
-        for filename in ("blueprint.yaml", "engine.yaml", "role.yaml", "capability.yaml")
+        for filename in ("blueprint.yaml", "engine.yaml", "role.yaml", "capabilities.yaml")
     }
     blueprint = docs["blueprint.yaml"]
     engine = docs["engine.yaml"]
     roles = docs["role.yaml"]
-    capabilities = docs["capability.yaml"]
+    capabilities = docs["capabilities.yaml"]
     if len(blueprint) != 1 or len(engine) != 1:
         raise ValueError("Expected one Blueprint and one Engine")
     if not isinstance(blueprint[0], dict) or blueprint[0].get("kind") != "Blueprint":
@@ -66,7 +66,11 @@ def reference_zip(name: str) -> bytes:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         for filename, contents in files.items():
-            archive.writestr(filename, contents)
+            info = zipfile.ZipInfo(filename)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.create_system = 3
+            info.external_attr = (0o100755 if filename.endswith(".sh") else 0o100644) << 16
+            archive.writestr(info, contents)
     return buffer.getvalue()
 
 

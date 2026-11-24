@@ -1,6 +1,6 @@
 # Partner third-party engine onboarding
 
-This package is the Cloudera partner third-party engine onboarding app as an Anywhere Cloud engine and blueprint. It sits next to the other examples. It is not a second copy of the Python app.
+This package describes the partner onboarding app as an Anywhere Cloud engine and blueprint. It is not a second copy of the Python app.
 
 ## What the customer gets
 

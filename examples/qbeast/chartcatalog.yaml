@@ -1,0 +1,18 @@
+# Qbeast Helm charts of USE release 0.10.1 (OCI), at their source like the
+# images (imagecatalog.yaml). The engine installs them with Flux: a HelmRepository
+# on the repository's directory, and the chart named after its last path element,
+# so the copies awc-marketplace publish makes (<namespace>/charts/<name>) work as is.
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: ChartCatalog
+metadata:
+  name: qbeast-ace-charts
+spec:
+  charts:
+    - id: useEndpoint
+      registry: registry.example.invalid
+      repository: replace-me/chart-1
+      version: "1.24.0"
+    - id: portal
+      registry: registry.example.invalid
+      repository: replace-me/chart-2
+      version: "1.8.0"

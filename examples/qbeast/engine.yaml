@@ -25,12 +25,11 @@ spec:
       transport: streamable_http
       url: "https://{{ .Metadata.Name }}-mcp.{{ .Cluster.DomainName }}/mcp"
       serviceType: qbeast
+  # qbeast-workspace exports only the public endpoints. Spark Connect (port 15002)
+  # isn't exported: it serves the portal, in the same namespace, and nothing else.
   - name: qbeastWorkspace
     capability: qbeast-workspace
     value: |
-      sparkConnect:
-        host: "{{ .Metadata.Name }}-use.{{ .Metadata.Namespace }}.svc.cluster.local"
-        port: 15002
       portal:
         url: "https://{{ .Metadata.Name }}.{{ .Cluster.DomainName }}"
       mcp:
@@ -403,10 +402,7 @@ spec:
         imagePullSecrets:
           - name: {{ $pullSecret }}
         license:
-          # The Console's registry login to the Qbeast registry gate uses the license
-          # key as password: the portal offers it from this Secret and stores it in
-          # the workspace's qbeast-license Secret (use-endpoint chart) once confirmed.
-          pullSecretName: {{ $pullSecret }}
+          enabled: true
         config:
           publicUrl: "https://{{ .Metadata.Name }}.{{ .Cluster.DomainName }}"
           # USE's streaming insights are off, so the portal hides them.

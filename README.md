@@ -11,12 +11,20 @@ Before generating a bundle, follow the [configuration edit commands and paramete
 checklists](docs/ONBOARDING_GUIDE.md#edit-source-configuration-before-running)
 for YAML inputs, conditional settings, credentials, and offline validation.
 
-Example packages live in `examples/`, including `examples/bluemetrix-stms` and `examples/neo4j`. They are not a second onboarding app.
+Examples have distinct purposes: `examples/*.input.yaml` are inputs to the main
+generator, `engine-onboarding/examples/` contains the separate input-form schema
+examples, and `examples/bundles/` holds generated snapshots. Hand-authored
+packages such as `examples/neo4j/` and `examples/qbeast/` are separate from those
+snapshots; their contents and configuration are not interchangeable.
+
+The self-hosted Engine package is in [`tpe-onboarding/`](tpe-onboarding/README.md);
+the running application remains at the repository root.
 
 The [Qbeast reference](examples/qbeast/README.md) organizes its supplied
-manifests and a derived capability contract. Download it from **Paste input.yaml** in the workbench, or create
-`qbeast.zip` with `./awc package qbeast`. It requires separately supplied
-catalogs and platform dependencies; it is not generated from an input form.
+Qbeast 1.3.12 manifests and catalogs. Download it from **Paste input.yaml** in
+the workbench, or create `qbeast.zip` with `./awc package qbeast`. Source registry
+access and platform-specific deployment prerequisites apply; it is not generated
+from an input form.
 
 Blueprint generation defaults to the current marketplace `hardwareTiers` shape.
 Use `blueprint.format: legacy` to retain the earlier generator output. See the

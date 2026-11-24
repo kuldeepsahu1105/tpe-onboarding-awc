@@ -112,6 +112,11 @@ def validate_bundle(bundle_dir: Path, manifest: dict[str, Any]) -> ValidationRes
     sizing = yaml.safe_load((STANDARDS_DIR / "sizing-baselines.yaml").read_text())
 
     template_class = manifest["engine"]["template"]
+    if (bundle_dir / "capability.yaml").exists():
+        result.add("error", "capability.yaml",
+                   "Stale singular capability file: remove it; the marketplace packs capabilities.yaml.")
+    if manifest["capability"].get("exportsStructuredData") and not (bundle_dir / "capabilities.yaml").is_file():
+        result.add("error", "capabilities.yaml", "Exported capability file is missing.")
     for dep in manifest["dependencies"]["entries"]:
         if dep["type"] == "ref" and not dep.get("runtimeInstance"):
             result.add("warning", "examples/instance.yaml",

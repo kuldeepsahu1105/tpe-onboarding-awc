@@ -49,6 +49,15 @@ class BlueprintTests(unittest.TestCase):
         self.assertIn("cluster", bp["spec"])
         self.assertTrue((directory / "clusterrequirements.yaml").exists())
 
+    def test_generated_capability_uses_marketplace_filename(self):
+        answers = copy.deepcopy(self.answers)
+        answers["capability"]["exportsStructuredData"] = True
+        manifest, directory, _ = self.render(answers)
+        self.assertTrue((directory / "capabilities.yaml").is_file())
+        self.assertFalse((directory / "capability.yaml").exists())
+        (directory / "capability.yaml").write_text("kind: Capability\n")
+        self.assertFalse(validate_bundle(directory, manifest).ok)
+
     def test_reference_declaration_and_runtime_binding_are_distinct(self):
         answers = copy.deepcopy(self.answers)
         answers["dependencies"] = {"entries": [
