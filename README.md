@@ -22,3 +22,7 @@ Blueprint generation defaults to the current marketplace `hardwareTiers` shape.
 Use `blueprint.format: legacy` to retain the earlier generator output. See the
 [Blueprint and dependency guide](docs/ONBOARDING_GUIDE.md#2-multi-engine-app-or-combining-with-existing-experiences)
 and `examples/polaris-udf.blueprint.input.yaml` for the shared-UDF distinction.
+
+For offline infrastructure cost estimates and separate billed costs, use
+`./awc cost-report` with explicit inventory and price exports. The sample data
+is illustrative, not live pricing. See [cost reporting](docs/COST_REPORTING.md).

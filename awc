@@ -70,6 +70,7 @@ case "${1:-help}" in
   build)    ensure_env; f="${2:?usage: ./awc build <file.input.yaml> [outdir]}"
             py -m onboarding.cli all --file "$f" --out "${3:-output/$(basename "$f" .input.yaml)}" ;;
   blueprint) ensure_env; py -m onboarding.cli blueprint --file "${2:?usage: ./awc blueprint <blueprint.input.yaml>}" --out "${3:-output}" ;;
+  cost-report) ensure_env; shift; py -m onboarding.cli cost-report "$@" ;;
   images)   ensure_env; shift; [ $# -ge 3 ] || { echo "usage: ./awc images <repoUrl> <chart> <version> [--set k=v ...]"; exit 1; }
             r="$1"; c="$2"; v="$3"; shift 3; py -m onboarding.cli discover-images --repo-url "$r" --chart "$c" --version "$v" "$@" ;;
   mcp)      ensure_env; if [ "${2:-}" = "config" ]; then
@@ -109,6 +110,7 @@ AWC onboarding toolkit
   ./awc new <name>             create a commented starter file to edit
   ./awc build <file>           generate + validate the bundle from that file
   ./awc blueprint <file>       combine several engines into ONE Blueprint
+  ./awc cost-report --file <input> --inventory <json> --prices <json> [--billing <json>] [--out <dir>]
   ./awc images <repo> <chart> <version>   list the images a Helm chart needs
   ./awc mcp                    start the MCP server for AI assistants (./awc mcp config prints client JSON)
   ./awc examples               list ready-made examples

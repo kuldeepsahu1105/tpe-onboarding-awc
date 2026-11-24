@@ -6,6 +6,7 @@
     python -m onboarding.cli validate --session <id> [--out DIR]
     python -m onboarding.cli all      --file answers.yaml [--out DIR]
     python -m onboarding.cli blueprint --file blueprint.input.yaml [--out DIR]
+    python -m onboarding.cli cost-report --file input.yaml --inventory inventory.json --prices prices.json
 """
 
 from __future__ import annotations
@@ -128,6 +129,35 @@ def cmd_discover(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_cost_report(args: argparse.Namespace) -> int:
+    from .cost_report import CostInputError, build_report, load_export, write_report
+
+    try:
+        evidence = {}
+        exports = {}
+        for name in ("inventory", "prices", "billing"):
+            path = getattr(args, name)
+            if path:
+                exports[name], evidence[name] = load_export(Path(path))
+        input_path = Path(args.file)
+        import hashlib
+
+        evidence["onboarding"] = {
+            "path": str(input_path), "sha256": hashlib.sha256(input_path.read_bytes()).hexdigest()}
+        answers = _load_answers_file(input_path)
+        if not isinstance(answers, dict) or not isinstance(answers.get("engine"), dict):
+            raise CostInputError("Onboarding input must contain an engine object")
+        report = build_report(answers, exports["inventory"], exports["prices"],
+                              exports.get("billing"), evidence)
+        paths = write_report(report, Path(args.out))
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        print(f"Cost report error: {exc}", file=sys.stderr)
+        return 1
+    for path in paths:
+        print(path)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="awc-onboard", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -170,6 +200,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_d.add_argument("--rendered", help="pre-rendered manifest instead of running helm")
     p_d.add_argument("--write", help="merge result into this input.yaml under 'images:'")
     p_d.set_defaults(func=cmd_discover)
+
+    p_cost = sub.add_parser("cost-report", help="Offline inventory estimates and separate billed costs")
+    p_cost.add_argument("--file", required=True, help="Onboarding input (context, not node inventory)")
+    p_cost.add_argument("--inventory", required=True, help="Version 1 inventory JSON")
+    p_cost.add_argument("--prices", required=True, help="Version 1 provider price JSON")
+    p_cost.add_argument("--billing", help="Optional version 1 billing JSON")
+    p_cost.add_argument("--out", default=str(DEFAULT_OUT / "cost-report"))
+    p_cost.set_defaults(func=cmd_cost_report)
 
     return parser
 
