@@ -1,0 +1,74 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Blueprint
+metadata:
+  name: qbeast-ace-blueprint
+spec:
+  owner: "Qbeast"
+  outcome: "Qbeast"
+  description: "Your lakehouse, faster on less compute. Ready for AI agents."
+
+  instances:
+    # No harmony-catalog / udf instances: the Console can't offer existing ones yet, so
+    # the catalog comes from the engine's catalog* settings.
+    - name: "qbeast-ace-workspace"
+      engine: "qbeast-ace-engine"
+      minimumVersion: "1.3.11"
+
+  hardwareTiers:
+    - name: "standard"
+      cluster:
+        # Required: the Console fails a deploy with "cannot resolve kubernetes
+        # version" without it. Pinned like Cloudera's Lakehouse blueprints, to the
+        # version this Taikun install runs.
+        kubernetesVersion: "v1.34.3"
+        nodeGroups:
+          # Without a master group Taikun falls back to t3.small (2 GiB), too small
+          # for etcd and the API server: kubespray timed out on those nodes.
+          - id: "control-plane"
+            category: "master"
+            displayName: "Control Plane Nodes"
+            description: "Kubernetes control plane: etcd, API server, scheduler and controllers"
+            nodeCount:
+              default: 1
+              minimum: 1
+              hint: "Must be odd: 1, or 3 for a highly available control plane"
+            resources:
+              minimum:
+                cpu: "4"
+                memory: "16Gi"
+                hasGPU: false
+              hint: "Runs no workloads. 4 CPU / 16Gi (m5.xlarge) is enough for one Qbeast workspace"
+            storage:
+              disk:
+                default: "64Gi"
+                minimum: "30Gi"
+                hint: "Holds etcd and the container images of the control plane"
+          - id: "qbeast-nodes"
+            category: "worker"
+            displayName: "Workspace Nodes"
+            description: "Nodes running Qbeast (Spark driver and executors) and the portal"
+            nodeCount:
+              default: 5
+              minimum: 2
+              hint: "5 nodes index and query tables of about 50 GB: the platform takes about 18 vCPU of them, the Qbeast backend 2-8 vCPU (1-3 executors of 2 vCPU / 24Gi), each MCP session 1.25-11 vCPU (a driver and 0-3 executors of 3.25 vCPU / 28Gi). Add 2 nodes per extra concurrent MCP session"
+            resources:
+              minimum:
+                cpu: "8"
+                memory: "64Gi"
+                hasGPU: false
+              hint: "8 vCPU / 64Gi (r6a.2xlarge): the platform requests about 1.2 vCPU on each node, and the largest Qbeast pod, an MCP executor, 3.25 vCPU / 28Gi. Spark here is CPU-bound: m7i.4xlarge (16 vCPU / 64Gi) gives it twice the CPU per node"
+            storage:
+              disk:
+                default: "200Gi"
+                minimum: "100Gi"
+                hint: "Holds Spark shuffle data"
+
+  # The Console's tile title is ui.displayName, not outcome; without it the tile
+  # has no title. Same keys as Cloudera's own blueprints.
+  ui:
+    displayName: "Qbeast"
+    about: "Qbeast makes your existing lakehouse tables faster to query and less costly to run. It continuously reorganizes their data layout so every query reads and processes only what it needs, with no changes to your engines or pipelines. A built-in MCP server allows AI agents to access and manage them directly."
+    tierInfo:
+      standard:
+        displayName: "Standard"
+        description: "One control plane node and worker nodes for Qbeast (Spark driver and executors) and the portal"

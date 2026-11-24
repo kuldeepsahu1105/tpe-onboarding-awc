@@ -1,0 +1,81 @@
+# Namespaced writes for the qbeast-ace-engine template and its two charts (use-endpoint,
+# portal). The platform refuses a ClusterRole that writes platform-owned API groups
+# ("engine RBAC validation failed ... declare namespaced write grants as a Role"); like
+# Cloudera's engines, the Role and RoleBinding carry no namespace, and ace-hub aggregates
+# their rules into the per-namespace engine Role (<namespace>-engine), bound to the ACE
+# operator, Flux's helm-controller and the instance's service account.
+#
+# The template creates HelmRepository, HelmRelease, HTTPRoute and AuthConfig. The rest is
+# what the charts create, in case Helm runs as the instance's service account (strict ACE
+# RBAC): Deployments, Services, ConfigMaps, the qbeast-license Secret, ServiceAccounts, and
+# the charts' own Roles, whose rules this Role has to hold too (Kubernetes refuses to grant
+# what the creator lacks): pods and configmaps with deletecollection, Envoy Gateway
+# SecurityPolicies, and USE's ComputeEngineProfiles (the chart renders the default one).
+# use-endpoint's ComputeEngineProfile CRD is cluster-scoped: the ClusterRole below grants
+# it.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: qbeast-ace-engine-namespaced-role
+rules:
+  - apiGroups: [""]
+    resources: [configmaps, secrets, services, serviceaccounts, pods, persistentvolumeclaims]
+    verbs: [create, delete, deletecollection, get, list, patch, update, watch]
+  - apiGroups: [""]
+    resources: [pods/log]
+    verbs: [get]
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [apps]
+    resources: [replicasets]
+    verbs: [get, list, watch]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [roles, rolebindings]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [source.toolkit.fluxcd.io]
+    resources: [helmrepositories]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [helm.toolkit.fluxcd.io]
+    resources: [helmreleases]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [httproutes]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [gateway.envoyproxy.io]
+    resources: [securitypolicies]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [security.awc.cloudera.com]
+    resources: [authconfigs]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [mcp.qbeast.io]
+    resources: [computeengineprofiles]
+    verbs: [create, delete, get, list, patch, update, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: qbeast-ace-engine-namespaced-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: qbeast-ace-engine-namespaced-role
+subjects:
+  - kind: ServiceAccount
+    name: ace-operator-controller-manager
+    namespace: ace-operator-system
+---
+# Cluster-scoped: only CustomResourceDefinitions, for use-endpoint's ComputeEngineProfile
+# CRD (computeengineprofiles.mcp.qbeast.io), which Helm installs as the instance's service
+# account. Like Cloudera's engines that ship CRDs, a ClusterRole with no binding: ace-hub
+# merges it into the instance's engine ClusterRole and binds it. Kyverno
+# (awc-guard-crd-owner) lets an engine write only CRDs in its own, non-platform API group,
+# and only the ones it owns (awc-stamp-crd-owner labels them on create).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: qbeast-ace-engine-cluster-role
+rules:
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [create, get, list, patch, update, watch]

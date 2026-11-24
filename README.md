@@ -12,3 +12,8 @@ checklists](docs/ONBOARDING_GUIDE.md#edit-source-configuration-before-running)
 for YAML inputs, conditional settings, credentials, and offline validation.
 
 Example packages live in `examples/`, including `examples/bluemetrix-stms` and `examples/neo4j`. They are not a second onboarding app.
+
+The [Qbeast reference](examples/qbeast/README.md) organizes its supplied
+manifests and a derived capability contract. Download it from **Paste input.yaml** in the workbench, or create
+`qbeast.zip` with `./awc package qbeast`. It requires separately supplied
+catalogs and platform dependencies; it is not generated from an input form.

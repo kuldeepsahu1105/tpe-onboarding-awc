@@ -1,0 +1,31 @@
+# Derived from qbeastWorkspace in engine.yaml. Compare this contract with any
+# existing qbeast-workspace Capability before registering it on a live platform.
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Capability
+metadata:
+  name: qbeast-workspace
+spec:
+  schema:
+    type: object
+    required: [sparkConnect, portal, mcp]
+    properties:
+      sparkConnect:
+        type: object
+        required: [host, port]
+        properties:
+          host:
+            type: string
+          port:
+            type: integer
+      portal:
+        type: object
+        required: [url]
+        properties:
+          url:
+            type: string
+      mcp:
+        type: object
+        required: [url]
+        properties:
+          url:
+            type: string

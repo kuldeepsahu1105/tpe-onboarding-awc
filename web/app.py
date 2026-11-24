@@ -34,6 +34,7 @@ from onboarding import questions as q
 from onboarding.blueprint_composer import compose_blueprint
 from onboarding.generator import render_bundle
 from onboarding.manifest import normalize
+from onboarding.reference_package import PACKAGES, reference_zip
 from onboarding.session import Session
 from onboarding.validator import validate_bundle
 
@@ -387,11 +388,13 @@ def run_blueprint(blueprint_text: str, engines: dict) -> dict:
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _send(self, obj, status=200, ctype="application/json"):
+    def _send(self, obj, status=200, ctype="application/json", headers=None):
         body = obj if isinstance(obj, bytes) else json.dumps(obj).encode()
         self.send_response(status)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 
@@ -413,6 +416,16 @@ class Handler(BaseHTTPRequestHandler):
         if url.path == "/api/examples":
             names = sorted(str(p.relative_to(EXAMPLES)) for p in EXAMPLES.rglob("*.yaml"))
             return self._send(names)
+        if url.path == "/api/reference-package":
+            name = qs.get("name", "")
+            if name not in PACKAGES:
+                return self._send({"error": "not found"}, 404)
+            try:
+                package = reference_zip(name)
+            except (OSError, ValueError, yaml.YAMLError) as exc:
+                return self._send({"error": f"Cannot package {name}: {exc}"}, 500)
+            return self._send(package, ctype="application/zip",
+                              headers={"Content-Disposition": f'attachment; filename="{name}.zip"'})
         if url.path == "/api/example":
             path = (EXAMPLES / qs.get("name", "")).resolve()
             if EXAMPLES.resolve() not in path.parents or not path.is_file():

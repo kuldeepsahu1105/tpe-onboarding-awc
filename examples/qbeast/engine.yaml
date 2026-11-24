@@ -1,0 +1,766 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Engine
+metadata:
+  name: qbeast-ace-engine
+spec:
+  displayName: "Qbeast"
+  description: "Makes your lakehouse tables faster to query and less costly to run, and ready for AI agents through a built-in MCP server."
+
+  imageCatalog: qbeast-ace-default
+  chartCatalog: qbeast-ace-charts
+
+  provides:
+  # One entry per endpoint, as Cloudera's UDF engine does: the Console renders a
+  # comma-separated url as a single link to the combined string. The MCP server is an
+  # mcp-endpoint (a platform Capability), which the Console lists as "MCP Endpoint" with
+  # a copy button: its published URL, behind Knox, for MCP clients such as Claude. No
+  # nlx tag (UDF sets nlx: "true"), so Cloudera's agents don't pick it up.
+  - name: qbeastPortal
+    capability: landing-page
+    value: |
+      url: "https://{{ .Metadata.Name }}.{{ .Cluster.DomainName }}"
+  - name: qbeastMcp
+    capability: mcp-endpoint
+    value: |
+      transport: streamable_http
+      url: "https://{{ .Metadata.Name }}-mcp.{{ .Cluster.DomainName }}/mcp"
+      serviceType: qbeast
+  - name: qbeastWorkspace
+    capability: qbeast-workspace
+    value: |
+      sparkConnect:
+        host: "{{ .Metadata.Name }}-use.{{ .Metadata.Namespace }}.svc.cluster.local"
+        port: 15002
+      portal:
+        url: "https://{{ .Metadata.Name }}.{{ .Cluster.DomainName }}"
+      mcp:
+        url: "https://{{ .Metadata.Name }}-mcp.{{ .Cluster.DomainName }}"
+
+  # No dependency on the Harmony Catalog: even an optional one keeps the Engine Pending
+  # until harmony-catalog-plugin is installed on the same cluster, and the Console can't
+  # offer an existing catalog instance to a partner blueprint yet. The catalog* settings
+  # name the catalog, e.g. a Harmony Catalog's cluster-local URL on another cluster.
+
+  # The tables' bucket through AWC storage (ABS): the user binds a bucket to the warehouse
+  # purpose on the Console's Storage tab, abs-operator grants this instance access through
+  # proxinator (ABS's S3 proxy, on every node) and writes the <instance>-s3-credentials
+  # Secret (.S3.SecretName). Optional: left unbound, the warehouseBucket and storage*
+  # settings apply and USE goes to S3 directly. delete is needed: optimization rewrites
+  # data files and expiring snapshots removes the old ones.
+  s3Storage:
+  - name: warehouse
+    permissions: [read, write, list, delete]
+    optional: true
+
+  # The charts are installed by Flux objects in the template rather than by
+  # releases, which always pull with the Cloudera registry. Images and charts
+  # pull with awc-console-registry-creds, the secret AWC copies into every
+  # namespace. It holds the credentials of every registry linked to the Console,
+  # such as the Qbeast registry gate and its license key.
+  template: |
+    {{- /*
+    Iceberg tables in an Iceberg REST catalog named by the catalog* settings. For a
+    Harmony Catalog (Polaris), either:
+    - its cluster-local URL: Polaris trusts the caller's mesh identity, which Knox's
+      ext-authz puts in x-awc-username / x-awc-source-workload-id at its waypoint, and
+      Ranger authorizes it, so catalogCredential stays empty and USE sends no OAuth
+      credential;
+    - its published URL, behind Knox's JWT check: catalogCredential is a Console access
+      key (client_id:client_secret) and catalogOAuthServerUri the Console's token
+      endpoint, which Iceberg's REST client calls with the client_credentials grant.
+    */}}
+    {{- $restUri := .Config.catalogUri }}
+    {{- $restWarehouse := .Config.catalogWarehouse }}
+    {{- $restCredential := .Config.catalogCredential }}
+    {{- $restOAuthUri := .Config.catalogOAuthServerUri }}
+    {{- $restScope := .Config.catalogScope }}
+    {{- $warehouse := .Config.warehouseBucket }}
+    {{- $s3Region := .Config.storageRegion }}
+    {{- $s3AuthType := "chain" }}
+    {{- $s3AccessKey := .Config.storageAccessKeyId }}
+    {{- $s3SecretKey := .Config.storageSecretAccessKey }}
+    {{- if eq .Config.storageAuthType "static" }}
+    {{- $s3AuthType = "keys" }}
+    {{- end }}
+    {{- /*
+    A bucket bound to the warehouse purpose wins over the storage settings. Every Spark JVM
+    (USE driver, MCP server and shell pods, all executors) reaches it through proxinator
+    with the ABS key, read from the Secret as AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY,
+    which the chart's credential chain picks up. No credential value enters the template.
+    ABS rotates the key in place; environment variables keep the old one until the pod
+    restarts (a chart change could mount the Secret as files, as Harmony does).
+    */}}
+    {{- $abs := .S3.Bound "warehouse" }}
+    {{- $absSecret := "" }}
+    {{- if $abs }}
+    {{- $absSecret = .S3.SecretName }}
+    {{- $warehouse = printf "s3://%s" (.S3.Bucket "warehouse") }}
+    {{- $s3AuthType = "chain" }}
+    {{- $s3AccessKey = "" }}
+    {{- $s3SecretKey = "" }}
+    {{- end }}
+    {{- /*
+    Spark settings the use-endpoint chart cannot express. They are appended to
+    spark-defaults.conf after the chart's own lines, so they win.
+    */}}
+    {{- $sparkConf := list }}
+    {{- /* Iceberg's REST catalog defaults to ResolvingFileIO, which sends s3:// and
+           s3a:// paths to S3FileIO and so ignores the S3A endpoint and keys below. */}}
+    {{- $sparkConf = append $sparkConf "spark.sql.catalog.spark_catalog.io-impl=org.apache.iceberg.hadoop.HadoopFileIO" }}
+    {{- if eq $s3AuthType "keys" }}
+    {{- /* The chart pairs the keys with DefaultAWSCredentialsProviderChain, which
+           never reads fs.s3a.access.key. */}}
+    {{- $sparkConf = append $sparkConf "spark.hadoop.fs.s3a.aws.credentials.provider=org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider" }}
+    {{- end }}
+    {{- if $abs }}
+    {{- /* Hadoop expands ${env.NAME} when it reads a setting, as the chart's Azure secret does. */}}
+    {{- $sparkConf = append $sparkConf "spark.hadoop.fs.s3a.endpoint=${env.ABS_S3_ENDPOINT}" }}
+    {{- $sparkConf = append $sparkConf "spark.hadoop.fs.s3a.endpoint.region=${env.ABS_S3_REGION}" }}
+    {{- /* Executors get the same variables from the Secret. */}}
+    {{- range $var, $key := dict "AWS_ACCESS_KEY_ID" "access_key_id" "AWS_SECRET_ACCESS_KEY" "secret_access_key" "ABS_S3_ENDPOINT" "endpoint" "ABS_S3_REGION" "region" }}
+    {{- $sparkConf = append $sparkConf (printf "spark.kubernetes.executor.secretKeyRef.%s=%s:%s" $var $absSecret $key) }}
+    {{- end }}
+    {{- end }}
+    {{- /*
+    The portal shows status.updatedAt as the workspace's "Updated" date and prints
+    "Invalid Date" for "". The instance's creation time is stable across renders (now
+    would change the HelmRelease values on every reconcile). .Metadata is the
+    EngineInstance's ObjectMeta; the map branch and the "" fallback keep rendering safe
+    if it is ever passed differently.
+    */}}
+    {{- $updatedAt := "" }}
+    {{- if or (kindIs "struct" .Metadata) (kindIs "ptr" .Metadata) }}
+    {{- $updatedAt = .Metadata.CreationTimestamp | toJson | trimAll "\"" }}
+    {{- else if kindIs "map" .Metadata }}
+    {{- with index .Metadata "CreationTimestamp" }}{{ $updatedAt = toJson . | trimAll "\"" }}{{ end }}
+    {{- end }}
+    {{- if eq $updatedAt "null" }}{{ $updatedAt = "" }}{{ end }}
+    {{- $pullSecret := "awc-console-registry-creds" }}
+    {{- /* The Console names the instance <cluster>-inst-<blueprint instance>, and
+        the cluster is the first label of its domain. The portal shows the
+        workspace under the blueprint instance's name only. */}}
+    {{- $cluster := .Cluster.DomainName | splitList "." | first }}
+    {{- $workspaceName := .Metadata.Name | trimPrefix (printf "%s-inst-" $cluster) }}
+    {{- range $i, $id := list "useEndpoint" "portal" }}
+    {{- $chart := index $.Chart $id }}
+    {{- if $i }}
+    ---
+    {{- end }}
+    apiVersion: source.toolkit.fluxcd.io/v1
+    kind: HelmRepository
+    metadata:
+      name: {{ $.Metadata.Name }}-{{ lower $id }}-repo
+    spec:
+      interval: 30m
+      {{- if eq (dir $chart.repository) "." }}
+      # A repository with no path is a classic HTTP Helm repository.
+      url: https://{{ $chart.registry }}
+      {{- else }}
+      type: oci
+      url: oci://{{ $chart.registry }}/{{ dir $chart.repository }}
+      secretRef:
+        name: {{ $pullSecret }}
+      {{- end }}
+    {{- end }}
+    ---
+    # USE — Spark Structured Streaming optimization backend, and its MCP server.
+    apiVersion: helm.toolkit.fluxcd.io/v2
+    kind: HelmRelease
+    metadata:
+      name: {{ .Metadata.Name }}-use
+    spec:
+      interval: 5m
+      targetNamespace: {{ .Metadata.Namespace }}
+      # Helm runs as the instance's service account (Kyverno awc-guard-helmrelease-sa). It
+      # installs use-endpoint's ComputeEngineProfile CRD with the engine's ClusterRole
+      # (role.yaml); Kyverno lets an engine write CRDs in its own API group (mcp.qbeast.io)
+      # and stamps it as their owner.
+      serviceAccountName: {{ .Metadata.Name }}
+      install:
+        crds: CreateReplace
+      upgrade:
+        crds: CreateReplace
+      chart:
+        spec:
+          chart: {{ base .Chart.useEndpoint.repository }}
+          version: "{{ .Chart.useEndpoint.version }}"
+          sourceRef:
+            kind: HelmRepository
+            name: {{ .Metadata.Name }}-useendpoint-repo
+            namespace: {{ .Metadata.Namespace }}
+          interval: 1m
+      values:
+        fullnameOverride: "{{ .Metadata.Name }}-use"
+        cloudProvider: "{{ .Config.cloudProvider }}"
+        image:
+          repository: "{{ .Image.use.registry }}/{{ .Image.use.repository }}"
+          tag: "{{ .Image.use.tag }}"
+        imagePullSecrets:
+          - name: {{ $pullSecret }}
+        serviceAccount:
+          create: true
+          name: "{{ .Metadata.Name }}-use"
+          {{- if .Config.irsaRoleArn }}
+          annotations:
+            eks.amazonaws.com/role-arn: "{{ .Config.irsaRoleArn }}"
+          {{- end }}
+        spark:
+          kubernetes:
+            executor:
+              # Executor scratch disks. The chart defaults to an EKS 'gp3' class.
+              persistentVolumeClaims:
+                {{- if .Config.executorStorageClass }}
+                enabled: true
+                storageClass: "{{ .Config.executorStorageClass }}"
+                {{- else }}
+                enabled: false
+                {{- end }}
+        # The USE backend's pod is its Spark driver (client mode): driverMemory sizes the
+        # container, driverHeapMemory the JVM heap inside it.
+        deployment:
+          resources:
+            requests:
+              cpu: "{{ .Config.driverCores }}"
+              memory: "{{ .Config.driverMemory }}"
+            limits:
+              cpu: "{{ .Config.driverCores }}"
+              memory: "{{ .Config.driverMemory }}"
+        use:
+          connectPort: 15002
+          driver:
+            memory: "{{ .Config.driverHeapMemory }}"
+            cores: {{ .Config.driverCores }}
+            {{- if $abs }}
+            extraEnv:
+              {{- range $var, $key := dict "AWS_ACCESS_KEY_ID" "access_key_id" "AWS_SECRET_ACCESS_KEY" "secret_access_key" "ABS_S3_ENDPOINT" "endpoint" "ABS_S3_REGION" "region" }}
+              - name: {{ $var }}
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ $absSecret }}
+                    key: {{ $key }}
+              {{- end }}
+            {{- end }}
+          executor:
+            instances: {{ .Config.executorMinInstances }}
+            memory: "{{ .Config.executorMemory }}"
+            memoryOverhead: "{{ .Config.executorMemoryOverhead }}"
+            cores: {{ .Config.executorCores }}
+            dynamicAllocation:
+              enabled: true
+              minExecutors: {{ .Config.executorMinInstances }}
+              maxExecutors: {{ .Config.executorMaxInstances }}
+              initialExecutors: {{ .Config.executorMinInstances }}
+          {{- if $sparkConf }}
+          extraSparkConf: |
+            {{- range $sparkConf }}
+            {{ . }}
+            {{- end }}
+          {{- end }}
+        lakehouse:
+          tableFormat: iceberg
+        storage:
+          type: s3
+          s3:
+            # proxinator serves buckets by path, not by virtual host.
+            pathStyleAccess: {{ $abs }}
+            region: "{{ $s3Region }}"
+            authType: "{{ $s3AuthType }}"
+            accessKeyId: "{{ $s3AccessKey }}"
+            secretAccessKey: "{{ $s3SecretKey }}"
+        metastore:
+          type: rest
+          rest:
+            uri: "{{ $restUri }}"
+            warehouse: "{{ $restWarehouse }}"
+            {{- with $restCredential }}
+            credential: "{{ . }}"
+            {{- end }}
+            {{- if $restCredential }}
+            {{- with $restOAuthUri }}
+            oauth2ServerUri: "{{ . }}"
+            {{- end }}
+            {{- with $restScope }}
+            scope: "{{ . }}"
+            {{- end }}
+            {{- end }}
+        mcpServer:
+          enabled: true
+          # One shell pod (its own Spark driver) per MCP session.
+          mode: kubernetes
+          resources:
+            requests:
+              cpu: "1"
+              memory: "3Gi"
+            limits:
+              cpu: "2"
+              memory: "3Gi"
+          extraEnv:
+            - name: SPARK_REMOTE_URL
+              value: "k8s://https://kubernetes.default.svc.cluster.local:443"
+            - name: MCP_JARS_BASE_URL
+              value: "http://{{ .Metadata.Name }}-use-mcp.{{ .Metadata.Namespace }}.svc:8080"
+            - name: MCP_SERVER_URL
+              value: "https://{{ .Metadata.Name }}-mcp.{{ .Cluster.DomainName }}"
+            # No OIDC_ISSUER_URL: Knox authenticates at the ingress (knox-jwtauth
+            # route below), as for Cloudera's own API endpoints.
+            {{- if .Config.mcpKnoxOAuth }}
+            # Knox mode: the server is the OAuth authorization server MCP clients
+            # discover, and has Knox check every token (in-cluster calls skip the
+            # gateway). USE has Knox mode since Qbeast-io/USE#1964 (in v0.10.7).
+            - name: KNOX_AUTH_URL
+              value: "{{ .Config.knoxAuthUrl }}"
+            {{- if .Config.mcpAllowedRedirectUris }}
+            - name: KNOX_ALLOWED_REDIRECT_URIS
+              value: "{{ .Config.mcpAllowedRedirectUris }}"
+            {{- end }}
+            {{- end }}
+            {{- if $abs }}
+            # The ABS key and proxinator endpoint for the server and, through
+            # MCP_SHELL_INHERIT_ENV, every session's shell pod. That variable replaces the
+            # chart's own, so it repeats the REST credential the chart would list.
+            {{- range $var, $key := dict "AWS_ACCESS_KEY_ID" "access_key_id" "AWS_SECRET_ACCESS_KEY" "secret_access_key" "ABS_S3_ENDPOINT" "endpoint" "ABS_S3_REGION" "region" }}
+            - name: {{ $var }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $absSecret }}
+                  key: {{ $key }}
+            {{- end }}
+            - name: MCP_SHELL_INHERIT_ENV
+              value: "{{ if $restCredential }}USE_METASTORE_REST_CREDENTIAL,{{ end }}ABS_S3_ENDPOINT,ABS_S3_REGION,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY"
+            {{- end }}
+          # Each MCP session's shell pod (its Spark driver) and executors. The operator applies
+          # the "default" ComputeEngineProfile below; spark.* is its fallback, same sizing.
+          # CPU requests sit 750m under the cores, as on Qbeast's SaaS. On AWC that isn't
+          # enough for a pod sized to a node's vCPUs (the platform requests about 1.2 vCPU
+          # per node), hence the 4-core executor default.
+          spark:
+            driver:
+              memory: "{{ .Config.mcpDriverMemory }}"
+              cores: {{ .Config.mcpDriverCores }}
+              memoryOverhead: "{{ .Config.mcpDriverMemoryOverhead }}"
+            executor:
+              instances: 1
+              memory: "{{ .Config.mcpExecutorMemory }}"
+              cores: {{ .Config.mcpExecutorCores }}
+              memoryOverhead: "{{ .Config.mcpExecutorMemoryOverhead }}"
+              dynamicAllocation:
+                enabled: true
+                minExecutors: {{ .Config.mcpMinExecutors }}
+                maxExecutors: {{ .Config.mcpMaxExecutors }}
+                cachedExecutorIdleTimeout: "300s"
+            {{- if $sparkConf }}
+            extraSparkConf: |
+              {{- range $sparkConf }}
+              {{ . }}
+              {{- end }}
+            {{- end }}
+          computeEngineProfile:
+            name: default
+          computeEngineProfiles:
+            - name: default
+              spec:
+                driver:
+                  cores: {{ .Config.mcpDriverCores }}
+                  memory: "{{ .Config.mcpDriverMemory }}"
+                  memoryOverhead: "{{ .Config.mcpDriverMemoryOverhead }}"
+                  requestCores: "{{ max 250 (sub (mul .Config.mcpDriverCores 1000) 750) }}m"
+                  limitCores: "{{ .Config.mcpDriverCores }}"
+                executor:
+                  cores: {{ .Config.mcpExecutorCores }}
+                  memory: "{{ .Config.mcpExecutorMemory }}"
+                  memoryOverhead: "{{ .Config.mcpExecutorMemoryOverhead }}"
+                  requestCores: "{{ max 250 (sub (mul .Config.mcpExecutorCores 1000) 750) }}m"
+                  limitCores: "{{ max 250 (sub (mul .Config.mcpExecutorCores 1000) 750) }}m"
+                  dynamicAllocation:
+                    minExecutors: {{ .Config.mcpMinExecutors }}
+                    maxExecutors: {{ .Config.mcpMaxExecutors }}
+    ---
+    # Portal — the landing page. One workspace, rendered statically.
+    apiVersion: helm.toolkit.fluxcd.io/v2
+    kind: HelmRelease
+    metadata:
+      name: {{ .Metadata.Name }}-portal
+    spec:
+      interval: 5m
+      targetNamespace: {{ .Metadata.Namespace }}
+      serviceAccountName: {{ .Metadata.Name }}
+      dependsOn:
+        - name: {{ .Metadata.Name }}-use
+      chart:
+        spec:
+          chart: {{ base .Chart.portal.repository }}
+          version: "{{ .Chart.portal.version }}"
+          sourceRef:
+            kind: HelmRepository
+            name: {{ .Metadata.Name }}-portal-repo
+            namespace: {{ .Metadata.Namespace }}
+          interval: 1m
+      values:
+        fullnameOverride: "{{ .Metadata.Name }}-portal"
+        image:
+          repository: "{{ .Image.portal.registry }}/{{ .Image.portal.repository }}"
+          tag: "{{ .Image.portal.tag }}"
+        imagePullSecrets:
+          - name: {{ $pullSecret }}
+        license:
+          # The Console's registry login to the Qbeast registry gate uses the license
+          # key as password: the portal offers it from this Secret and stores it in
+          # the workspace's qbeast-license Secret (use-endpoint chart) once confirmed.
+          pullSecretName: {{ $pullSecret }}
+        config:
+          publicUrl: "https://{{ .Metadata.Name }}.{{ .Cluster.DomainName }}"
+          # USE's streaming insights are off, so the portal hides them.
+          insights:
+            enabled: false
+          # Schema: qbeast-portal apps/dashboard-environment/src/lib/portal-config.ts.
+          # No cloudConfig (account, region) to show, so it matches the
+          # "incomplete environment" variant.
+          portalConfig:
+            environment:
+              id: "{{ .Metadata.Name }}"
+              cloudProvider: "{{ .Config.cloudProvider }}"
+              kind: awc
+              cloudConfig: {}
+              grafanaUrl: null
+              vmUiUrl: null
+              vmLogsUrl: null
+              status:
+                derived: ready
+                ready: true
+                synced: true
+                updatedAt: "{{ $updatedAt }}"
+              workspaces:
+                - id: "{{ $workspaceName }}"
+                  environmentId: "{{ .Metadata.Name }}"
+                  format: iceberg
+                  # Only displayed by the portal; USE gets the catalog above.
+                  metastore:
+                    type: rest
+                    rest:
+                      uri: "{{ $restUri }}"
+                      {{- with $restWarehouse }}
+                      warehouse: "{{ . }}"
+                      {{- end }}
+                  coderUrl: null
+                  apiUrl: "https://{{ .Metadata.Name }}-mcp.{{ .Cluster.DomainName }}"
+                  warehouseBucketUrl: "{{ $warehouse }}"
+                  sparkConnectClusterLocalEndpoint: "{{ .Metadata.Name }}-use.{{ .Metadata.Namespace }}.svc.cluster.local:15002"
+                  status:
+                    derived: ready
+                    ready: true
+                    synced: true
+                    updatedAt: "{{ $updatedAt }}"
+    ---
+    apiVersion: security.awc.cloudera.com/v1alpha1
+    kind: AuthConfig
+    metadata:
+      name: default
+    spec:
+      meshMode: Ambient
+      enableAWCAuth: true
+      {{- if .Config.mcpKnoxOAuth }}
+      # MCP clients call OAuth discovery, registration and the token endpoint before
+      # they hold a Knox token, so these skip Knox. They hand out nothing without a
+      # code from /authorize, which stays behind the Knox SSO login. notPaths match
+      # on path only: they apply to every host in the namespace.
+      notPaths:
+        - /.well-known/*
+        - /register
+        - /token
+      {{- end }}
+    ---
+    # Public routes on the AWC ingress gateway. Knox authenticates every request
+    # (proxy-extauthz picks the topology from x-topology-name). Hostnames stay one
+    # label under the cluster domain: the gateway's wildcard certificate covers no
+    # deeper names. external-dns publishes them.
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+      name: {{ .Metadata.Name }}-portal
+    spec:
+      parentRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: default-awc
+          namespace: istio-ingress
+      hostnames:
+        - "{{ .Metadata.Name }}.{{ .Cluster.DomainName }}"
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          filters:
+            # Browser single sign-on through Cloudera's Knox.
+            - type: RequestHeaderModifier
+              requestHeaderModifier:
+                set:
+                  - name: x-topology-name
+                    value: knox-cdpauth
+          backendRefs:
+            - group: ""
+              kind: Service
+              name: {{ .Metadata.Name }}-portal
+              port: 80
+    ---
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+      name: {{ .Metadata.Name }}-mcp
+    spec:
+      parentRefs:
+        - group: gateway.networking.k8s.io
+          kind: Gateway
+          name: default-awc
+          namespace: istio-ingress
+      hostnames:
+        - "{{ .Metadata.Name }}-mcp.{{ .Cluster.DomainName }}"
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          # MCP streams responses (SSE); no finite request timeout.
+          timeouts:
+            request: 0s
+          filters:
+            # API clients: a Knox JWT as a Bearer token (the browser SSO cookie
+            # is accepted too).
+            - type: RequestHeaderModifier
+              requestHeaderModifier:
+                set:
+                  - name: x-topology-name
+                    value: knox-jwtauth
+          backendRefs:
+            - group: ""
+              kind: Service
+              name: {{ .Metadata.Name }}-use-mcp
+              port: 8080
+        {{- if .Config.mcpKnoxOAuth }}
+        # The browser step of the MCP OAuth flow: Knox SSO logs the user in and
+        # leaves the hadoop-jwt cookie the MCP server turns into the client's token.
+        # An Exact match wins over the PathPrefix / rule above.
+        - matches:
+            - path:
+                type: Exact
+                value: /authorize
+          filters:
+            - type: RequestHeaderModifier
+              requestHeaderModifier:
+                set:
+                  - name: x-topology-name
+                    value: knox-cdpauth
+          backendRefs:
+            - group: ""
+              kind: Service
+              name: {{ .Metadata.Name }}-use-mcp
+              port: 8080
+        {{- end }}
+
+  configSchema:
+    type: object
+    properties:
+      cloudProvider:
+        type: string
+        enum: [aws, gcp, azure]
+        default: "aws"
+        description: "Cloud the workload cluster runs on"
+        title: Cloud Provider
+
+      catalogUri:
+        type: string
+        default: ""
+        description: "Iceberg REST catalog URI, when no Harmony Catalog is wired, e.g. http://<catalog>.<namespace>.svc.cluster.local:8181/api/catalog"
+        title: Catalog URI
+      catalogWarehouse:
+        type: string
+        default: ""
+        description: "REST catalog warehouse (the Polaris catalog name), when no Harmony Catalog is wired"
+        title: Catalog Warehouse
+      catalogCredential:
+        type: string
+        default: ""
+        description: "OAuth client credential (client_id:client_secret), only for a catalog that asks for one. For a Harmony Catalog: empty with its cluster-local URL, a Console access key with its published URL"
+        title: Catalog Credential
+      catalogOAuthServerUri:
+        type: string
+        default: ""
+        description: "Token endpoint for the Catalog Credential (OAuth2 client_credentials). Empty uses <Catalog URI>/v1/oauth/tokens. For a Harmony Catalog's published URL: https://console.<console domain>/api/v1/auth/access-keys/token"
+        title: Catalog Token URL
+      catalogScope:
+        type: string
+        default: ""
+        description: "OAuth2 scope requested with the Catalog Credential. Empty uses PRINCIPAL_ROLE:ALL (Polaris)"
+        title: Catalog Scope
+
+      warehouseBucket:
+        type: string
+        default: ""
+        description: "Object storage URI holding the lakehouse tables (s3://bucket/prefix), when no bucket is bound to the warehouse purpose on the Storage tab"
+        title: Warehouse Bucket
+      storageRegion:
+        type: string
+        default: "us-east-1"
+        description: "Region of the warehouse bucket (without a Storage tab binding)"
+        title: Storage Region
+      storageAuthType:
+        type: string
+        enum: [chain, static]
+        default: "chain"
+        description: "Without a Storage tab binding: 'chain' uses the pod identity (IRSA); 'static' uses the key pair below"
+        title: Storage Auth Type
+      irsaRoleArn:
+        type: string
+        default: ""
+        description: "IAM role ARN to bind to Qbeast's service account, when auth type is 'chain'"
+        title: IRSA Role ARN
+      storageAccessKeyId:
+        type: string
+        default: ""
+        description: "Access key ID, when auth type is 'static'"
+        title: Access Key ID
+      storageSecretAccessKey:
+        type: string
+        default: ""
+        description: "Secret access key, when auth type is 'static'"
+        title: Secret Access Key
+
+      mcpKnoxOAuth:
+        type: boolean
+        default: true
+        description: "Let MCP clients sign in through Knox SSO with the standard MCP OAuth flow, instead of pasting a Knox token. Opens /.well-known/*, /register and /token in the namespace to unauthenticated requests. Turn off to accept pasted Knox tokens only"
+        title: MCP OAuth Sign-in with Knox
+      knoxAuthUrl:
+        type: string
+        default: "http://knox.knox.svc.cluster.local:8443/gateway/knox-jwtauth/auth/api/v1/extauthz"
+        description: "Knox endpoint the MCP server asks to check tokens (with mcpKnoxOAuth): answers 200 and x-awc-username for a valid Bearer token"
+        title: Knox Token Check URL
+      mcpAllowedRedirectUris:
+        type: string
+        default: ""
+        description: "Comma-separated OAuth redirect URI prefixes accepted besides loopback ones (with mcpKnoxOAuth), e.g. https://claude.ai/api/mcp/auth_callback for claude.ai connectors"
+        title: MCP OAuth Redirect URIs
+
+      # Qbeast backend (USE): the optimization service. Sized for 5 worker nodes of 8 vCPU /
+      # 64 GiB (r6a.2xlarge), where Cloudera's platform pods already request about 18 vCPU
+      # and 28 GiB, leaving about 21 vCPU / 275 GiB. Executors are the internal SaaS
+      # workspace's (2 cores, 24 GiB pod); up to 3, enough to optimize a few tables of
+      # about 50 GB in the background.
+      driverMemory:
+        type: string
+        default: "10Gi"
+        description: "Qbeast backend: memory of its pod, the Spark driver (Kubernetes quantity, e.g. 10Gi). Must exceed Driver Heap Memory plus about 1g"
+        title: Backend Driver Memory
+      driverHeapMemory:
+        type: string
+        default: "7g"
+        description: "Qbeast backend: Spark driver JVM heap (spark.driver.memory, e.g. 7g)"
+        title: Backend Driver Heap Memory
+      driverCores:
+        type: integer
+        minimum: 1
+        default: 2
+        description: "Qbeast backend: Spark driver cores, also its pod's CPU"
+        title: Backend Driver Cores
+      executorMemory:
+        type: string
+        default: "16g"
+        description: "Qbeast backend: Spark executor heap (spark.executor.memory)"
+        title: Backend Executor Memory
+      executorMemoryOverhead:
+        type: string
+        default: "8g"
+        description: "Qbeast backend: Spark executor off-heap memory (spark.executor.memoryOverhead). The executor pod requests memory plus overhead"
+        title: Backend Executor Memory Overhead
+      executorCores:
+        type: integer
+        minimum: 1
+        default: 2
+        description: "Qbeast backend: Spark executor cores"
+        title: Backend Executor Cores
+      executorMinInstances:
+        type: integer
+        minimum: 1
+        default: 1
+        description: "Qbeast backend: minimum executors held by dynamic allocation"
+        title: Backend Min Executors
+      executorMaxInstances:
+        type: integer
+        minimum: 1
+        default: 3
+        description: "Qbeast backend: maximum executors dynamic allocation may scale to"
+        title: Backend Max Executors
+
+      # MCP sessions: one Spark driver (shell pod) and its executors per session. They make
+      # the "default" ComputeEngineProfile. The internal SaaS workspace's 8-core executors
+      # (7.25 vCPU requested) fit no 8-vCPU AWC node: the platform's daemonsets already
+      # request about 1.2 vCPU on each. 4-core executors (3.25 vCPU / 28 GiB requested)
+      # fit next to them; 3 per session query tables of about 50 GB. A 4th found no node
+      # with 3.25 vCPU free on qbeastv2-demo: what the platform and the backend leave is
+      # split across nodes.
+      mcpDriverMemory:
+        type: string
+        default: "8g"
+        description: "MCP sessions: Spark driver JVM heap (spark.driver.memory). The shell pod requests memory plus overhead"
+        title: MCP Driver Memory
+      mcpDriverMemoryOverhead:
+        type: string
+        default: "1g"
+        description: "MCP sessions: Spark driver off-heap memory (spark.driver.memoryOverhead)"
+        title: MCP Driver Memory Overhead
+      mcpDriverCores:
+        type: integer
+        minimum: 1
+        default: 2
+        description: "MCP sessions: Spark driver cores. The pod requests 750m less"
+        title: MCP Driver Cores
+      mcpExecutorMemory:
+        type: string
+        default: "24g"
+        description: "MCP sessions: Spark executor heap (spark.executor.memory)"
+        title: MCP Executor Memory
+      mcpExecutorMemoryOverhead:
+        type: string
+        default: "4g"
+        description: "MCP sessions: Spark executor off-heap memory (spark.executor.memoryOverhead). The executor pod requests memory plus overhead"
+        title: MCP Executor Memory Overhead
+      mcpExecutorCores:
+        type: integer
+        minimum: 1
+        default: 4
+        description: "MCP sessions: Spark executor cores. The pod requests 750m less"
+        title: MCP Executor Cores
+      mcpMinExecutors:
+        type: integer
+        minimum: 0
+        default: 0
+        description: "MCP sessions: minimum executors per session"
+        title: MCP Min Executors
+      mcpMaxExecutors:
+        type: integer
+        minimum: 1
+        default: 3
+        description: "MCP sessions: maximum executors per session"
+        title: MCP Max Executors
+
+      executorStorageClass:
+        type: string
+        default: ""
+        description: "StorageClass for executor scratch volumes (2 x 20Gi each). Empty uses the node's ephemeral storage"
+        title: Executor Storage Class
+
+  healthChecks:
+  - resource:
+      apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: "{{ .Metadata.Name }}-use"
+    condition:
+      type: Ready
+      status: "True"
+  - resource:
+      apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: "{{ .Metadata.Name }}-portal"
+    condition:
+      type: Ready
+      status: "True"

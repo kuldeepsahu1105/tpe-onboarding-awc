@@ -75,7 +75,9 @@ case "${1:-help}" in
   mcp)      ensure_env; if [ "${2:-}" = "config" ]; then
               printf '{\n  "mcpServers": {\n    "awc-onboarding": {\n      "command": "%s/bin/python",\n      "args": ["-m", "mcp_server.server"],\n      "cwd": "%s"\n    }\n  }\n}\n' "$VENV" "$ROOT"
             else py -m mcp_server.server; fi ;;
-  examples) ls examples/*.input.yaml examples/*/blueprint.input.yaml; echo; echo "Pre-built output: examples/bundles/" ;;
+  examples) ls examples/*.input.yaml examples/*/blueprint.input.yaml; echo; echo "Pre-built output: examples/bundles/"; echo "Hand-authored reference: examples/qbeast/ (./awc package qbeast)" ;;
+  package)  ensure_env; name="${2:?usage: ./awc package qbeast [output.zip]}"
+            py -m onboarding.reference_package "$name" "${3:-$name.zip}" ;;
   mirror)
             dir="${2:?usage: ./awc mirror <folder>}"
             exec bash "$TOOL/scripts/mirror_engine.sh" "$dir" ;;
@@ -108,6 +110,7 @@ AWC onboarding toolkit
   ./awc images <repo> <chart> <version>   list the images a Helm chart needs
   ./awc mcp                    start the MCP server for AI assistants (./awc mcp config prints client JSON)
   ./awc examples               list ready-made examples
+  ./awc package qbeast [file]  create the Qbeast reference ZIP
   ./awc doctor                 check which optional tools you have
   ./awc validate <form.yaml>   check an input form
   ./awc scaffold <form.yaml>   write a product folder from a form

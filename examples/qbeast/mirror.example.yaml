@@ -1,0 +1,16 @@
+# PLACEHOLDER ONLY. Not consumed automatically. Obtain exact sources,
+# destinations, versions, and the complete chart image list before mirroring.
+charts:
+  - repository: "<USE_CHART_SOURCE_REPOSITORY>"
+    name: "<USE_CHART_NAME>"
+    version: "<USE_CHART_VERSION>"
+    destination: "<DESTINATION_CHART_REPOSITORY>"
+  - repository: "<PORTAL_CHART_SOURCE_REPOSITORY>"
+    name: "<PORTAL_CHART_NAME>"
+    version: "<PORTAL_CHART_VERSION>"
+    destination: "<DESTINATION_CHART_REPOSITORY>"
+images:
+  - source: "<USE_IMAGE_SOURCE_WITH_TAG>"
+    destination: "<USE_IMAGE_DESTINATION_WITH_TAG>"
+  - source: "<PORTAL_IMAGE_SOURCE_WITH_TAG>"
+    destination: "<PORTAL_IMAGE_DESTINATION_WITH_TAG>"

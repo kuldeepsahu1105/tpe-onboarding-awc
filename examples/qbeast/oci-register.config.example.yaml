@@ -1,0 +1,8 @@
+# Example only: replace these values with the approved partner registry.
+# The password file stays outside this package and source control.
+registryHost: registry.example.com
+marketplacePrefix: qbeast
+auth:
+  kind: basic
+  username: replace-with-registry-user
+  passwordFile: /path/to/registry-password

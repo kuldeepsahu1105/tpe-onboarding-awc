@@ -282,6 +282,18 @@ def get_example(name: str) -> str:
 
 
 @mcp.tool()
+def get_reference_package(name: str) -> dict[str, str]:
+    """Get the hand-authored Qbeast reference files, including its prerequisites.
+
+    Unlike get_example, these are final manifests, not generator inputs.
+    Available package: qbeast.
+    """
+    from onboarding.reference_package import reference_files
+
+    return {path: content.decode("utf-8") for path, content in reference_files(name).items()}
+
+
+@mcp.tool()
 def get_concepts_doc() -> str:
     """Return docs/AWC_CONCEPTS.md -- the full AWC CRD model (Engine,
     Blueprint, Capability, ChartCatalog, ImageCatalog, Role,

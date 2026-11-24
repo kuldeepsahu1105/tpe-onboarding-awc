@@ -75,6 +75,8 @@ table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padd
 <section id="yaml" class="card hide">
  <label for="exsel">Load an example</label>
  <select id="exsel" onchange="loadEx('yamlta',this)"></select>
+ <p class="help">Qbeast is a hand-authored reference, not a generator input. Its ZIP includes separate manifests and documents external prerequisites.</p>
+ <div class="row"><a href="/api/reference-package?name=qbeast" download="qbeast.zip">Download Qbeast reference ZIP</a></div>
  <p class="help">Optional fields get a default. A Marketplace tile needs its short tagline. Generate stops when a required field is missing.</p>
  <textarea id="yamlta" placeholder="partner: {id: neo4j, owner: &quot;Neo4j, Inc.&quot;}&#10;engine: {displayName: &quot;Neo4j&quot;, description: &quot;Native graph database (Community) with Browser UI and Bolt.&quot;, template: helm-simple}&#10;helm: {repoUrl: &quot;https://helm.neo4j.com/neo4j&quot;, chart: neo4j, version: &quot;5.26.0&quot;}&#10;blueprint: {outcome: &quot;Graph database&quot;}"></textarea>
  <div id="yamlErr" class="err"></div>

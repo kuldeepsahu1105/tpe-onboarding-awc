@@ -27,6 +27,8 @@ cd /path/to/tpe-onboarding-awc
 5. Download the zip or open the file list. Faster alternatives: pick a ready-made example in the
    **Paste input.yaml** tab (Neo4j, StarRocks, PuppyGraph, ...) and run it, or use the **Blueprint** tab to
    combine several engines.
+   For Qbeast, use **Download Qbeast reference ZIP** in that tab instead. This
+   packages the supplied manifests and a derived capability contract, not a generated input.
 6. Go to **Publish** section below.
 
 ## Method 2 — CLI (no AI)
@@ -38,6 +40,9 @@ cd /path/to/tpe-onboarding-awc
    file. In `vi`, `i` edits; `Esc` then `:wq` + Enter saves/quits; `:q!` discards.
 3. Not sure which images the chart needs? `./awc images <repoUrl> <chart> <version>`.
 4. `./awc build my-app.input.yaml` writes `output/my-app/` and validates it. Fix errors, re-run.
+
+For the hand-authored Qbeast reference, run `./awc package qbeast [output.zip]`.
+Read its README for the external catalogs and other deployment prerequisites.
 
 **B. Answer questions in the terminal**
 1. `./awc wizard`. Each question prints an `e.g.` example. Type `?` for help, Enter for the default.
@@ -72,6 +77,8 @@ cd /path/to/tpe-onboarding-awc
    `onboard_engine` with a YAML blob) → `generate_bundle` → `validate_bundle`.
    Helpers: `discover_images`, `compose_blueprint`, `list_examples`, `get_example`, `add_dependency`,
    `get_status`, `get_concepts_doc`, `get_onboarding_guide`.
+   Use `get_reference_package("qbeast")` for the supplied Qbeast manifests and
+   partner instructions; these are not generator inputs.
 4. Tip: tell the assistant to "ask me one question at a time with an example", or to
    "start from the starrocks example and change the version".
 
