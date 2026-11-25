@@ -1,36 +1,77 @@
-# tpe-onboarding-awc is Cloudera partner third-party engine onboarding for Anywhere Cloud (AWC)
+# Partner engine onboarding
 
-You finish with a product folder (an engine, the product definition) and an install guide (a blueprint) a customer can deploy. Those files are written on your computer first. Pushing to an image registry and installing into a cluster are separate commands.
+Create and check Anywhere Cloud (AWC) engine files on your computer. Copying
+images to a registry, publishing, and installing are separate steps.
 
-Toolkit for onboarding any data/big-data app onto the Cloudera Anywhere Cloud (AWC)
-marketplace. Works with or without AI (web UI, CLI wizard, MCP server).
+## Fastest start: web workbench
 
-**Start here:** from this repo, run `./awc ui`. One command opens the workbench. `./awc help` and `make help` list the same flow: generate, validate, blueprint, mirror, and publish. The workbench and those actions live in this repository.
+Requirements: Python 3.10 or newer.
 
-Before generating a bundle, follow the [configuration edit commands and parameter
-checklists](docs/ONBOARDING_GUIDE.md#edit-source-configuration-before-running)
-for YAML inputs, conditional settings, credentials, and offline validation.
+```sh
+./awc doctor
+./awc ui
+```
 
-Examples have distinct purposes: `examples/*.input.yaml` are inputs to the main
-generator, `engine-onboarding/examples/` contains the separate input-form schema
-examples, and `examples/bundles/` holds generated snapshots. Hand-authored
-packages such as `examples/neo4j/` and `examples/qbeast/` are separate from those
-snapshots; their contents and configuration are not interchangeable.
+Open <http://127.0.0.1:8765>, then:
 
-The self-hosted Engine package is in [`tpe-onboarding/`](tpe-onboarding/README.md);
-the running application remains at the repository root.
+1. Choose **Guided questions**, **Paste YAML**, or **Install guide**.
+2. Select an example if you want a starting point.
+3. Choose **Create and check files**.
+4. Choose **Save on this computer** or **Download ZIP**.
 
-The [Qbeast reference](examples/qbeast/README.md) organizes its supplied
-Qbeast 1.3.12 manifests and catalogs. Download it from **Paste input.yaml** in
-the workbench, or create `qbeast.zip` with `./awc package qbeast`. Source registry
-access and platform-specific deployment prerequisites apply; it is not generated
-from an input form.
+Saved files go under `output/<folder-name>/`. The workbench checks them again
+before saving and will not replace an existing folder.
 
-Blueprint generation defaults to the current marketplace `hardwareTiers` shape.
-Use `blueprint.format: legacy` to retain the earlier generator output. See the
-[Blueprint and dependency guide](docs/ONBOARDING_GUIDE.md#2-multi-engine-app-or-combining-with-existing-experiences)
-and `examples/polaris-udf.blueprint.input.yaml` for the shared-UDF distinction.
+## Build from the terminal
 
-For offline infrastructure cost estimates and separate billed costs, use
-`./awc cost-report` with explicit inventory and price exports. The sample data
-is illustrative, not live pricing. See [cost reporting](docs/COST_REPORTING.md).
+Start a new input file, edit it, then create and check the package:
+
+```sh
+./awc new my-app
+vi my-app.input.yaml
+./awc build my-app.input.yaml
+```
+
+In `vi`, press `i` to edit; press `Esc`, type `:wq`, then press Enter to save.
+The files are written to `output/my-app/`. Replace all sample names, versions,
+image and chart locations, and registry settings before using the package.
+
+See available starting points:
+
+```sh
+./awc examples
+```
+
+## Copy, preview, and publish
+
+Review the scripts first. `publish` without `--push` runs a preview using the
+Marketplace command-line tool; only `--push` publishes.
+
+```sh
+bash -n output/my-app/mirror.sh output/my-app/publish.sh
+./awc mirror output/my-app
+./awc publish output/my-app
+# Publish only when the target and files are approved:
+./awc publish output/my-app --push
+```
+
+## Share a fictional sample ZIP
+
+The sample ZIP contains made-up values, placeholder addresses, and no
+executable scripts. It is for reviewing file layout only; it is not a real
+Qbeast package and cannot be installed or published.
+
+```sh
+./awc package sample sample-partner.zip
+```
+
+## More help
+
+- [Copy-and-run instructions](docs/USAGE.md)
+- [Detailed setup and input checklist](docs/ONBOARDING_GUIDE.md)
+- [Advanced YAML options](docs/ADVANCED_OPTIONS.md)
+- [How the toolkit works](docs/HOW_IT_WORKS.md)
+- `./awc help` — all commands
+
+The real Qbeast implementation files remain under `examples/qbeast/`; they are
+not included in the shareable sample ZIP.

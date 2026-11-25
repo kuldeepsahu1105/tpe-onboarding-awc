@@ -175,15 +175,17 @@ Examples: `examples/dataspark.input.yaml` (one native app; API, auth, and databa
 ```bash
 ./awc ui                    # then open http://127.0.0.1:8765
 ```
-Three tabs: guided questions (with dependency form), paste `input.yaml`, and the
-multi-engine Blueprint composer. Results show validation, each generated file, and a .zip download.
-The CLI above and this UI are fully standalone; AI is optional.
+Choose Guided questions, Paste YAML, or Install guide. After **Create and check
+files**, save the checked result under `output/` or download its ZIP. A separate
+fictional sample ZIP is available for reviewing package layout; it uses
+placeholder values and is not ready to install or publish. The CLI and web UI
+are standalone; AI is optional.
 Use the same key checklists for form answers and pasted YAML. Keep repeatable
-YAML in your own input files (`vi my-app.input.yaml`); edit and re-paste rather
-than modifying ZIP outputs. Use the paste-YAML tab for fields not collected by
-the guided questions, such as a complete `images[]` list or `engine.roles[]`.
-In the composer UI, supplied engine filenames must
-match the `engines[].input` references.
+YAML in your own input files (`vi my-app.input.yaml`); edit and paste it again
+rather than changing downloaded or generated files. Use Paste YAML for fields
+not collected by the guided questions, such as a complete `images[]` list or
+`engine.roles[]`. In the install guide, filenames must match the paths listed
+in `engines[].input`.
 
 ## 4. With an AI agent (MCP, optional)
 ```bash
@@ -193,7 +195,7 @@ Tools: `start_session`, `get_next_question`, `answer_question`, `add_dependency`
 `load_answers`, `generate_bundle`, `validate_bundle`, `onboard_engine`,
 `compose_blueprint`, `list_examples`, `get_example`, docs tools.
 MCP passes the same answers/Blueprint inputs; it does not require an environment
-file. For client connection setup, see [USAGE.md](USAGE.md#method-3--ai-assistant-via-mcp-optional).
+file. For client connection setup, see [USAGE.md](USAGE.md#optional-connect-an-ai-assistant).
 
 ## Charts, images, mirroring and publishing
 Declare every image the app needs under `images:` (strings like

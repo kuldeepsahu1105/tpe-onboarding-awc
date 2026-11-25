@@ -124,10 +124,11 @@ verified against a live registry or cluster here:
   1.24.0 and `portal` 1.8.0, images from `<REGISTRY>/<NAMESPACE>/images/`, no
   reference left to `registry.example.invalid`, the portal's license without
   `pullSecretName`.
-- The toolkit's reference-package checks (`onboarding/reference_package.py`): one
+- The toolkit's reference-file checks (`onboarding/reference_package.py`): one
   Blueprint referencing the Engine, Role/RoleBinding/ClusterRole, the catalog names
   and ids the engine uses, the Capability provided by the engine. Plus `mirror.yaml`
-  matching the catalogs.
+  matching the catalogs. These real Qbeast files remain in this folder and are not
+  included in the fictional, shareable sample ZIP.
 - The 1.3.x engine runs on Qbeast's AWC demo cluster (Console deploy, portal, MCP
   sessions from Claude).
 
@@ -149,7 +150,7 @@ cluster (1.3.12 changes only the portal's license prefill).
   only the portal and the MCP server are meant to be reachable from outside the
   workspace. Engines older than 1.3.12 still validate against it (they provide
   `sparkConnect` as an extra field), and nothing consumes the Capability yet.
-- `onboarding/reference_package.py` packages the actual catalog and mirror names.
+- `onboarding/reference_package.py` checks the actual catalog and mirror names.
 - No `clusterrequirements.yaml`: the Blueprint's `hardwareTiers` carry the sizing.
 
 ## Boundaries

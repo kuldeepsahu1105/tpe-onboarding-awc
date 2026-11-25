@@ -3,8 +3,8 @@
     python -m web.app [--port 8765]
 
 Same engine as the CLI/MCP server: guided questions, paste-YAML one-shot,
-and a multi-engine Blueprint composer. The legacy launchpad panels record
-intent only; separately confirmed local operations invoke external tools.
+and a multi-engine Blueprint composer. Validated bundles can be saved locally;
+separately confirmed operations invoke external tools.
 """
 
 from __future__ import annotations
@@ -15,17 +15,17 @@ import io
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
 import tempfile
 import threading
 import time
-import uuid
 import zipfile
-from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from pathlib import PurePosixPath
 from urllib.parse import parse_qs, urlparse
 
 import yaml
@@ -34,7 +34,7 @@ from onboarding import questions as q
 from onboarding.blueprint_composer import compose_blueprint
 from onboarding.generator import render_bundle
 from onboarding.manifest import normalize
-from onboarding.reference_package import PACKAGES, reference_zip
+from onboarding.reference_package import DOWNLOADABLE_PACKAGES, reference_zip
 from onboarding.session import Session
 from onboarding.validator import validate_bundle
 
@@ -42,108 +42,7 @@ ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = ROOT / "examples"
 INDEX = Path(__file__).with_name("index.html")
 
-# In-memory only. Passwords are never stored. Restarting the UI clears the table.
-_jobs_lock = threading.Lock()
-_jobs: list[dict] = []
 _operations_lock = threading.Lock()
-_QUEUE_ACTIONS = {"validate", "mirror", "publish", "copy"}
-_LAUNCHPAD_ABSENT = (
-    "The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer. "
-    "The password was not stored or sent. "
-    "Use mirror.sh, then publish.sh --push, from the engine directory."
-)
-
-
-def _record_job(kind: str, status: str, detail: str) -> dict:
-    job = {
-        "id": str(uuid.uuid4()),
-        "when": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
-        "type": kind,
-        "status": status,
-        "detail": detail,
-    }
-    with _jobs_lock:
-        _jobs.insert(0, job)
-        del _jobs[50:]
-    return job
-
-
-def _creds_present(username: str, password: str) -> bool:
-    return bool((username or "").strip()) and bool(password)
-
-
-_COPY_ABSENT = (
-    "Nothing was copied. The product list cannot be loaded yet, so this only updates the list on this page. "
-    "Your files stay on this computer. The password was not stored or sent."
-)
-_PUBLISH_ABSENT = (
-    "The product list cannot be loaded yet, so this only updates the list on this page. "
-    "Your files stay on this computer. The password was not stored or sent."
-)
-
-
-def launchpad_queue(action: str, username: str, password_present: bool, registry: str, slug: str) -> dict:
-    """Record a copy or publish click. The password itself is never accepted or stored."""
-    if action not in _QUEUE_ACTIONS:
-        job = _record_job(action or "publish", "failed", "That action is not available. Nothing was sent.")
-        return {"error": job["detail"], "job": job}
-    if not (slug or "").strip():
-        job = _record_job(action, "failed", "Set the folder name on the first step before sending images. Nothing was sent.")
-        return {"error": job["detail"], "job": job}
-    if not (registry or "").strip():
-        job = _record_job(action, "failed", "Registry host is empty. Nothing was sent.")
-        return {"error": job["detail"], "job": job}
-    if not (username or "").strip() or not password_present:
-        job = _record_job(
-            action, "failed",
-            "Registry username and password are required to push. Nothing was sent. The password is not saved.",
-        )
-        return {"error": job["detail"], "job": job}
-    if action == "copy":
-        detail = _COPY_ABSENT
-    elif action == "publish":
-        detail = _PUBLISH_ABSENT
-    else:
-        detail = _LAUNCHPAD_ABSENT
-    job = _record_job(action, "failed", detail)
-    return {"error": job["detail"], "job": job}
-
-
-def _stage_bundle(d: dict) -> dict:
-    """Generate the session bundle locally. Does not upload or read VPN credentials."""
-    slug = (d.get("slug") or "").strip()
-    session_name = (d.get("session") or "").strip()
-    if not slug:
-        job = _record_job("stage", "failed", "Set the folder name on the first step before creating files. Nothing was written.")
-        return {"error": job["detail"], "job": job}
-    if not session_name:
-        job = _record_job("stage", "failed", "Session name is required. Nothing was staged.")
-        return {"error": job["detail"], "job": job}
-    result = run_answers(Session.load(session_name).answers)
-    if result.get("ok") is False or result.get("problems") or result.get("error"):
-        detail = result.get("error") or " ".join(p["message"] for p in result.get("problems") or [])
-        job = _record_job("stage", "failed", detail or "The check failed. Nothing was written.")
-        return {"ok": False, "error": job["detail"], "problems": result.get("problems") or [], "job": job}
-    count = len(result.get("files") or {})
-    detail = (
-        f"Staged {count} files for partners/{slug}/ in this UI process. "
-        "Nothing was uploaded."
-    )
-    job = _record_job("stage", "succeeded", detail)
-    return {"ok": True, "job": job, "files": count}
-
-
-def launchpad_catalog(username: str, password: str, registry: str) -> dict:
-    """Layout stays. This checkout does not call Partner Launchpad. The password is not stored."""
-    del username, password
-    return {
-        "images": [],
-        "partners": [],
-        "registry": (registry or "").strip(),
-        "message": "The product list cannot be loaded yet, so this only updates the list on this page. Your files stay on this computer.",
-    }
-
-
 def run_local_operation(action: str, path: str, confirmed: bool) -> dict:
     """Run a reviewed local script or the external registry CLI without exposing its output."""
     registry_actions = {"registry-init", "registry-plan", "registry-verify", "registry-apply"}
@@ -171,14 +70,14 @@ def run_local_operation(action: str, path: str, confirmed: bool) -> dict:
         else:
             base_path = ROOT / "output"
             if base_path.is_symlink() or not base_path.is_dir():
-                return {"ok": False, "error": "Build a bundle under output/ first."}
+                return {"ok": False, "error": "Save the files in output/ before running this action."}
             base = base_path.resolve()
             if target == base or base not in target.parents or not target.is_dir():
-                return {"ok": False, "error": "Choose a bundle directory inside this repository's output/."}
+                return {"ok": False, "error": "Choose a saved files folder inside the project's output/ folder."}
             script_name = "mirror.sh" if action == "mirror" else "publish.sh"
             script = target / script_name
             if script.is_symlink() or not script.is_file():
-                return {"ok": False, "error": f"The selected bundle has no regular {script_name}."}
+                return {"ok": False, "error": "This folder is missing a required operation file."}
             if action == "mirror":
                 command = ["bash", str(ROOT / "engine-onboarding/scripts/mirror_engine.sh"), str(target)]
                 help_command = "./awc mirror <bundle-directory>"
@@ -216,54 +115,6 @@ def _qpayload(question, answers):
         "required": question.required, "default": default,
         "example": q.EXAMPLES.get(question.id, ""),
     }
-
-
-def _registry_text(data: dict, *paths: str) -> str:
-    if not isinstance(data, dict):
-        return ""
-    for path in paths:
-        value = q._get(data, path)
-        if isinstance(value, str) and value.strip():
-            return value.strip()
-    return ""
-
-
-def _registry_payload(data: dict) -> dict:
-    """Host and repository for the Publish tab. Password is never read."""
-    host = _registry_text(data, "publish.host", "publish.registry")
-    if not host:
-        host = _registry_text(data, "publish.destinationRegistry")
-    repo = _registry_text(data, "publish.repository", "publish.repo")
-    if not repo:
-        repo = _registry_text(data, "publish.namespace")
-    return {
-        "folder": _registry_text(data, "partner.id"),
-        "registry": host,
-        "repository": repo,
-    }
-
-
-def _merge_registry(primary: dict, extra: dict) -> dict:
-    merged = dict(primary)
-    for key in ("folder", "registry", "repository"):
-        if not str(merged.get(key) or "").strip():
-            merged[key] = extra.get(key) or ""
-    return merged
-
-
-def _registry_from_request(session_id: str, raw_yaml: str = "") -> dict:
-    payload = _registry_payload(Session.load(session_id or "default").answers)
-    if str(raw_yaml or "").strip() and (
-        not payload["registry"] or not payload["repository"] or not payload["folder"]
-    ):
-        try:
-            loaded = yaml.safe_load(raw_yaml) or {}
-        except yaml.YAMLError:
-            loaded = {}
-        if isinstance(loaded, dict):
-            payload = _merge_registry(payload, _registry_payload(loaded))
-    return payload
-
 
 
 _FORM_KEYS = ("directory", "engine", "imageCatalog", "chartCatalog", "helm")
@@ -446,10 +297,98 @@ def run_blueprint(blueprint_text: str, engines: dict) -> dict:
                 problems.append(_problem(name, err.get("file") or name, err.get("message") or "Check failed"))
         if problems or not result.get("ok", True):
             return {"ok": False, "problems": problems or [_problem("blueprint", "blueprint.yaml", "The install guide did not pass the check. Fix the items above.")]}
-        bundled = _bundle_result(Path(result["out_dir"]), reports, {"ok": True})
+        bundled = _bundle_result(
+            Path(result["out_dir"]), reports, {"ok": True, "folder": bp.get("name", "")}
+        )
         count = len(bundled.get("files") or {})
         bundled["passed"] = f"Check passed. {count} files are ready."
         return bundled
+
+
+def save_generated_bundle(data: dict) -> dict:
+    """Revalidate submitted source and save generated files under output/ without overwriting."""
+    kind = data.get("kind")
+    if kind == "session":
+        session_id = str(data.get("session") or "")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,62}", session_id):
+            return {"ok": False, "error": "Session name is invalid."}
+        result = run_answers(Session.load(session_id).answers)
+    elif kind == "yaml":
+        text = data.get("yaml")
+        if not isinstance(text, str) or not text.strip():
+            return {"ok": False, "error": "Paste the product YAML before saving."}
+        try:
+            answers = yaml.safe_load(text)
+        except yaml.YAMLError:
+            return {"ok": False, "error": "The product YAML is invalid. Fix it and validate again."}
+        if not isinstance(answers, dict):
+            return {"ok": False, "error": "The product YAML must contain named fields."}
+        result = run_answers(answers)
+    elif kind == "blueprint":
+        blueprint = data.get("blueprint")
+        engines = data.get("engines")
+        if not isinstance(blueprint, str) or not isinstance(engines, dict):
+            return {"ok": False, "error": "The install guide and engine files are required."}
+        result = run_blueprint(blueprint, engines)
+    else:
+        return {"ok": False, "error": "Generate a product or Blueprint before saving."}
+
+    if not result.get("ok") or not result.get("files"):
+        issues = result.get("problems") or []
+        detail = " ".join(issue.get("message", "") for issue in issues[:3]).strip()
+        return {"ok": False, "error": detail or "Validated output files are not available to save."}
+
+    folder = str(data.get("folder") or result.get("folder") or "").strip()
+    if not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", folder):
+        return {"ok": False, "error": "Choose a folder name using lowercase letters, numbers, and hyphens."}
+
+    files = result["files"]
+    if len(files) > 200:
+        return {"ok": False, "error": "The bundle contains too many files to save from the workbench."}
+    safe_files: list[tuple[PurePosixPath, str]] = []
+    total_bytes = 0
+    for name, content in files.items():
+        if not isinstance(name, str) or "\\" in name or "\0" in name:
+            return {"ok": False, "error": "The generated bundle contains an unsafe file path."}
+        relative = PurePosixPath(name)
+        if (
+            relative.is_absolute()
+            or relative.as_posix() != name
+            or any(part in ("", ".", "..") for part in relative.parts)
+            or relative.suffix not in (".yaml", ".sh")
+            or not isinstance(content, str)
+        ):
+            return {"ok": False, "error": "The generated bundle contains an unsupported file path or type."}
+        total_bytes += len(content.encode("utf-8"))
+        safe_files.append((relative, content))
+    if not safe_files or total_bytes > 4 * 1024 * 1024:
+        return {"ok": False, "error": "The generated bundle is empty or too large to save."}
+
+    output_root = ROOT / "output"
+    target = output_root / folder
+    created = False
+    try:
+        if output_root.is_symlink():
+            return {"ok": False, "error": "The output directory cannot be a symbolic link."}
+        output_root.mkdir(exist_ok=True)
+        if not output_root.is_dir() or output_root.resolve().parent != ROOT.resolve():
+            return {"ok": False, "error": "The output directory is not a safe local folder."}
+        target.mkdir()
+        created = True
+        for relative, content in safe_files:
+            path = target.joinpath(*relative.parts)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
+            if path.suffix == ".sh":
+                path.chmod(0o755)
+    except FileExistsError:
+        return {"ok": False, "error": f"output/{folder} already exists. Choose a new folder name; existing files were not changed."}
+    except OSError as exc:
+        if created:
+            shutil.rmtree(target, ignore_errors=True)
+        return {"ok": False, "error": f"Could not save the bundle locally: {exc}"}
+
+    return {"ok": True, "path": f"output/{folder}", "files": len(safe_files)}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -483,7 +422,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(names)
         if url.path == "/api/reference-package":
             name = qs.get("name", "")
-            if name not in PACKAGES:
+            if name not in DOWNLOADABLE_PACKAGES:
                 return self._send({"error": "not found"}, 404)
             try:
                 package = reference_zip(name)
@@ -496,14 +435,7 @@ class Handler(BaseHTTPRequestHandler):
             if EXAMPLES.resolve() not in path.parents or not path.is_file():
                 return self._send({"error": "not found"}, 404)
             text = path.read_text()
-            loaded: dict = {}
-            try:
-                parsed = yaml.safe_load(text) or {}
-                if isinstance(parsed, dict):
-                    loaded = parsed
-            except yaml.YAMLError:
-                loaded = {}
-            return self._send({"text": text, **_registry_payload(loaded)})
+            return self._send({"text": text})
         if url.path == "/api/question":
             s = Session.load(qs.get("session", "default"))
             question = s.next_question()
@@ -511,16 +443,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._send({"done": question is None, "answered": done, "total": total,
                                "shortName": q._get(s.answers, "partner.id") or "",
                                "question": question and _qpayload(question, s.answers)})
-        if url.path == "/api/registry-answers":
-            return self._send(_registry_from_request(qs.get("session", "default")))
-        if url.path == "/api/launchpad/jobs":
-            with _jobs_lock:
-                return self._send({"jobs": list(_jobs)})
         self._send({"error": "not found"}, 404)
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path == "/api/operations":
+        if path in {"/api/operations", "/api/save-bundle"}:
             host = self.headers.get("Host", "")
             port = self.server.server_address[1]
             local_hosts = {f"localhost:{port}", f"127.0.0.1:{port}"}
@@ -532,7 +459,8 @@ class Handler(BaseHTTPRequestHandler):
                 length = int(self.headers.get("Content-Length", "0"))
             except ValueError:
                 return self._send({"ok": False, "error": "Invalid request length."}, 400)
-            if not 0 < length <= 16384:
+            maximum_length = 6 * 1024 * 1024 if path == "/api/save-bundle" else 16384
+            if not 0 < length <= maximum_length:
                 return self._send({"ok": False, "error": "Invalid request length."}, 400)
         data = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
         try:
@@ -575,8 +503,6 @@ class Handler(BaseHTTPRequestHandler):
             s.answers = {}
             s.save()
             return {"ok": True}
-        if path == "/api/registry-answers":
-            return _registry_from_request(d.get("session") or "default", d.get("yaml") or "")
         if path == "/api/run-session":
             return run_answers(Session.load(d["session"]).answers)
         if path == "/api/run-yaml":
@@ -592,24 +518,10 @@ class Handler(BaseHTTPRequestHandler):
             return run_answers(loaded)
         if path == "/api/run-blueprint":
             return run_blueprint(d["blueprint"], d.get("engines", {}))
+        if path == "/api/save-bundle":
+            return save_generated_bundle(d)
         if path == "/api/operations":
             return run_local_operation(d.get("action"), d.get("path"), d.get("confirmed"))
-        if path == "/api/launchpad/stage":
-            return _stage_bundle(d)
-        if path == "/api/launchpad/queue":
-            # Presence only. The password string is dropped and never stored or logged.
-            password = d.pop("password", None)
-            password_present = bool(password) or bool(d.get("passwordPresent"))
-            del password
-            return launchpad_queue(
-                d.get("action") or "",
-                d.get("username") or "",
-                password_present,
-                d.get("registry") or "",
-                d.get("slug") or "",
-            )
-        if path == "/api/launchpad/catalog":
-            return launchpad_catalog(d.get("username") or "", d.get("password") or "", d.get("registry") or "")
         return {"error": "not found"}
 
     def log_message(self, *a):

@@ -1,0 +1,10 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: ChartCatalog
+metadata:
+  name: sample-chartcatalog
+spec:
+  charts:
+    - id: sample-engine
+      registry: registry.example.invalid
+      repository: example-partner/sample-engine
+      version: 0.1.0

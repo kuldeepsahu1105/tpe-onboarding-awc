@@ -1,18 +1,18 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><link rel="icon" href="/cloudera-favicon.ico" type="image/x-icon"><title>Cloudera partner third-party engine onboarding</title>
+<html><head><meta charset="utf-8"><link rel="icon" href="/cloudera-favicon.ico" type="image/x-icon"><title>Partner engine onboarding | Cloudera</title>
 <style>
 *{box-sizing:border-box}
 @font-face{font-family:"Source Sans 3";src:url("/fonts/SourceSans3-Regular.otf") format("opentype");font-weight:400;font-style:normal}
 @font-face{font-family:"Source Sans 3";src:url("/fonts/SourceSans3-Bold.otf") format("opentype");font-weight:600;font-style:normal}
 body{margin:0;background:#f2f2f2;color:#1a1a1a;font-family:"Source Sans 3","Source Sans Pro","Helvetica Neue",Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;font-weight:400}
 .shell{max-width:1100px;margin:0 auto;padding:0 24px}
-header{background:#fff;height:64px;border-bottom:2px solid #cedbe4}
-header .shell{height:64px;display:flex;align-items:center;gap:16px}
+header{background:#fff;min-height:64px;border-bottom:2px solid #cedbe4}
+header .shell{min-height:64px;display:flex;align-items:center;gap:16px;padding-top:10px;padding-bottom:10px}
 header img{height:28px;width:auto;display:block}
-header h1{margin:0;color:#1a1a1a;font-size:20px;font-weight:600;line-height:1.2}
+header h1{margin:0;color:#1a1a1a;font-size:26px;font-weight:600;line-height:1.2}
 .sub{margin:16px auto 0;color:#5C6570;font-size:15px}
-nav.shell{display:flex;flex-wrap:nowrap;gap:8px;margin-top:8px;border-bottom:1px solid #E4E6EB;scroll-margin-top:8px}
-nav button{flex:0 0 auto;border:0;background:none;padding:12px 4px;margin-right:20px;cursor:pointer;font-size:14px;font-weight:400;color:#1B1B1B;border-bottom:3px solid transparent;white-space:nowrap}
+nav.shell{display:flex;flex-wrap:nowrap;gap:8px;margin-top:8px;border-bottom:1px solid #E4E6EB;scroll-margin-top:8px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+nav button{flex:0 0 auto;min-height:44px;border:0;background:none;padding:12px 4px;margin-right:20px;cursor:pointer;font-size:14px;font-weight:400;color:#1B1B1B;border-bottom:3px solid transparent;white-space:nowrap}
 nav button.on{border-bottom-color:#5555f9;color:#5555f9;font-weight:600}
 main.shell{margin-top:16px;margin-bottom:32px}
 .card{background:#fff;border:1px solid #E4E6EB;border-radius:8px;padding:24px}
@@ -23,9 +23,9 @@ main.shell{margin-top:16px;margin-bottom:32px}
 .session input{width:240px;flex:0 0 240px;height:auto;min-height:44px;margin:0}
 input,select,textarea{display:block;width:100%;box-sizing:border-box;padding:10px 12px;margin:8px 0 0;border:1px solid #cedbe4;border-radius:6px;font-family:inherit;font-size:14px;line-height:1.45;background:#fff;color:#1a1a1a}
 textarea{font-family:ui-monospace,monospace;font-size:14px;line-height:1.45;min-height:220px;padding:10px 12px}
-button{height:40px;border-radius:6px;font-family:inherit;font-size:14px;font-weight:600;line-height:1.45;cursor:pointer}
-button.p{background:#ff550d;color:#fff;border:0;padding:0 16px}
-button.p:hover{background:#e04c0c}
+button{min-height:44px;border-radius:6px;font-family:inherit;font-size:14px;font-weight:600;line-height:1.45;cursor:pointer}
+button.p{background:#c43f00;color:#fff;border:0;padding:0 16px}
+button.p:hover{background:#a93600}
 button.s{background:#fff;color:#1a1a1a;border:1px solid #cedbe4;padding:0 14px}
 a{color:#413cc3}
 input:focus,select:focus,textarea:focus{outline:2px solid #ff550d;outline-offset:2px}
@@ -33,7 +33,7 @@ button:focus{outline:2px solid #5555f9;outline-offset:2px}
 .row,.actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:16px;margin-bottom:8px}
 .hide{display:none}
 .help{color:#5C6570;font-size:14px;line-height:1.45;margin:8px 0}
-h3{margin:20px 0 8px;font-size:18px;font-weight:600;line-height:1.45}
+h3{margin:20px 0 8px;font-size:20px;font-weight:600;line-height:1.35}
 .actions button{height:40px}
 label{font-weight:600;display:block;margin:16px 0 8px}
 .help + input,.help + select,.help + textarea,label + input,label + select,label + textarea{margin-top:8px}
@@ -46,210 +46,156 @@ ul.ready li{margin:8px 0}
 .err{color:#b00020;margin:8px 0 0}.ok{color:#0a7d33}.warn{color:#9a6700}
 pre{background:#1B1B1B;color:#f2f2f2;padding:12px;border-radius:6px;overflow:auto;max-height:420px;font-size:13px;white-space:pre-wrap;word-break:break-word}
 .tabs{display:flex;flex-wrap:wrap;gap:8px}.tabs button.on{background:#fff;color:#5555f9;border-bottom:3px solid #5555f9}
-table.jobs{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}
-table.jobs th,table.jobs td{border-bottom:1px solid #E4E6EB;text-align:left;padding:10px 12px;vertical-align:top}
+.engine-input{margin-top:16px;padding-top:16px;border-top:1px solid #E4E6EB}
+@media(max-width:640px){
+ .shell{padding:0 16px}
+ header .shell{gap:10px}
+ header h1{font-size:22px}
+ h3{font-size:18px}
+ .card{padding:16px}
+ .session{flex-wrap:wrap}
+ .session input{width:100%;flex:1 1 100%}
+ .row button,.actions button{flex:1 1 100%}
+ textarea{min-height:180px}
+}
 </style></head><body>
 <header>
  <div class="shell">
   <img src="/cloudera-logo.png" alt="Cloudera" height="22">
-  <h1>Cloudera partner third-party engine onboarding</h1>
+  <h1>Partner engine onboarding</h1>
  </div>
 </header>
-<p class="shell sub">TPE onboarding for Anywhere Cloud (AWC).</p>
+<p class="shell sub">Third-party engines for Anywhere Cloud (AWC).</p>
 <nav id="nav" class="shell">
- <button data-t="guided" class="on">Guided questions</button>
- <button data-t="yaml">Paste input.yaml</button>
- <button data-t="bp">Blueprint (multi-engine)</button>
- <button data-t="publish">Publish &amp; OCI</button>
- <button data-t="catalog">OCI catalog</button>
+ <button type="button" data-t="guided" class="on" aria-pressed="true" aria-controls="guided">Guided questions</button>
+ <button type="button" data-t="yaml" aria-pressed="false" aria-controls="yaml">Paste YAML</button>
+ <button type="button" data-t="bp" aria-pressed="false" aria-controls="bp">Install guide</button>
+ <button type="button" data-t="publish" aria-pressed="false" aria-controls="publish">Registry actions</button>
+ <button type="button" data-t="catalog" aria-pressed="false" aria-controls="catalog">Marketplace</button>
 </nav>
 <main class="shell">
 <section id="guided" class="card">
  <div class="track"><div id="prog"></div></div>
- <div class="session"><label for="sid">This setup</label>
+ <div class="session"><label for="sid">Setup name</label>
   <input id="sid" value="my-engine">
-  <button class="s" onclick="loadQ()">Start / resume</button>
-  <button class="s" onclick="resetS()">Reset</button></div>
- <div id="qbox"></div>
+  <button type="button" class="s" onclick="loadQ()">Continue setup</button>
+  <button type="button" class="s" onclick="resetS()">Reset</button></div>
+ <div id="qbox" aria-live="polite"></div>
 </section>
 <section id="yaml" class="card hide">
  <label for="exsel">Load an example</label>
  <select id="exsel" onchange="loadEx('yamlta',this)"></select>
- <p class="help">Qbeast is a hand-authored reference, not a generator input. Its ZIP includes separate manifests and documents external prerequisites.</p>
- <div class="row"><a href="/api/reference-package?name=qbeast" download="qbeast.zip">Download Qbeast reference ZIP</a></div>
- <p class="help">Optional fields get a default. A Marketplace tile needs its short tagline. Generate stops when a required field is missing.</p>
+ <p class="help">The sample ZIP uses made-up names and safe placeholder addresses. It is for review only, not ready to install or publish.</p>
+ <div class="row"><a href="/api/reference-package?name=sample" download="sample-partner.zip">Download fictional sample ZIP</a></div>
+ <p class="help">Optional fields get a default. A Marketplace listing needs a short tagline. Creation stops if required details are missing.</p>
  <textarea id="yamlta" placeholder="partner: {id: neo4j, owner: &quot;Neo4j, Inc.&quot;}&#10;engine: {displayName: &quot;Neo4j&quot;, description: &quot;Native graph database (Community) with Browser UI and Bolt.&quot;, template: helm-simple}&#10;helm: {repoUrl: &quot;https://helm.neo4j.com/neo4j&quot;, chart: neo4j, version: &quot;5.26.0&quot;}&#10;blueprint: {outcome: &quot;Graph database&quot;}"></textarea>
- <div id="yamlErr" class="err"></div>
- <div class="row"><button class="p" onclick="runYaml()">Generate &amp; validate</button></div>
- <p class="help">Checks the YAML first. Files are kept only when the check passes. A failed check leaves earlier files as they were.</p>
+ <div id="yamlErr" class="err" role="alert"></div>
+ <div class="row"><button type="button" class="p" onclick="runYaml()">Create and check files</button></div>
+ <p class="help">Your YAML is checked first. Files are created only if it passes. A failed check leaves earlier files unchanged.</p>
 </section>
 <section id="bp" class="card hide">
- <p class="help">One Blueprint is one install guide. List product inputs and marketplace engines to provision. Existing shared instances require separate runtime bindings.</p>
- <label>blueprint.input.yaml</label><textarea id="bpta" style="min-height:320px" placeholder="blueprint:&#10;  name: neo4j&#10;  owner: &quot;Neo4j, Inc.&quot;&#10;  displayName: &quot;Neo4j&quot;&#10;  description: &quot;Native graph database (Community) with Browser UI and Bolt.&quot;&#10;  outcome: &quot;Graph database&quot;&#10;  version: &quot;1.0.0&quot;&#10;engines:&#10;  - input: neo4j.input.yaml&#10;  - existing:&#10;      engine: keycloak-ace-engine&#10;      instance: keycloak-prod&#10;      version: &quot;24.0&quot;"></textarea>
- <div id="bpErr" class="err"></div>
- <label>Engine input files referenced above</label><div id="engs"></div>
- <div class="row"><button class="s" onclick="addEng()">+ Add engine file</button>
- <button class="p" onclick="runBp()">Compose &amp; validate</button></div>
- <p class="help">Checks the install guide and each product file first. Files are kept only when the check passes. Nothing is pushed.</p>
+ <p class="help">Use one install guide to list the products and shared services needed for an installation.</p>
+ <label for="bpta">Install guide YAML (blueprint.input.yaml)</label><textarea id="bpta" style="min-height:320px" placeholder="blueprint:&#10;  name: neo4j&#10;  owner: &quot;Neo4j, Inc.&quot;&#10;  displayName: &quot;Neo4j&quot;&#10;  description: &quot;Native graph database (Community) with Browser UI and Bolt.&quot;&#10;  outcome: &quot;Graph database&quot;&#10;  version: &quot;1.0.0&quot;&#10;engines:&#10;  - input: neo4j.input.yaml&#10;  - existing:&#10;      engine: keycloak-ace-engine&#10;      instance: keycloak-prod&#10;      version: &quot;24.0&quot;"></textarea>
+ <div id="bpErr" class="err" role="alert"></div>
+ <label>Product detail files listed above</label><div id="engs"></div>
+ <div class="row"><button type="button" class="s" onclick="addEng()">+ Add engine file</button>
+ <button type="button" class="p" onclick="runBp()">Create and check files</button></div>
+ <p class="help">The install guide and each product file are checked first. Files are created only if all checks pass. Nothing is uploaded.</p>
 </section>
 <section id="publish" class="card hide">
- <label for="lfolder">Product folder</label>
- <select id="lfolder" onchange="pickFolder()"><option value="">Generate files first</option></select>
- <p class="help">Filled in when you generate files. This is the folder on this computer.</p>
- <div class="row"><button class="s" type="button" onclick="useRegistryAnswers()">Use registry from the questions</button></div>
- <p class="help">Fills registry host and repository name from Guided questions or a loaded example. Does not upload.</p>
- <label for="lhost">Registry host</label>
- <input id="lhost" placeholder="registry.example.com" autocomplete="off">
- <p class="help">Where the images will be pushed. Any registry. Not tied to one cloud.</p>
- <label for="lrepo">Repository name</label>
- <input id="lrepo" placeholder="your-namespace/product" autocomplete="off">
- <p class="help">The repository path on that host.</p>
- <label for="limage">Image name</label>
- <input id="limage" placeholder="neo4j" autocomplete="off">
- <p class="help">Image name starts as the folder name from the first step. Change it if the image name is different.</p>
- <label for="ltag">Tag</label>
- <input id="ltag" placeholder="1.0.0" autocomplete="off">
- <p class="help">The image tag. Nothing is pushed until host, repository, image name, and tag are all set.</p>
- <label>Artifact address</label>
- <p id="ltarget"></p>
- <p id="laddressNote" class="help"></p>
- <label for="luser">Registry username</label>
- <input id="luser" autocomplete="off">
- <label for="lpass">Registry password or token</label>
- <input id="lpass" type="password" autocomplete="new-password" value="">
- <p id="lneed" class="help">Required to push. The password is not saved.</p>
- <ul id="ready" class="ready"></ul>
- <p class="help">Later: the Helm chart and images are copied, and the install guide is sent, only after a registry is connected. Nothing is sent from this page yet.</p>
- <div class="checkrow">
-  <input id="lallow" type="checkbox">
-  <label for="lallow">Allow push</label>
-  <button class="s" type="button" onclick="saveRegistry()">Save registry</button>
- </div>
- <p class="help">Saves the registry host, repository, image name, tag, and username in this browser. The password is not saved. Leave Allow push off until you are ready to send images.</p>
- <details>
-  <summary>Advanced</summary>
-  <label for="lpid">Id on the product list</label>
-  <input id="lpid" placeholder="partner-neo4j" autocomplete="off">
-  <p class="help">Filled in for you. This is how the product is named on the list customers install from.</p>
-  <label for="lsess">Local save name</label>
-  <input id="lsess" value="my-engine" autocomplete="off">
- </details>
+ <h3>Send your files to a registry</h3>
+ <p class="help">Save checked files in the project's <code>output/</code> folder first. The workbench checks them again and will not replace an existing folder.</p>
+ <label for="bundlepath">Saved files folder</label>
+ <input id="bundlepath" placeholder="output/my-product" autocomplete="off">
  <div class="actions">
-  <button class="s" type="button" onclick="stageBundle()">Create local files</button>
-  <button class="s" type="button" onclick="checkFiles()">Check files</button>
-  <button class="s" type="button" onclick="copyImages()">Copy images</button>
-  <button class="p" type="button" onclick="publishProduct()">Publish the product</button>
+  <button class="s opbtn" type="button" onclick="runOperation('mirror')">Copy images and charts</button>
+  <button class="s opbtn" type="button" onclick="runOperation('publish-dry-run')">Check upload</button>
+  <button class="p opbtn" type="button" onclick="runOperation('publish')">Upload to registry</button>
  </div>
- <p class="help">Create local files and the job list record intent only; they do not write a bundle or upload anything.</p>
- <p class="help">Check files checks the YAML. Does not upload.</p>
- <p class="help">Copy images and Publish the product above are not connected: they do not copy or publish. Use the reviewed operations below instead.</p>
+ <p class="help">Copy and check run on this computer. Upload sends files to the configured registry after you confirm. Sign in through your usual terminal or registry tool; this page never asks for your password.</p>
+ <p id="opstatus" class="help" role="status" aria-live="polite"></p>
  <details>
-  <summary>Run reviewed registry and bundle operations</summary>
-  <p class="help">These controls run real local tools, unlike the job list above. Use the workbench on localhost, review your target and scripts first, and authenticate in your terminal. No registry passwords are entered here.</p>
-  <label for="regconfig">Local awc-oci-register config path</label>
+  <summary>Set up registry access (advanced)</summary>
+  <p class="help">These actions change registry settings for the control system. Check the target cluster and review the details in a terminal before applying. Applying may restart the Console.</p>
+  <label for="regconfig">Path to registry settings file</label>
   <input id="regconfig" placeholder="/path/to/registry-config.yaml" autocomplete="off">
-  <p class="help">Init creates a new file without overwriting. Plan and verify inspect the configured control plane. Review their detailed output and the target Kubernetes context in a terminal before applying. Apply changes control-plane secrets and may restart the Console.</p>
+  <p class="help">Create makes a new settings file without replacing an old one. Plan and check show what is set up. Review their details and the target cluster before applying changes.</p>
   <div class="row">
-   <button class="s opbtn" type="button" onclick="runOperation('registry-init')">Init config</button>
-   <button class="s opbtn" type="button" onclick="runOperation('registry-plan')">Plan</button>
-   <button class="s opbtn" type="button" onclick="runOperation('registry-verify')">Verify</button>
-   <button class="s opbtn" type="button" onclick="runOperation('registry-apply')">Apply registry</button>
+   <button class="s opbtn" type="button" onclick="runOperation('registry-init')">Create config</button>
+   <button class="s opbtn" type="button" onclick="runOperation('registry-plan')">Preview changes</button>
+   <button class="s opbtn" type="button" onclick="runOperation('registry-verify')">Check setup</button>
+   <button class="s opbtn" type="button" onclick="runOperation('registry-apply')">Apply changes</button>
   </div>
-  <label for="bundlepath">Reviewed bundle directory under output/</label>
-  <input id="bundlepath" placeholder="output/my-product" autocomplete="off">
-  <p class="help">Build with ./awc build or ./awc blueprint first, or extract a reviewed downloaded bundle under output/. Mirror copies artifacts; publish dry-run runs marketplace validation and publishing without --push; publish pushes. For a multi-engine Blueprint, mirror each engine directory first.</p>
-  <div class="row">
-   <button class="s opbtn" type="button" onclick="runOperation('mirror')">Mirror artifacts</button>
-   <button class="s opbtn" type="button" onclick="runOperation('publish-dry-run')">Publish dry-run</button>
-   <button class="p opbtn" type="button" onclick="runOperation('publish')">Publish to registry</button>
-  </div>
-  <p id="opstatus" class="help" role="status"></p>
  </details>
- <div class="row"><button class="s" type="button" onclick="refreshJobs()">Refresh status</button></div>
- <p class="help">Updates the job list on this page.</p>
- <p id="lmsg" class="help"></p>
- <table class="jobs"><thead><tr><th>When</th><th>Type</th><th>Status</th><th>Job id</th></tr></thead><tbody id="jobs"></tbody></table>
 </section>
 <section id="catalog" class="card hide">
- <p class="help">This is the list of products a customer can install in Anywhere Cloud.</p>
- <p class="help">Later: this will load the live list. It cannot be loaded yet.</p>
- <div class="row">
-  <input id="catEmail" placeholder="Email for the product list" autocomplete="off" style="max-width:240px">
-  <input id="catPass" type="password" placeholder="Password for the product list" autocomplete="new-password" value="" style="max-width:240px">
-  <button class="p" onclick="loadCatalog()">Load / refresh</button>
- </div>
- <p id="catNote" class="help">Loads the list of products customers can install. Not saved. You do not need this to create files on this computer.</p>
- <p id="catStatus" class="help"></p>
- <h4>Partner engines</h4>
- <p class="help">An engine is the product definition.</p>
- <p id="partnerEmpty" class="help">No partner products listed.</p>
- <ul id="partnerList"></ul>
- <h4>Images in the marketplace repo</h4>
- <p id="imageEmpty" class="help">No images listed yet.</p>
- <p class="help">Registry: <span id="catReg"></span></p>
+ <h3>Marketplace listings</h3>
+ <p>This workbench is not connected to the live Marketplace, so it does not ask for or store your sign-in details.</p>
+ <p class="help">After uploading, use your usual Marketplace tools to check the listing. You can create, check, save, copy, and upload files here.</p>
 </section>
 <section id="result" class="card hide"></section>
 </main>
 <script>
 const $=id=>document.getElementById(id);
 const api=async(p,b)=>{const r=await fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{});return r.json()};
+const operationNames={
+ 'mirror':'copy images and charts','publish-dry-run':'check the upload','publish':'upload files',
+ 'registry-init':'create the settings file','registry-plan':'preview registry changes',
+ 'registry-verify':'check registry setup','registry-apply':'apply registry changes'
+};
+const operationSuccess={
+ 'mirror':'Images and charts copied. Check the target before continuing.',
+ 'publish-dry-run':'Upload check finished. Review the details in your terminal.',
+ 'publish':'Upload finished. Check the registry before continuing.',
+ 'registry-init':'Settings file created.',
+ 'registry-plan':'Preview finished. Review the details in your terminal.',
+ 'registry-verify':'Registry setup check finished.',
+ 'registry-apply':'Registry changes applied. Check the target before continuing.'
+};
 async function runOperation(action){
  const path=$(action.startsWith('registry-')?'regconfig':'bundlepath').value.trim(),status=$('opstatus');
- if(!path){status.textContent='Enter the local path first.';status.className='err';return}
- if(!confirm(`Run ${action} for ${path}? Review the target and scripts first.`))return;
+ if(!path){status.textContent=action.startsWith('registry-')?'Enter the settings file path first.':'Save the files locally first.';status.className='err';return}
+ if(!confirm(`Continue to ${operationNames[action]} for ${path}? Check the target first.`))return;
  document.querySelectorAll('.opbtn').forEach(b=>b.disabled=true);
  status.textContent='Running; leave this page open until the operation completes.';status.className='help';
  try{
   const response=await fetch('/api/operations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,path,confirmed:true})});
-  const result=await response.json();status.textContent=result.message||result.error;status.className=result.ok?'ok':'err';
+  const result=await response.json();status.textContent=result.ok?(operationSuccess[action]||'Done. Check the target before continuing.'):(result.error||'This action failed. Check the target and try again.');status.className=result.ok?'ok':'err';
  }catch(error){status.textContent='The request failed. Check the local workbench; the operation may still be running.';status.className='err'}
  finally{document.querySelectorAll('.opbtn').forEach(b=>b.disabled=false)}
 }
 function showTab(name){
- document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.t===name));
+ document.querySelectorAll('nav button').forEach(x=>{x.classList.toggle('on',x.dataset.t===name);x.setAttribute('aria-pressed',x.dataset.t===name?'true':'false')});
  ['guided','yaml','bp','publish','catalog'].forEach(t=>$(t).classList.toggle('hide',t!==name));
- if(name==='publish'){fillImageFromFolder(); paintReady(); fillRegistryQuiet()}
- if(name==='catalog'){$('catReg').textContent=($('lhost').value||'').trim()}
-}
-function focusFirstEmptyPublish(){
- const ids=['lhost','lrepo','limage','ltag','luser'];
- const field=ids.map(id=>$(id)).find(el=>el && !String(el.value||'').trim()) || $('lhost');
- if(!field) return;
- try{field.focus({preventScroll:true})}catch(e){field.focus()}
- field.scrollIntoView({behavior:'smooth', block:'center'});
 }
 function openTab(name){
  const panel=$(name);
- const already=!!(panel && !panel.classList.contains('hide'));
  showTab(name);
- if(name==='publish' && already){focusFirstEmptyPublish(); return}
  const nav=document.getElementById('nav');
  if(nav) nav.scrollIntoView({behavior:'smooth', block:'start'});
  else if(panel) panel.scrollIntoView({behavior:'smooth', block:'start'});
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showTab(b.dataset.t));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const PLAIN={'partner.id':'Folder name','partner.owner':'Who makes this product','engine.displayName':'Name shoppers see','engine.description':'What the product does','engine.template':'How the product is packaged','publish.destinationRegistry':'Image registry, optional','publish.namespace':'Folder on the registry'};
 let cur=null,prev=null;
-const backBtn=n=>n>0?'<button class="s" onclick="goBack()">&larr; Back</button>':'';
+const backBtn=n=>n>0?'<button type="button" class="s" onclick="goBack()">&larr; Back</button>':'';
 async function loadQ(){
  const r=await api('/api/question?session='+encodeURIComponent($('sid').value));
  window.nAns=r.answered;
  $('prog').style.width=(r.total?100*r.answered/r.total:0)+'%';
- if(r.shortName) addFolderOption(r.shortName);
- if(r.done){$('qbox').innerHTML='<p class="ok">If you want a fresh start, click Reset to start the questions again from the beginning.</p><div class="row">'+backBtn(1)+'<button class="p" onclick="resetS()">Reset and start from the first question</button><button class="s" onclick="runSession()">Generate &amp; validate</button></div><div id="genErr" class="err"></div>';return}
+ if(r.done){$('qbox').innerHTML='<p class="ok">Your answers are ready. Go back to make changes, or create the files.</p><div class="row">'+backBtn(1)+'<button type="button" class="s" onclick="resetS()">Reset answers</button><button type="button" class="p" onclick="runSession()">Create and check files</button></div><div id="genErr" class="err" role="alert"></div>';return}
  cur=r.question;let f;
  if(prev&&prev.id===cur.id){cur.default=prev.value}prev=null;
  if(cur.kind==='choice')f='<select id="ans">'+cur.choices.map(c=>`<option ${c==cur.default?'selected':''}>${esc(c)}</option>`).join('')+'</select>';
  else if(cur.kind==='bool')f=`<select id="ans"><option ${cur.default!==false?'selected':''}>yes</option><option ${cur.default===false?'selected':''}>no</option></select>`;
  else f=`<input id="ans" placeholder="${esc((cur.example||'').split('   or   ')[0].replace(/ \(.*$/,''))}" value="${esc(Array.isArray(cur.default)?cur.default.join(', '):(cur.default??''))}" onkeydown="if(event.key==='Enter')submitQ()">`;
- const plain=PLAIN[cur.id]?`<p class="kicker">${PLAIN[cur.id]}</p>`:'';
  let shown=cur.prompt;
  if(cur.id==='partner.id') shown="What folder name should we use for this product? (lowercase, hyphens, no spaces -- e.g. 'starrocks', 'neo4j', 'dataspark')";
- const nextNote=cur.id==='partner.id'
-  ? '<p class="help"><b>Next.</b> Saves this answer in the session file. This becomes the folder name. It does not push to a registry or install into a cluster.</p>'
-  : '<p class="help"><b>Next.</b> Saves this answer in the session file. It does not push images or install into a cluster. Safe to repeat.</p>';
- $('qbox').innerHTML=plain+`<h3>${esc(shown)}</h3>${cur.help?`<div class="help">${esc(cur.help)}</div>`:''}${cur.example?`<div class="help"><b>Example:</b> ${esc(cur.example)}</div>`:''}${f}<div id="qe" class="err"></div><div class="row">${backBtn(r.answered)}<button class="p" onclick="submitQ()">Next</button></div>`+nextNote;
+ const help=cur.id==='partner.id'
+  ? 'Used for the folder that holds your files and to name related product resources.'
+  : cur.help;
+ const nextNote='<p class="help"><b>Next.</b> Saves this answer with your setup. It does not upload files or install anything.</p>';
+ $('qbox').innerHTML=`<h3>${esc(shown)}</h3>${help?`<div class="help">${esc(help)}</div>`:''}${cur.example?`<div class="help"><b>Example:</b> ${esc(cur.example)}</div>`:''}<label for="ans">Your answer</label>${f}<div id="qe" class="err" role="alert"></div><div class="row">${backBtn(r.answered)}<button type="button" class="p" onclick="submitQ()">Next</button></div>`+nextNote;
  $('ans').focus()}
 async function goBack(){
  const r=await api('/api/back',{session:$('sid').value});
@@ -259,7 +205,6 @@ async function submitQ(){
  if(cur.required&&v===''){$('qe').textContent='This question needs an answer. Type it in the field above to continue.';return}
  const r=await api('/api/answer',{session:$('sid').value,id:cur.id,value:v});
  if(r.error){$('qe').textContent=r.error;return}
- if(cur.id==='partner.id'){window._folder=String(v).trim(); fillImageFromFolder(); const id=$('lpid'); if(id&&(!id.value||id.value.startsWith('partner-'))) id.value=window._folder?('partner-'+window._folder):'';}
  if(cur.id==='dependencies.hasAny'&&v===true)return depForm();
  loadQ()}
 function depForm(){
@@ -276,195 +221,87 @@ async function resetS(){await api('/api/reset',{session:$('sid').value});loadQ()
 function failed(r){return !r||r.ok===false||!!r.error||(r.problems&&r.problems.length)}
 function problemsOf(r){if(r.problems&&r.problems.length)return r.problems;if(r.error)return [{field:'',file:'',message:r.error}];return []}
 function paintProblems(id,list){const el=$(id);if(!el)return;el.innerHTML=(list||[]).map(p=>esc(p.message)).join('<br>')}
-async function runSession(){const r=await api('/api/run-session',{session:$('sid').value});if(failed(r)){paintProblems('genErr',problemsOf(r));return}paintProblems('genErr',[]);show(r)}
-async function runYaml(){const r=await api('/api/run-yaml',{yaml:$('yamlta').value});if(failed(r)){paintProblems('yamlErr',problemsOf(r));return}if(r.passed&&!r.files){$('yamlErr').textContent=r.passed;$('yamlErr').className='ok';return}$('yamlErr').textContent='';$('yamlErr').className='err';show(r)}
-function addEng(name='',text=''){const d=document.createElement('div');d.className='card';
- d.innerHTML=`<input placeholder="file name e.g. db.input.yaml" value="${esc(name)}"><textarea style="min-height:120px;margin-top:6px">${esc(text)}</textarea><div class="err"></div>`;$('engs').appendChild(d)}
-async function runBp(){const engines={};$('engs').querySelectorAll('.card').forEach(c=>{const i=c.querySelector('input'),t=c.querySelector('textarea');if(i.value)engines[i.value]=t.value;const er=c.querySelector('.err');if(er)er.textContent=''});
- const r=await api('/api/run-blueprint',{blueprint:$('bpta').value,engines});
- if(failed(r)){const ps=problemsOf(r);paintProblems('bpErr',ps.filter(p=>p.field==='blueprint'||p.file==='blueprint.input.yaml'||!p.field));
+let saveSource=null;
+async function runSession(){
+ const session=$('sid').value;
+ const r=await api('/api/run-session',{session});
+ if(failed(r)){paintProblems('genErr',problemsOf(r));return}
+ paintProblems('genErr',[]);
+ saveSource={kind:'session',session};
+ show(r)}
+async function runYaml(){
+ const yamlText=$('yamlta').value;
+ const r=await api('/api/run-yaml',{yaml:yamlText});
+ if(failed(r)){paintProblems('yamlErr',problemsOf(r));return}
+ if(r.passed&&!r.files){$('yamlErr').textContent=r.passed;$('yamlErr').className='ok';return}
+ $('yamlErr').textContent='';$('yamlErr').className='err';
+ saveSource={kind:'yaml',yaml:yamlText};
+ show(r)}
+let engineInputCount=0;
+function addEng(name='',text=''){
+ const d=document.createElement('div'),id=++engineInputCount;d.className='engine-input';
+ d.innerHTML=`<label for="engine-name-${id}">Product detail filename</label><input id="engine-name-${id}" placeholder="db.input.yaml" value="${esc(name)}"><label for="engine-yaml-${id}">Product details in YAML</label><textarea id="engine-yaml-${id}" style="min-height:120px;margin-top:6px">${esc(text)}</textarea><div class="err" role="alert"></div>`;
+ $('engs').appendChild(d)}
+async function runBp(){
+ const engines={};
+ $('engs').querySelectorAll('.card').forEach(c=>{const i=c.querySelector('input'),t=c.querySelector('textarea');if(i.value)engines[i.value]=t.value;const er=c.querySelector('.err');if(er)er.textContent=''});
+ const blueprint=$('bpta').value;
+ const r=await api('/api/run-blueprint',{blueprint,engines});
+ if(failed(r)){
+  const ps=problemsOf(r);
+  paintProblems('bpErr',ps.filter(p=>p.field==='blueprint'||p.file==='blueprint.input.yaml'||!p.field));
   $('engs').querySelectorAll('.card').forEach(c=>{const name=c.querySelector('input').value;const hit=ps.filter(p=>p.field===name||p.file===name);const er=c.querySelector('.err');if(er)er.textContent=hit.map(p=>p.message).join(' ')});
   return}
- $('bpErr').textContent='';show(r)}
-function addFolderOption(name){
- name=String(name||'').trim();
- if(!name) return;
- const sel=$('lfolder');
- if(!sel) return;
- let opt=[...sel.options].find(o=>o.value===name);
- if(!opt){opt=document.createElement('option');opt.value=name;opt.textContent=name;sel.appendChild(opt)}
- sel.value=name; window._folder=name}
-function pickFolder(){
- window._folder=$('lfolder').value||'';
- const image=$('limage');
- if(image&&window._folder&&!image.value.trim()) image.value=window._folder;
- paintTarget()}
-function selectedFolder(){return ($('lfolder')&&$('lfolder').value)||window._folder||''}
-function rememberBundle(r){
- if(!r||r.error) return;
- if(r.files&&Object.keys(r.files).length) window._filesReady=true;
- if(r.folder){addFolderOption(r.folder); fillImageFromFolder()}}
-function filesReady(){
- if(window._filesReady) return true;
- $('lmsg').textContent='Create the product files on this computer first. Nothing was sent.';
- $('lmsg').className='err';
- return false}
-function applyRegistry(r){
- if(!r) return {host:'',repo:''};
- const host=String(r.registry||'').trim();
- const repo=String(r.repository||'').trim();
- if(host && !$('lhost').value.trim()) $('lhost').value=host;
- if(repo && !$('lrepo').value.trim()) $('lrepo').value=repo;
- if(r.folder) addFolderOption(r.folder);
- paintTarget();
- return {host, repo}}
-async function registryFromSaved(){
- const session=($('lsess')&&$('lsess').value)||$('sid').value;
- const yaml=$('yamlta')?$('yamlta').value:'';
- return api('/api/registry-answers',{session, yaml})}
-async function fillRegistryQuiet(){
- try{
-  const r=await registryFromSaved();
-  if(!r) return;
-  const host=String(r.registry||'').trim();
-  const repo=String(r.repository||'').trim();
-  if(host && !$('lhost').value.trim()) $('lhost').value=host;
-  if(repo && !$('lrepo').value.trim()) $('lrepo').value=repo;
-  paintTarget();
- }catch(e){}}
-async function useRegistryAnswers(){
- const found=applyRegistry(await registryFromSaved());
- if(!found.host&&!found.repo){$('lmsg').textContent='No registry was saved in the questions. Type the host and repository here.';$('lmsg').className='err';return}
- $('lmsg').textContent='Filled registry host and repository name. Nothing was uploaded.';
- $('lmsg').className='ok'}
-function show(r){if(failed(r)||!r.files)return;const el=$('result');el.classList.remove('hide');
- rememberBundle(r);
+ $('bpErr').textContent='';
+ saveSource={kind:'blueprint',blueprint,engines};
+ show(r)}
+function suggestedFolder(name){
+ const slug=String(name||'my-product').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,63).replace(/-+$/g,'');
+ return slug||'my-product'}
+function show(r){
+ if(failed(r)||!r.files)return;
+ const el=$('result');el.classList.remove('hide');
  const v=r.validation||{},reports=v.ok!==undefined?{bundle:v}:v;let h='<h3>Validation</h3>';
- for(const[k,x]of Object.entries(reports)){h+=`<div><b>${esc(k)}</b>: <span class="${x.ok?'ok':'err'}">${x.ok?'OK':'FAILED'}</span></div>`;
+ for(const[k,x]of Object.entries(reports)){
+  h+=`<div><b>${esc(k)}</b>: <span class="${x.ok?'ok':'err'}">${x.ok?'OK':'FAILED'}</span></div>`;
   (x.errors||[]).forEach(e=>h+=`<div class="err">✖ ${esc(e.file)}: ${esc(e.message)}</div>`);
   (x.warnings||[]).forEach(e=>h+=`<div class="warn">⚠ ${esc(e.file)}: ${esc(e.message)}</div>`)}
  const names=Object.keys(r.files||{});
- h+='<h3>Files</h3><div class="tabs">'+names.map((n,i)=>`<button class="s ${i?'':'on'}" onclick="tab(${i})">${esc(n)}</button>`).join('')+'</div><pre id="fv"></pre>'+
-  '<div class="row"><button class="p" onclick="dl()">Download .zip</button></div>'+
-  '<p class="ok">Check passed. Wrote '+names.length+' '+(names.length===1?'file':'files')+' on this computer. Next: open Publish.</p>'+
-  '<div class="row"><button class="s" type="button" id="open-publish" onclick="openTab(\'publish\')">Open Publish</button></div>';
+ h+='<h3>Files</h3><div class="tabs">'+names.map((n,i)=>`<button type="button" class="s ${i?'':'on'}" aria-pressed="${i?'false':'true'}" onclick="tab(${i})">${esc(n)}</button>`).join('')+'</div><pre id="fv"></pre>'+
+  `<label for="saveFolder">Local folder name</label><input id="saveFolder" maxlength="63" value="${esc(suggestedFolder(r.folder))}">`+
+  '<p class="help">Save the checked files in the project output folder. Existing folders are never replaced.</p>'+
+  '<div class="row"><button type="button" class="p" onclick="saveBundle()">Save on this computer</button><button type="button" class="s" onclick="dl()">Download ZIP</button></div>'+
+  '<p id="saveStatus" class="help" role="status" aria-live="polite"></p>'+
+  '<p class="ok">Validation passed. '+names.length+' '+(names.length===1?'file is':'files are')+' ready to save or download.</p>'+
+  '<div class="row"><button type="button" class="s" id="open-publish" onclick="openTab(\'publish\')">Continue to registry actions</button></div>';
  el.innerHTML=h;window._f=r.files;window._z=r.zip;window._n=names;if(names.length)tab(0);el.scrollIntoView()}
-function tab(i){$('fv').textContent=window._f[window._n[i]];document.querySelectorAll('.tabs button').forEach((b,j)=>b.classList.toggle('on',i==j))}
-function dl(){const b=atob(window._z),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);
- const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([a],{type:'application/zip'}));l.download='awc-bundle.zip';l.click()}
-function fillImageFromFolder(){
- const name=window._folder||'';
- const image=$('limage');
- if(image&&!image.value.trim()&&name) image.value=name}
-function pushCoords(){
- return ['lhost','lrepo','limage','ltag','luser','lpass'].map(id=>$(id).value.trim())}
-function pushReady(){
- const [host,repo,image,tag,user,pass]=pushCoords();
- if(host&&repo&&image&&tag&&user&&pass) return true;
- $('lneed').textContent='Required to push. The password is not saved.';
- $('lmsg').textContent='Required to push. The password is not saved.';
- $('lmsg').className='err';
- return false}
-function clearRegistryPassword(){ $('lpass').value='' }
-function paintJobs(jobs){
- $('jobs').innerHTML=(jobs||[]).map(j=>`<tr><td>${esc(j.when)}</td><td>${esc(j.type)}</td><td class="${j.status==='succeeded'?'ok':'err'}">${esc(j.status)}</td><td>${esc(j.id)}</td></tr>`).join('');
- const latest=(jobs||[])[0];
- $('lmsg').textContent=latest&&latest.detail?latest.detail:'';
- $('lmsg').className=latest&&latest.status==='succeeded'?'ok help':'err'}
-async function refreshJobs(){const r=await api('/api/launchpad/jobs');paintJobs(r.jobs)}
-async function stageBundle(){
- const folder=selectedFolder();
- if(!folder){$('lmsg').textContent='Set the folder name on the first step before creating files.';$('lmsg').className='err';return}
- const r=await api('/api/launchpad/stage',{session:$('lsess').value,slug:folder});
- await refreshJobs();
- if(r.ok){window._filesReady=true;paintReady()}
- if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
-function cleanPath(value){return String(value||'').trim().replace(/^\/+|\/+$/g,'').replace(/\/+/g,'/')}
-function artifactAddress(){
- const host=cleanPath($('lhost').value);
- const repo=cleanPath($('lrepo').value);
- const image=cleanPath($('limage').value);
- const tag=String($('ltag').value||'').trim().replace(/^:+/,'').replace(/\/+$/g,'');
- let pathRepo=repo;
- if(image&&repo&&(repo===image||repo.endsWith('/'+image))) pathRepo=repo;
- const parts=[];
- if(host) parts.push(host);
- if(pathRepo) parts.push(pathRepo);
- if(image&&!(pathRepo===image||pathRepo.endsWith('/'+image))) parts.push(image);
- let line=parts.join('/');
- if(tag) line=line?line+':'+tag:tag;
- const missing=[];
- if(!host) missing.push('a registry host');
- if(!repo) missing.push('a repository');
- if(!image) missing.push('an image name');
- if(!tag) missing.push('a tag');
- let note;
- if(!missing.length) note='This is where the image will be pushed. Nothing is uploaded yet.';
- else if(missing.length===1) note='Add '+missing[0]+' to complete the address.';
- else note='Add '+missing.slice(0,-1).join(', ')+', and '+missing[missing.length-1]+' to complete the address.';
- return {line, note}}
-function paintTarget(){
- const built=artifactAddress();
- $('ltarget').textContent=built.line;
- $('laddressNote').textContent=built.note;
- paintReady()}
-function paintReady(){const el=$('ready');if(!el)return;const rows=[['Files on this computer',!!window._filesReady],['Registry host',!!$('lhost').value.trim()],['Repository',!!$('lrepo').value.trim()],['Image name',!!$('limage').value.trim()],['Tag',!!$('ltag').value.trim()],['Username',!!$('luser').value.trim()]];el.innerHTML=rows.map(([name,ok])=>`<li class="${ok?'ok':'err'}">${ok?'Done':'Not yet'}: ${esc(name)}</li>`).join('')}
-function saveRegistry(){
- const saved={host:$('lhost').value.trim(),repo:$('lrepo').value.trim(),image:$('limage').value.trim(),tag:$('ltag').value.trim(),user:$('luser').value.trim(),allow:$('lallow').checked};
- localStorage.setItem('awcRegistry', JSON.stringify(saved));
- $('lmsg').textContent='Saved on this computer. The password was not saved.';
- $('lmsg').className='ok'}
-function restoreRegistry(){
+async function saveBundle(){
+ const status=$('saveStatus'),folder=$('saveFolder').value.trim();
+ if(!saveSource){status.textContent='Run validation again before saving.';status.className='err';return}
+ if(!folder){status.textContent='Enter a local folder name.';status.className='err';$('saveFolder').focus();return}
+ const button=document.querySelector('#result button[onclick="saveBundle()"]');
+ button.disabled=true;status.textContent='Revalidating and saving locally…';status.className='help';
  try{
-  const saved=JSON.parse(localStorage.getItem('awcRegistry')||'null');
-  if(!saved) return;
-  if(!$('lhost').value) $('lhost').value=saved.host||'';
-  if(!$('lrepo').value) $('lrepo').value=saved.repo||'';
-  if(!$('limage').value) $('limage').value=saved.image||'';
-  if(!$('ltag').value) $('ltag').value=saved.tag||'';
-  if(!$('luser').value) $('luser').value=saved.user||'';
-  $('lallow').checked=!!saved.allow;
- }catch(e){}
- paintTarget()}
-function allowPush(){
- if($('lallow').checked) return true;
- $('lmsg').textContent='Turn on Allow push before sending images. Nothing was sent.';
- $('lmsg').className='err';
- return false}
-async function recordPush(action){
- const [host,repo,image,tag,user]=pushCoords();
- clearRegistryPassword();
- const r=await api('/api/launchpad/queue',{action,username:user,passwordPresent:true,registry:artifactAddress().line,slug:selectedFolder()||image});
- await refreshJobs();
- if(r.error){$('lmsg').textContent=r.error;$('lmsg').className='err'}}
-async function checkFiles(){
- const r=await api('/api/run-session',{session:$('lsess').value});
- if(failed(r)){$('lmsg').textContent=problemsOf(r).map(p=>p.message).join(' ');$('lmsg').className='err';return}
- show(r);paintReady();
- $('lmsg').textContent=r.passed||'Check passed. Nothing was uploaded.';$('lmsg').className='ok'}
-async function copyImages(){
- if(!filesReady()||!allowPush()||!pushReady()) return;
- await recordPush('copy')}
-async function publishProduct(){
- if(!filesReady()||!allowPush()||!pushReady()) return;
- await recordPush('publish')}
-async function loadCatalog(){
- const r=await api('/api/launchpad/catalog',{username:$('catEmail').value,password:$('catPass').value,registry:$('lhost').value});
- $('catPass').value='';
- $('catReg').textContent=($('lhost').value||'').trim();
- $('partnerList').innerHTML='';
- $('catStatus').textContent=r.message||r.error||'';
- $('partnerEmpty').textContent=(r.partners&&r.partners.length)?'':'No partner products listed.';
- $('imageEmpty').textContent=(r.images&&r.images.length)?'':'No images listed yet.'}
+  const response=await fetch('/api/save-bundle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...saveSource,folder})});
+  const result=await response.json();
+  if(!result.ok){status.textContent=result.error||'The files were not saved.';status.className='err';return}
+  $('bundlepath').value=result.path;
+  status.textContent=`Saved ${result.files} ${result.files===1?'file':'files'} to ${result.path}. Continue to registry actions when ready.`;
+  status.className='ok'
+ }catch(error){status.textContent='Could not save the bundle. Check that the local workbench is still running.';status.className='err'}
+ finally{button.disabled=false}}
+function tab(i){
+ $('fv').textContent=window._f[window._n[i]];
+ document.querySelectorAll('.tabs button').forEach((b,j)=>{b.classList.toggle('on',i===j);b.setAttribute('aria-pressed',i===j?'true':'false')})}
+function dl(){
+ const b=atob(window._z),a=new Uint8Array(b.length);
+ for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);
+ const l=document.createElement('a'),url=URL.createObjectURL(new Blob([a],{type:'application/zip'}));
+ l.href=url;l.download='awc-bundle.zip';l.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 async function loadEx(t,sel){
  if(!sel.value) return;
  const r=await api('/api/example?name='+encodeURIComponent(sel.value));
  if(r&&r.text) $(t).value=r.text;
- const found=applyRegistry(r);
- const msg=$('lmsg');
- if(msg && (found.host||found.repo) && msg.textContent.indexOf('No registry was saved')===0){
-  msg.textContent='Filled registry host and repository name. Nothing was uploaded.';
-  msg.className='ok';
- }}
-(async()=>{restoreRegistry();['lhost','lrepo','limage','ltag','luser'].forEach(id=>$(id).addEventListener('input',paintTarget));paintReady();const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
+}
+(async()=>{const ex=await api('/api/examples');$('exsel').innerHTML='<option value="">Load an example…</option>'+ex.filter(e=>e.endsWith('.input.yaml')&&!e.includes('blueprint')).map(e=>`<option>${esc(e)}</option>`).join('');loadQ()})();
 </script></body></html>

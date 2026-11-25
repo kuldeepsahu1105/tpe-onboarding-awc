@@ -1,0 +1,13 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Engine
+metadata:
+  name: sample-ace-engine
+spec:
+  displayName: Sample engine
+  description: Fictional engine details for a package-layout example.
+  imageCatalog: sample-imagecatalog
+  chartCatalog: sample-chartcatalog
+  provides:
+    - capability: sample-engine-endpoint
+      value: |
+        endpoint: https://sample.example.invalid

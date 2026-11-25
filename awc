@@ -76,8 +76,8 @@ case "${1:-help}" in
   mcp)      ensure_env; if [ "${2:-}" = "config" ]; then
               printf '{\n  "mcpServers": {\n    "awc-onboarding": {\n      "command": "%s/bin/python",\n      "args": ["-m", "mcp_server.server"],\n      "cwd": "%s"\n    }\n  }\n}\n' "$VENV" "$ROOT"
             else py -m mcp_server.server; fi ;;
-  examples) ls examples/*.input.yaml examples/*/blueprint.input.yaml; echo; echo "Pre-built output: examples/bundles/"; echo "Hand-authored reference: examples/qbeast/ (./awc package qbeast)" ;;
-  package)  ensure_env; name="${2:?usage: ./awc package qbeast [output.zip]}"
+  examples) ls examples/*.input.yaml examples/*/blueprint.input.yaml; echo; echo "Pre-built output: examples/bundles/"; echo "Qbeast implementation reference: examples/qbeast/"; echo "Fictional shareable ZIP: ./awc package sample [output.zip]" ;;
+  package)  ensure_env; name="${2:?usage: ./awc package sample [output.zip]}"
             py -m onboarding.reference_package "$name" "${3:-$name.zip}" ;;
   registry) exec bash "$TOOL/scripts/registry.sh" "${2:-}" "${3:-}" ;;
   mirror)
@@ -114,7 +114,7 @@ AWC onboarding toolkit
   ./awc images <repo> <chart> <version>   list the images a Helm chart needs
   ./awc mcp                    start the MCP server for AI assistants (./awc mcp config prints client JSON)
   ./awc examples               list ready-made examples
-  ./awc package qbeast [file]  create the Qbeast reference ZIP
+  ./awc package sample [file]  create a fictional, non-deployable sample ZIP
   ./awc registry <action> <config>  init, plan, verify, or apply registry access
   ./awc doctor                 check which optional tools you have
   ./awc validate <form.yaml>   check an input form

@@ -1,0 +1,13 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Capability
+metadata:
+  name: sample-engine-endpoint
+spec:
+  schema:
+    type: object
+    properties:
+      endpoint:
+        type: string
+    required:
+      - endpoint
+    additionalProperties: false

@@ -108,6 +108,134 @@ class OperationTests(unittest.TestCase):
             run.assert_called_once()
 
 
+class SaveBundleTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name).resolve()
+        self.root_patch = patch.object(app, "ROOT", self.root)
+        self.root_patch.start()
+        self.addCleanup(self.root_patch.stop)
+
+    @patch("web.app.run_answers")
+    def test_revalidates_yaml_and_saves_generated_files(self, run_answers):
+        run_answers.return_value = {
+            "ok": True,
+            "folder": "example",
+            "files": {"engine.yaml": "version: 1\n", "publish.sh": "#!/bin/sh\n"},
+        }
+
+        result = app.save_generated_bundle({
+            "kind": "yaml",
+            "yaml": "partner:\n  id: example\n",
+            "folder": "example",
+        })
+
+        self.assertEqual(result, {"ok": True, "path": "output/example", "files": 2})
+        run_answers.assert_called_once_with({"partner": {"id": "example"}})
+        self.assertEqual((self.root / result["path"] / "engine.yaml").read_text(), "version: 1\n")
+        self.assertTrue((self.root / result["path"] / "publish.sh").stat().st_mode & 0o111)
+
+    @patch("web.app.run_answers")
+    @patch("web.app.Session.load")
+    def test_revalidates_saved_guided_answers(self, load_session, run_answers):
+        load_session.return_value.answers = {"partner": {"id": "guided-example"}}
+        run_answers.return_value = {"ok": True, "files": {"engine.yaml": "name: example\n"}}
+
+        result = app.save_generated_bundle({
+            "kind": "session", "session": "my-engine", "folder": "guided-example",
+        })
+
+        self.assertTrue(result["ok"])
+        load_session.assert_called_once_with("my-engine")
+        run_answers.assert_called_once_with({"partner": {"id": "guided-example"}})
+
+    @patch("web.app.run_blueprint")
+    def test_revalidates_blueprint_and_engine_inputs(self, run_blueprint):
+        blueprint = "blueprint:\n  name: sample\n"
+        engines = {"sample.input.yaml": "engine:\n  displayName: Sample\n"}
+        run_blueprint.return_value = {"ok": True, "files": {"blueprint.yaml": "name: sample\n"}}
+
+        result = app.save_generated_bundle({
+            "kind": "blueprint", "blueprint": blueprint,
+            "engines": engines, "folder": "sample",
+        })
+
+        self.assertTrue(result["ok"])
+        run_blueprint.assert_called_once_with(blueprint, engines)
+
+    @patch("web.app.run_answers")
+    def test_failed_validation_does_not_create_output(self, run_answers):
+        run_answers.return_value = {
+            "ok": False,
+            "problems": [{"message": "Required details are missing."}],
+        }
+
+        result = app.save_generated_bundle({
+            "kind": "yaml", "yaml": "partner: {}\n", "folder": "example",
+        })
+
+        self.assertFalse(result["ok"])
+        self.assertIn("Required details are missing", result["error"])
+        self.assertFalse((self.root / "output").exists())
+
+    @patch("web.app.run_answers")
+    def test_rejects_unsafe_folder_and_file_paths(self, run_answers):
+        run_answers.return_value = {"ok": True, "files": {"../outside.yaml": "bad"}}
+        unsafe_folder = app.save_generated_bundle({
+            "kind": "yaml", "yaml": "partner: {}\n", "folder": "../outside",
+        })
+        self.assertFalse(unsafe_folder["ok"])
+
+        unsafe_file = app.save_generated_bundle({
+            "kind": "yaml", "yaml": "partner: {}\n", "folder": "example",
+        })
+        self.assertFalse(unsafe_file["ok"])
+        self.assertFalse((self.root / "output").exists())
+
+    @patch("web.app.run_answers")
+    def test_existing_folder_is_never_overwritten(self, run_answers):
+        run_answers.return_value = {"ok": True, "files": {"engine.yaml": "new: true\n"}}
+        destination = self.root / "output" / "example"
+        destination.mkdir(parents=True)
+        existing_file = destination / "engine.yaml"
+        existing_file.write_text("old: true\n")
+
+        result = app.save_generated_bundle({
+            "kind": "yaml", "yaml": "partner: {}\n", "folder": "example",
+        })
+
+        self.assertFalse(result["ok"])
+        self.assertIn("already exists", result["error"])
+        self.assertEqual(existing_file.read_text(), "old: true\n")
+
+    def test_save_endpoint_requires_local_origin(self):
+        server = ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(thread.join)
+        self.addCleanup(server.shutdown)
+        port = server.server_address[1]
+        body = json.dumps({"kind": "yaml", "yaml": "partner: {}\n", "folder": "example"})
+
+        def request(origin):
+            conn = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+            conn.request("POST", "/api/save-bundle", body, {
+                "Content-Type": "application/json", "Origin": origin,
+            })
+            response = conn.getresponse()
+            payload = json.loads(response.read())
+            conn.close()
+            return response.status, payload
+
+        with patch("web.app.save_generated_bundle", return_value={"ok": True}) as save:
+            self.assertEqual(request("https://example.com")[0], 403)
+            save.assert_not_called()
+            self.assertEqual(request(f"http://127.0.0.1:{port}"), (200, {"ok": True}))
+            save.assert_called_once()
+
+
 class RegistryWrapperTests(unittest.TestCase):
     def test_init_and_apply_guards(self):
         with tempfile.TemporaryDirectory() as tmp:

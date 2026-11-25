@@ -20,14 +20,27 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReferencePackageTests(unittest.TestCase):
-    def test_zip_contains_unchanged_reference_files(self):
-        files = reference_files("qbeast")
-        with zipfile.ZipFile(io.BytesIO(reference_zip("qbeast"))) as archive:
+    def test_zip_contains_unchanged_fictional_sample_files(self):
+        files = reference_files("sample")
+        with zipfile.ZipFile(io.BytesIO(reference_zip("sample"))) as archive:
             self.assertEqual(set(archive.namelist()), set(files))
             for name, data in files.items():
                 self.assertEqual(archive.read(name), data)
                 self.assertEqual((archive.getinfo(name).external_attr >> 16) & 0o777,
                                  0o755 if name.endswith(".sh") else 0o644)
+        with self.assertRaisesRegex(ValueError, "fictional sample"):
+            reference_zip("qbeast")
+
+    def test_sample_zip_uses_only_fictional_placeholders(self):
+        files = reference_files("sample")
+        self.assertNotIn("mirror.sh", files)
+        self.assertNotIn("publish.sh", files)
+        self.assertIn(b"not a Qbeast package", files["README.md"])
+        self.assertIn(b"example.invalid", files["imagecatalog.yaml"])
+        self.assertIn(b"example.invalid", files["chartcatalog.yaml"])
+        self.assertNotIn(b"1.3.12", b"".join(files.values()))
+        with zipfile.ZipFile(io.BytesIO(reference_zip("sample"))) as archive:
+            self.assertEqual(set(archive.namelist()), set(files))
 
     def test_unknown_package_and_mismatched_blueprint_fail(self):
         with self.assertRaises(ValueError):
@@ -42,7 +55,7 @@ class ReferencePackageTests(unittest.TestCase):
             )
             with patch("onboarding.reference_package.ROOT", Path(tmp)):
                 with self.assertRaisesRegex(ValueError, "does not reference"):
-                    reference_zip("qbeast")
+                    reference_files("qbeast")
 
     def test_catalog_examples_and_capability_match_engine_references(self):
         files = reference_files("qbeast")
@@ -93,7 +106,7 @@ class ReferencePackageTests(unittest.TestCase):
             (folder / "role.yaml").write_text(role)
             with patch("onboarding.reference_package.ROOT", Path(tmp)):
                 with self.assertRaisesRegex(ValueError, "RoleBinding"):
-                    reference_zip("qbeast")
+                    reference_files("qbeast")
 
     def test_mirror_propagates_plan_errors_and_runs_only_planned_copies(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -134,11 +147,15 @@ class ReferencePackageTests(unittest.TestCase):
         thread.start()
         try:
             base = f"http://127.0.0.1:{server.server_port}/api/reference-package"
-            with urlopen(base + "?name=qbeast") as response:
+            with urlopen(base + "?name=sample") as response:
                 self.assertEqual(response.headers.get_content_type(), "application/zip")
-                self.assertIn("qbeast.zip", response.headers["Content-Disposition"])
+                self.assertIn("sample.zip", response.headers["Content-Disposition"])
                 with zipfile.ZipFile(io.BytesIO(response.read())) as archive:
-                    self.assertEqual(archive.read("engine.yaml"), reference_files("qbeast")["engine.yaml"])
+                    self.assertEqual(archive.read("README.md"), reference_files("sample")["README.md"])
+            with self.assertRaises(HTTPError) as error:
+                urlopen(base + "?name=qbeast")
+            self.assertEqual(error.exception.code, 404)
+            error.exception.close()
             with self.assertRaises(HTTPError) as error:
                 urlopen(base + "?name=unknown")
             self.assertEqual(error.exception.code, 404)

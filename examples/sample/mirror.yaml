@@ -1,0 +1,7 @@
+images:
+  - source: registry.example.invalid/example-partner/sample-engine:0.1.0
+    target: registry.example.invalid/example-partner/sample-engine:0.1.0
+charts:
+  - source: oci://registry.example.invalid/example-partner/sample-engine
+    version: 0.1.0
+    target: oci://registry.example.invalid/example-partner/sample-engine

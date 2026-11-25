@@ -15,8 +15,13 @@ PACKAGES = {
         "README.md", "blueprint.yaml", "engine.yaml", "role.yaml",
         "capabilities.yaml", "oci-register.config.example.yaml",
         "imagecatalog.yaml", "chartcatalog.yaml", "mirror.yaml", "mirror.sh", "publish.sh",
-    )
+    ),
+    "sample": (
+        "README.md", "blueprint.yaml", "engine.yaml", "role.yaml",
+        "capabilities.yaml", "imagecatalog.yaml", "chartcatalog.yaml", "mirror.yaml",
+    ),
 }
+DOWNLOADABLE_PACKAGES = {"sample"}
 
 
 def reference_files(name: str) -> dict[str, bytes]:
@@ -62,6 +67,8 @@ def reference_files(name: str) -> dict[str, bytes]:
 
 
 def reference_zip(name: str) -> bytes:
+    if name not in DOWNLOADABLE_PACKAGES:
+        raise ValueError(f"{name!r} is not available as a shareable ZIP; use the fictional sample package")
     files = reference_files(name)
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
@@ -76,7 +83,7 @@ def reference_zip(name: str) -> bytes:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("name", choices=sorted(PACKAGES))
+    parser.add_argument("name", choices=sorted(DOWNLOADABLE_PACKAGES))
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
     data = reference_zip(args.name)

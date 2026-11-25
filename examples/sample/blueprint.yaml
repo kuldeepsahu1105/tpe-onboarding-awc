@@ -1,0 +1,27 @@
+apiVersion: ecosystem.awc.cloudera.com/v1alpha10
+kind: Blueprint
+metadata:
+  name: sample-engine
+spec:
+  owner: Example Partner
+  description: Fictional sample package for reviewing the file layout.
+  outcome: Sample service
+  instances:
+    - name: sample-engine
+      engine: sample-ace-engine
+      minimumVersion: 0.1.0
+  hardwareTiers:
+    - name: default
+      cluster:
+        nodeGroups:
+          - id: sample-workers
+            category: worker
+            displayName: Sample workers
+            nodeCount:
+              default: 1
+              minimum: 1
+            resources:
+              minimum:
+                cpu: "1"
+                memory: 1Gi
+                hasGPU: false
