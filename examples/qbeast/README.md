@@ -127,8 +127,7 @@ verified against a live registry or cluster here:
 - The toolkit's reference-file checks (`onboarding/reference_package.py`): one
   Blueprint referencing the Engine, Role/RoleBinding/ClusterRole, the catalog names
   and ids the engine uses, the Capability provided by the engine. Plus `mirror.yaml`
-  matching the catalogs. These real Qbeast files remain in this folder and are not
-  included in the fictional, shareable sample ZIP.
+  matching the catalogs.
 - The 1.3.x engine runs on Qbeast's AWC demo cluster (Console deploy, portal, MCP
   sessions from Claude).
 

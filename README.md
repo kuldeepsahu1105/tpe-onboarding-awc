@@ -72,6 +72,3 @@ Qbeast package and cannot be installed or published.
 - [Advanced YAML options](docs/ADVANCED_OPTIONS.md)
 - [How the toolkit works](docs/HOW_IT_WORKS.md)
 - `./awc help` — all commands
-
-The real Qbeast implementation files remain under `examples/qbeast/`; they are
-not included in the shareable sample ZIP.
