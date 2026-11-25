@@ -9,6 +9,15 @@ import yaml
 from onboarding.blueprint_composer import compose_blueprint
 from onboarding.generator import _build_env, render_bundle
 from onboarding.manifest import normalize
+from onboarding.questions import fill_defaults
+from onboarding.form_generator import (
+    load_form,
+    render_blueprint as render_form_blueprint,
+    render_chart_catalog as render_form_chart_catalog,
+    render_engine_yaml as render_form_engine,
+    render_image_catalog as render_form_image_catalog,
+    render_publish_sh as render_form_publish,
+)
 from onboarding.validator import validate_bundle
 from web.app import run_blueprint
 
@@ -48,6 +57,77 @@ class BlueprintTests(unittest.TestCase):
         self.assertIn("versionMatrix", bp["spec"])
         self.assertIn("cluster", bp["spec"])
         self.assertTrue((directory / "clusterrequirements.yaml").exists())
+
+    def test_both_input_paths_emit_current_catalog_and_publish_contracts(self):
+        manifest, directory, _ = self.render(self.answers)
+        main_engine = yaml.safe_load((directory / "engine.yaml").read_text())
+        self.assertIn("imageCatalog", main_engine["spec"])
+        self.assertIn("chartCatalog", main_engine["spec"])
+        self.assertNotIn("versionCatalog", main_engine["spec"])
+        self.assertIn('SCHEMA_VERSION="${SCHEMA_VERSION:-2}"',
+                      (directory / "publish.sh").read_text())
+
+        form = load_form(ROOT / "engine-onboarding/examples/neo4j.input_form.yaml")
+        form["publish"].pop("schemaVersion", None)
+        form_engine = yaml.safe_load(render_form_engine(form))
+        form_blueprint = yaml.safe_load(render_form_blueprint(form))
+        self.assertIn("imageCatalog", form_engine["spec"])
+        self.assertIn("chartCatalog", form_engine["spec"])
+        self.assertNotIn("versionCatalog", form_engine["spec"])
+        self.assertEqual(
+            main_engine["spec"]["imageCatalog"],
+            yaml.safe_load((directory / "imagecatalog.yaml").read_text())["metadata"]["name"],
+        )
+        self.assertEqual(
+            main_engine["spec"]["chartCatalog"],
+            yaml.safe_load((directory / "chartcatalog.yaml").read_text())["metadata"]["name"],
+        )
+        self.assertEqual(
+            form_engine["spec"]["imageCatalog"],
+            yaml.safe_load(render_form_image_catalog(form))["metadata"]["name"],
+        )
+        self.assertEqual(
+            form_engine["spec"]["chartCatalog"],
+            yaml.safe_load(render_form_chart_catalog(form))["metadata"]["name"],
+        )
+        self.assertIn('SCHEMA_VERSION="${SCHEMA_VERSION:-2}"', render_form_publish(form))
+        cluster = form_blueprint["spec"]["hardwareTiers"][0]["cluster"]
+        self.assertNotIn("kubernetesVersion", cluster)
+        self.assertNotIn("recommended", cluster["nodeGroups"][0]["resources"])
+        for rendered_catalog in (
+            render_form_image_catalog(form),
+            render_form_chart_catalog(form),
+        ):
+            self.assertEqual(yaml.safe_load(rendered_catalog)["apiVersion"], manifest["apiVersion"])
+
+    def test_validator_requires_current_catalog_references(self):
+        manifest, directory, _ = self.render(self.answers)
+        engine = yaml.safe_load((directory / "engine.yaml").read_text())
+        del engine["spec"]["chartCatalog"]
+        (directory / "engine.yaml").write_text(yaml.safe_dump(engine, sort_keys=False))
+        result = validate_bundle(directory, manifest)
+        self.assertFalse(result.ok)
+        self.assertTrue(any("spec.chartCatalog" in finding.message for finding in result.errors))
+
+    def test_primary_templates_emit_catalog_fields_for_v1alpha10(self):
+        for path in (
+            ROOT / "examples/neo4j.input.yaml",
+            ROOT / "examples/puppygraph.input.yaml",
+            ROOT / "examples/dataspark.input.yaml",
+        ):
+            with self.subTest(template=path.name), tempfile.TemporaryDirectory() as tmp:
+                answers = fill_defaults(yaml.safe_load(path.read_text()))
+                manifest = normalize(answers)
+                output = Path(tmp)
+                render_bundle(manifest, output)
+                engine = yaml.safe_load((output / "engine.yaml").read_text())
+                self.assertIn("imageCatalog", engine["spec"])
+                self.assertNotIn("versionCatalog", engine["spec"])
+                if manifest["engine"]["template"] == "native-k8s":
+                    self.assertNotIn("chartCatalog", engine["spec"])
+                else:
+                    self.assertIn("chartCatalog", engine["spec"])
+                self.assertTrue(validate_bundle(output, manifest).ok)
 
     def test_generated_capability_uses_marketplace_filename(self):
         answers = copy.deepcopy(self.answers)
@@ -99,6 +179,8 @@ class BlueprintTests(unittest.TestCase):
             bp = yaml.safe_load((Path(result["out_dir"]) / "blueprint.yaml").read_text())
             self.assertEqual([(i["engine"], i["minimumVersion"]) for i in bp["spec"]["instances"]],
                              [("udf-plugin", "1.6.0"), ("polaris-plugin", "2.0.0")])
+            self.assertIn('SCHEMA_VERSION="${SCHEMA_VERSION:-2}"',
+                          (Path(result["out_dir"]) / "publish.sh").read_text())
             self.assertTrue(bp["spec"]["hardwareTiers"][0]["cluster"]["nodeGroups"])
             data = yaml.safe_load(spec.read_text())
             data["engines"][1]["existing"]["instance"] = "udf"
@@ -110,8 +192,24 @@ class BlueprintTests(unittest.TestCase):
     def test_operator_role_has_no_broad_cluster_binding(self):
         answers = copy.deepcopy(self.answers)
         answers["engine"]["template"] = "helm-operator"
-        answers["operator"] = {"group": "test.example.org", "resource": "widgets", "kind": "Widget"}
+        answers["operator"] = {
+            "group": "test.example.org",
+            "resource": "widgets",
+            "kind": "Widget",
+            "chartRepoUrl": "https://charts.example.test",
+            "chartName": "sample-operator",
+            "chartVersion": "1.0.0",
+        }
+        answers = fill_defaults(answers)
         manifest = normalize(answers)
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp)
+            render_bundle(manifest, output)
+            engine = yaml.safe_load((output / "engine.yaml").read_text())
+            self.assertEqual(engine["spec"]["imageCatalog"],
+                             yaml.safe_load((output / "imagecatalog.yaml").read_text())["metadata"]["name"])
+            self.assertEqual(engine["spec"]["chartCatalog"],
+                             yaml.safe_load((output / "chartcatalog.yaml").read_text())["metadata"]["name"])
         role = _build_env("helm-operator").get_template("role.yaml.j2").render(**manifest)
         roles = list(yaml.safe_load_all(role))
         self.assertIn("ClusterRole", [r["kind"] for r in roles])

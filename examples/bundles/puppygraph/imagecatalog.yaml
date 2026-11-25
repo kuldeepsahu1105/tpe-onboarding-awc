@@ -4,7 +4,7 @@ metadata:
   name: puppygraph-images-1-1-0
 spec:
   images:
-    - id: puppygraph
-      registry: registry.partner-corp.example.com
-      repository: puppygraph/puppygraph/puppygraph
-      tag: "1.1.0"
+  - id: puppygraph
+    registry: registry.partner-corp.example.com
+    repository: puppygraph/puppygraph/puppygraph
+    tag: 1.1.0

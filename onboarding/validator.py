@@ -149,7 +149,10 @@ def validate_bundle(bundle_dir: Path, manifest: dict[str, Any]) -> ValidationRes
     if engine_doc is None:
         result.add("error", "engine.yaml", "No 'kind: Engine' document found.")
     else:
-        for req in rules["requiredEngineFields"]:
+        engine_fields = rules["requiredEngineFields"] + rules["requiredEngineFieldsByTemplate"].get(
+            template_class, []
+        )
+        for req in engine_fields:
             if req == "spec.template":
                 present = bool(_get_path(engine_doc, req))
             else:

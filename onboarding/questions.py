@@ -22,7 +22,7 @@ Each :class:`Question` knows:
                        if it returns False
 
 The question set mirrors the Anywhere Cloud Ecosystem concepts directly:
-Capability, ClusterRequirements, Engine (+ versionCatalog, configSchema,
+Capability, ClusterRequirements, Engine (+ imageCatalog/chartCatalog, configSchema,
 provides, dependencies, healthChecks), Operator, Blueprint, ChartCatalog,
 ImageCatalog and RBAC -- see ``docs/AWC_CONCEPTS.md`` for the full mapping.
 """
@@ -357,7 +357,10 @@ QUESTIONS: list[Question] = [
     # --- Cluster sizing (ClusterRequirements / Blueprint hardware tier) ---
     Question(
         id="cluster.kubernetesVersion",
-        prompt="Kubernetes version constraint for ClusterRequirements and legacy Blueprints (e.g. '>= 1.24.0')?",
+        prompt=(
+            "Kubernetes version constraint for legacy Blueprints/ClusterRequirements "
+            "(ignored in current v1alpha10 Blueprints; e.g. '>= 1.24.0')?"
+        ),
         default=">= 1.28.0",
     ),
     Question(

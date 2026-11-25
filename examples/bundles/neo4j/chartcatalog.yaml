@@ -4,7 +4,7 @@ metadata:
   name: neo4j-charts-5-26-0
 spec:
   charts:
-    - id: neo4j
-      registry: registry.partner-corp.example.com
-      repository: neo4j/charts/neo4j
-      version: "5.26.0"
+  - id: neo4j
+    registry: registry.partner-corp.example.com
+    repository: neo4j/charts/neo4j
+    version: 5.26.0

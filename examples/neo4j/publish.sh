@@ -10,7 +10,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AWC="${AWC_MARKETPLACE:-awc-marketplace}"
 REGISTRY="${REGISTRY:-docker-sandbox.infra.cloudera.com}"
 NAMESPACE="${NAMESPACE:-nijjwol-awc}"
-SCHEMA_VERSION="${SCHEMA_VERSION:-1}"
+SCHEMA_VERSION="${SCHEMA_VERSION:-2}"
 VERSION="${VERSION:-5.26.0}"
 PUSH=()
 if [ "${1:-}" = "--push" ]; then PUSH=(--push); fi

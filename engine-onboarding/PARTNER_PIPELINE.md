@@ -1,67 +1,41 @@
-# Partner pipeline (reference vs ace-engines)
+# Partner onboarding pipeline
 
-## Two tiers
+This repository contains two supported input paths with different schemas and command entry points:
 
-| | **This repo** [`engine-onboarding/`](.) | **Extended toolkit** [tpe-onboarding-awc](https://github.com/kuldeepsahu1105/tpe-onboarding-awc/tree/kuldeepsahu1105-awc-engine-onboarding-toolkit) |
-|---|-----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Role | Lightweight **in-monorepo** subset: form → ACE YAML under `{directory}/`, `discover-images`, basic `mirror.sh` / `publish.sh`, Makefile wrappers; wizard/MCP via `AWC_ONBOARDING_REPO` | Full partner onboarding: wizard, Web UI, MCP, Helm ingest, multi-template scaffold, blueprint compose, richer validate |
-| When to use | Day-to-day engine plugins committed in **ace-engines**; CI-friendly scaffold | Partners need the full guided flow before merging hardened YAML here |
+| Path | Input | Entry point | Best for |
+|---|---|---|---|
+| Primary onboarding | `examples/*.input.yaml` | `./awc build <file>` | Guided partner workflow, multiple templates, current Blueprints, validation, mirroring, publishing |
+| Form-v1 compatibility | `engine-onboarding/examples/*.input_form.yaml` | `make scaffold-engine FORM=...` | Existing Helm-first form workflows and their generated package layout |
 
-Same `input_form`-style concepts; the extended toolkit lives on GitHub (the repository root on branch `kuldeepsahu1105-awc-engine-onboarding-toolkit`), not vendored in ace-engines.
+Both generators use the `onboarding` package and share Blueprint construction, catalog/YAML rendering, and the v1alpha10 marketplace publish schema default. The `input_form` v1 schema remains distinct; translate data explicitly rather than treating it as interchangeable with primary `*.input.yaml`.
 
-**Other references (read-only):**
-
-- [awc-partner-engine-agents](https://github.com/Nijjwol23/awc-partner-engine-agents) — staged pipeline example (Neo4j → marketplace)
-- [awc-oci-register](https://github.com/agupta-git/awc-oci-register) — partner OCI on AWC control plane (until CCF-95)
-
-Patterns to reuse: [partner-reference/README.md](partner-reference/README.md).
-
----
-
-## Eight steps (their flow) vs our Makefile
-
-| Step | Nijjwol / extended toolkit | ace-engines (this subset) |
-|------|----------------------------|---------------------------|
-| 0 Input | `partner.yaml` or toolkit `*.input.yaml` | `input_form.yaml` |
-| 1 Ingest | `helm-profile.json` (agents repo) or toolkit `discover-images` | `make discover-images …` → `imageCatalog.images` in form (or hand-edit) |
-| 2 Scaffold | Jinja → `partners/<id>/ace/` | `make scaffold-engine FORM=… FORCE=1` |
-| 3 Validate | policy + `awc-marketplace validate` | `make validate-form FORM=…`; `./publish.sh` dry-run |
-| 4 Mirror | helm/docker → partner OCI | `make mirror-engine DIR=<plugin>` |
-| 5 Publish | `awc-marketplace publish` (+ VPN `--push`) | `make publish-engine DIR=<plugin>` then `PUSH=1` |
-| 6 Test | catalog inspect + smoke | Manual / cluster |
-| 7 CP registry | `MARKETPLACE_REGISTRIES` | `make register-partner-registry CONFIG=…` |
-| 8 E2E | Console → Marketplace → Deploy | Same |
-
-Nijjwol uses human gates (`--approve-scaffold`, `--approve-publish`). Here: **PR review** before `FORCE=1`; **dry-run publish** until you pass `PUSH=1`.
-
----
-
-## Our commands (repo root)
+## Form-v1 workflow
 
 ```bash
 make discover-images REPO_URL=https://helm.neo4j.com/neo4j CHART=neo4j VERSION=2025.12.1 \
-  FORM=engine-onboarding/examples/neo4j.input_form.yaml WRITE=1   # optional
+  FORM=engine-onboarding/examples/neo4j.input_form.yaml WRITE=1
 make validate-form FORM=engine-onboarding/examples/neo4j.input_form.yaml
 make scaffold-engine FORM=engine-onboarding/examples/neo4j.input_form.yaml FORCE=1
 make mirror-engine DIR=neo4j
 make publish-engine DIR=neo4j
 make publish-engine DIR=neo4j PUSH=1
 make register-partner-registry CONFIG=neo4j/oci-register.config.example.yaml
-
-# Extended toolkit (clone tpe-onboarding-awc; set AWC_ONBOARDING_REPO to the repository root)
-make onboarding-wizard
-make onboarding-mcp-config
 ```
 
-With `publish.enabled: true`, scaffold emits `mirror.sh`, `publish.sh`, optional `oci-register.config.example.yaml`.
+The generated package defaults to marketplace schema version 2. Publishing remains a dry run unless `PUSH=1` is selected; validate artifacts and registry access before an actual push.
 
----
+## Primary workflow
 
-## Dependencies in `input_form.yaml`
+```bash
+./awc wizard
+./awc build examples/neo4j.input.yaml
+./awc ui
+./awc mcp
+```
 
-| `dependencies.entries[].type` | In Blueprint? |
-|-------------------------------|---------------|
-| `auto` | No (engine-private, e.g. Postgres) |
-| `ref` / `optional` | Yes |
+For multi-engine Blueprint composition, use `./awc blueprint <blueprint.input.yaml>`. The supported current contract uses top-level Engine `imageCatalog` and (for Helm engines) `chartCatalog` references. The explicit legacy Blueprint mode remains available for older deployment contracts; it should not be used for v1alpha10 packages that require the current shape.
 
-`blueprint.existingEngines[]` — engines already on cluster. Example: [`examples/hms-style.input_form.yaml`](examples/hms-style.input_form.yaml).
+## External references
+
+- [awc-partner-engine-agents](https://github.com/Nijjwol23/awc-partner-engine-agents) — staged pipeline example
+- [awc-oci-register](https://github.com/agupta-git/awc-oci-register) — partner OCI registration

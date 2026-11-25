@@ -6,13 +6,13 @@
 #   ./publish.sh --push       # real push (VPN/registry login required)
 #
 # Env: AWC_MARKETPLACE (binary, default awc-marketplace), REGISTRY, NAMESPACE,
-#      SCHEMA_VERSION (default 1; Partner AWC console sync expects 1)
+#      SCHEMA_VERSION (default 2 for the v1alpha10 marketplace schema)
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AWC="${AWC_MARKETPLACE:-awc-marketplace}"
 REGISTRY="${REGISTRY:-registry.partner-corp.example.com}"
 NAMESPACE="${NAMESPACE:-puppygraph}"
-SCHEMA_VERSION="${SCHEMA_VERSION:-1}"
+SCHEMA_VERSION="${SCHEMA_VERSION:-2}"
 VERSION="1.1.0"
 PUSH=()
 if [ "${1:-}" = "--push" ]; then PUSH=(--push); fi

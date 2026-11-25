@@ -11,12 +11,8 @@ spec:
   # Add/remove roles below and in configSchema/template to match your chart's
   # real values.yaml role keys (e.g. controlplane/compute, FE/BE, leader/worker).
 
-  versionCatalog:
-    - displayName: "[[ engine.version ]]"
-      imageCatalog: [[ imageCatalogName ]]
-      chartCatalog: [[ chartCatalogName ]]
-      metadata:
-        buildVersion: "[[ engine.version ]]"
+  imageCatalog: [[ imageCatalogName ]]
+  chartCatalog: [[ chartCatalogName ]]
 
 [% if dependencies.entries %]
   dependencies:

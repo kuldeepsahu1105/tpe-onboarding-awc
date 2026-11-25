@@ -13,7 +13,6 @@ spec:
   hardwareTiers:
   - name: default
     cluster:
-      kubernetesVersion: '>= 1.28.0'
       nodeGroups:
       - id: neo4j-nodes
         category: worker
@@ -28,13 +27,7 @@ spec:
             cpu: '2'
             memory: 8Gi
             hasGPU: false
-          recommended:
-            cpu: '4'
-            memory: 16Gi
-            hasGPU: false
-          hint: 'Neo4j is heap- and page-cache sensitive; allocate at least 8 Gi memory for small workloads and 16 Gi or more for production graphs.
-
-            '
+          hint: Neo4j is heap- and page-cache sensitive; allocate at least 8 Gi memory for small workloads; 4 CPU and 16 Gi memory per node is a useful production starting point.
         storage:
           disk:
             default: 100Gi

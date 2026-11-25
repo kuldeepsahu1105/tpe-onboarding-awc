@@ -209,7 +209,7 @@ def _write_publish_script(out_dir: Path, bp: dict, version: str, instances: list
         'AWC="${AWC_MARKETPLACE:-awc-marketplace}"',
         f'REGISTRY="${{REGISTRY:-{pub.get("destinationRegistry", "<registry>")}}}"',
         f'NAMESPACE="${{NAMESPACE:-{pub.get("namespace", "<namespace>")}}}"',
-        'SCHEMA_VERSION="${SCHEMA_VERSION:-1}"',
+        'SCHEMA_VERSION="${SCHEMA_VERSION:-2}"',
         "PUSH=(); if [ \"${1:-}\" = \"--push\" ]; then PUSH=(--push); fi",
     ]
     for pid, _name, ver in engines:

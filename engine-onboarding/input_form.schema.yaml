@@ -341,7 +341,7 @@ properties:
         description: Marketplace engine/blueprint version (defaults to blueprint.minimumVersion).
       schemaVersion:
         type: integer
-        default: 1
+        default: 2
       skipImagesAndChartsOnPublish:
         type: boolean
         default: true

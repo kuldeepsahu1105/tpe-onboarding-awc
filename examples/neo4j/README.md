@@ -17,33 +17,28 @@ The engine renders an admin `Secret` (`NEO4J_AUTH` plus discrete `username` / `p
 
 - Kubernetes cluster with **ace-operator** installed and running
 - **Flux** helm-controller (for chart installs)
-- Platform resources:
-
-```bash
-kubectl apply -f platform/capabilities.yaml
-kubectl apply -f platform/cluster.yaml
-```
+- The AWC platform resources and ACE operator are installed in the target cluster. This example does not vendor platform bootstrap resources.
 
 ## Install engine definitions
 
 ```bash
-cd <ace-engines-repo-path>
+cd <tpe-onboarding-awc-repo-path>
 
-kubectl apply -f neo4j/capabilities.yaml
-kubectl apply -f neo4j/role.yaml
-kubectl apply -f neo4j/imagecatalog.yaml
-kubectl apply -f neo4j/chartcatalog.yaml
-kubectl apply -f neo4j/engine.yaml
-kubectl apply -f neo4j/blueprint.yaml
-kubectl apply -f neo4j/examples/instance.yaml
+kubectl apply -f examples/neo4j/capabilities.yaml
+kubectl apply -f examples/neo4j/role.yaml
+kubectl apply -f examples/neo4j/imagecatalog.yaml
+kubectl apply -f examples/neo4j/chartcatalog.yaml
+kubectl apply -f examples/neo4j/engine.yaml
+kubectl apply -f examples/neo4j/blueprint.yaml
+kubectl apply -f examples/neo4j/examples/instance.yaml
 ```
 
-Or use root `apply.sh` (plus `kubectl apply -f neo4j/blueprint.yaml`).
+Or use the package's `apply.sh`, then apply `examples/neo4j/blueprint.yaml`.
 
 ## Deploy an instance
 
 ```bash
-kubectl apply -f neo4j/examples/instance.yaml
+kubectl apply -f examples/neo4j/examples/instance.yaml
 kubectl describe engineinstance neo4j
 ```
 
@@ -58,14 +53,14 @@ make scaffold-engine FORM=engine-onboarding/examples/neo4j.input_form.yaml FORCE
 Sequence (VPN, `docker login`, `helm registry login`, `awc-marketplace` on `PATH`):
 
 ```bash
-make mirror-engine DIR=neo4j
-make publish-engine DIR=neo4j
-make publish-engine DIR=neo4j PUSH=1
+make mirror-engine DIR=examples/neo4j
+make publish-engine DIR=examples/neo4j
+make publish-engine DIR=examples/neo4j PUSH=1 APPROVE_PUBLISH=1
 ```
 
 [`publish.sh`](publish.sh) validates then publishes engine + blueprint with `--skip-images --skip-charts` after mirror. See [PARTNER_PIPELINE.md](../../engine-onboarding/PARTNER_PIPELINE.md).
 
-Control-plane registry registration (if needed): [`oci-register.config.example.yaml`](oci-register.config.example.yaml) + `make register-partner-registry CONFIG=neo4j/oci-register.config.example.yaml`.
+Control-plane registry registration (if needed): [`oci-register.config.example.yaml`](oci-register.config.example.yaml) + `make register-partner-registry CONFIG=examples/neo4j/oci-register.config.example.yaml`.
 
 ## Configuration
 
@@ -96,4 +91,4 @@ None (standalone v1).
 |:--------|:------|
 | Engine `MissingReferences` | Image/chart catalogs applied |
 | HelmRelease failing | Flux helm-controller logs |
-| Publish dry-run fails | `awc-marketplace validate neo4j/` |
+| Publish dry-run fails | `awc-marketplace validate examples/neo4j/` |

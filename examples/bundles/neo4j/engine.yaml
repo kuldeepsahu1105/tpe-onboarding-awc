@@ -8,12 +8,8 @@ spec:
   displayName: "Neo4j"
   description: "Native graph database (Community) with Browser UI and Bolt."
 
-  versionCatalog:
-    - displayName: "5.26.0"
-      imageCatalog: neo4j-images-5-26-0
-      chartCatalog: neo4j-charts-5-26-0
-      metadata:
-        buildVersion: "5.26.0"
+  imageCatalog: neo4j-images-5-26-0
+  chartCatalog: neo4j-charts-5-26-0
 
   configSchema:
     type: object

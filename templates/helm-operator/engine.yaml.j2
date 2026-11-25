@@ -11,12 +11,8 @@ spec:
   # operator.group, operator.kind, and operator.resource come from the input.
   # Swap the CEL expression for a condition check when the CR uses status.conditions.
 
-  versionCatalog:
-    - displayName: "[[ engine.version ]]"
-      imageCatalog: [[ imageCatalogName ]]
-      chartCatalog: [[ chartCatalogName ]]
-      metadata:
-        buildVersion: "[[ engine.version ]]"
+  imageCatalog: [[ imageCatalogName ]]
+  chartCatalog: [[ chartCatalogName ]]
 
 [% if dependencies.entries %]
   dependencies:

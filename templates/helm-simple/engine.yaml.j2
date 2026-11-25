@@ -8,12 +8,8 @@ spec:
   displayName: "[[ engine.displayName ]]"
   description: "[[ engine.description ]]"
 
-  versionCatalog:
-    - displayName: "[[ engine.version ]]"
-      imageCatalog: [[ imageCatalogName ]]
-      chartCatalog: [[ chartCatalogName ]]
-      metadata:
-        buildVersion: "[[ engine.version ]]"
+  imageCatalog: [[ imageCatalogName ]]
+  chartCatalog: [[ chartCatalogName ]]
 
 [% if dependencies.entries %]
   dependencies:

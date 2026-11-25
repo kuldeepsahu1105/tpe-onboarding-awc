@@ -15,7 +15,7 @@ PLAN="${DIR}/mirror.yaml"
 AWC="${AWC_MARKETPLACE:-awc-marketplace}"
 REGISTRY="${REGISTRY:-}"
 NAMESPACE="${NAMESPACE:-}"
-SCHEMA_VERSION="${SCHEMA_VERSION:-1}"
+SCHEMA_VERSION="${SCHEMA_VERSION:-2}"
 VERSION="${VERSION:-}"
 PUSH=()
 if [ "${1:-}" = "--push" ]; then PUSH=(--push); fi

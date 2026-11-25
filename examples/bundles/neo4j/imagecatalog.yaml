@@ -4,7 +4,7 @@ metadata:
   name: neo4j-images-5-26-0
 spec:
   images:
-    - id: neo4j
-      registry: registry.partner-corp.example.com
-      repository: neo4j/neo4j
-      tag: "5.26.0-community"
+  - id: neo4j
+    registry: registry.partner-corp.example.com
+    repository: neo4j/neo4j
+    tag: 5.26.0-community

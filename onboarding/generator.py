@@ -23,6 +23,8 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+from .render_core import catalog_yaml, yaml_document
+
 Manifest = dict[str, Any]
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -92,9 +94,7 @@ def _build_env(template_class: str) -> Environment:
         undefined=StrictUndefined,
         keep_trailing_newline=True,
     )
-    import yaml as _yaml
-
-    env.filters["toyaml"] = lambda d: _yaml.safe_dump(d, default_flow_style=False, sort_keys=False).rstrip("\n")
+    env.filters["toyaml"] = lambda d: yaml_document(d).rstrip("\n")
     return env
 
 
@@ -124,10 +124,47 @@ def render_bundle(manifest: Manifest, output_dir: Path) -> dict[str, str]:
     for tpl_name, (out_name, predicate) in _COMMON_CONDITIONAL_FILES.items():
         if predicate(manifest):
             if out_name == "blueprint.yaml" and manifest["blueprint"]["format"] == "current":
-                import yaml
                 from .blueprints import single_blueprint
 
-                rendered[out_name] = yaml.safe_dump(single_blueprint(manifest), sort_keys=False)
+                rendered[out_name] = yaml_document(single_blueprint(manifest))
+            elif out_name == "imagecatalog.yaml":
+                entries = [
+                    {
+                        "id": image["id"],
+                        "registry": manifest["publish"]["destinationRegistry"],
+                        "repository": f'{manifest["publish"]["namespace"]}/{image["repository"]}',
+                        "tag": str(image["tag"]),
+                    }
+                    for image in manifest["images"]
+                ]
+                rendered[out_name] = catalog_yaml(
+                    manifest["apiVersion"], "ImageCatalog", manifest["imageCatalogName"], entries
+                )
+            elif out_name == "chartcatalog.yaml":
+                helm = manifest["helm"]
+                charts = [
+                    {
+                        "id": helm["chartId"],
+                        "registry": manifest["publish"]["destinationRegistry"],
+                        "repository": f'{manifest["publish"]["namespace"]}/charts/{helm["chart"]}',
+                        "version": str(helm["version"]),
+                    }
+                ]
+                if template_class == "helm-operator":
+                    operator = manifest["operator"]
+                    charts.append(
+                        {
+                            "id": operator["chartId"],
+                            "registry": manifest["publish"]["destinationRegistry"],
+                            "repository": (
+                                f'{manifest["publish"]["namespace"]}/charts/{operator["chartName"]}'
+                            ),
+                            "version": str(operator["chartVersion"]),
+                        }
+                    )
+                rendered[out_name] = catalog_yaml(
+                    manifest["apiVersion"], "ChartCatalog", manifest["chartCatalogName"], charts
+                )
             else:
                 rendered[out_name] = _render_one(env, tpl_name, manifest)
 

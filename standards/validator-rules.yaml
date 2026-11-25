@@ -10,10 +10,16 @@ requiredFilesByTemplate:
 requiredEngineFields:
   - spec.displayName
   - spec.description
-  - spec.versionCatalog
+  - spec.imageCatalog
   - spec.provides
   - spec.healthChecks
   - spec.template
+
+requiredEngineFieldsByTemplate:
+  helm-simple: [spec.chartCatalog]
+  helm-multi-role: [spec.chartCatalog]
+  helm-operator: [spec.chartCatalog]
+  native-k8s: []
 
 requiredBlueprintFields:
   - spec.owner

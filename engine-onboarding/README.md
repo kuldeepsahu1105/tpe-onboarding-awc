@@ -1,10 +1,13 @@
-# ACE engine onboarding (in-monorepo subset)
+# ACE engine onboarding
 
-[`engine-onboarding/`](.) is the **lightweight** path for plugins that live in **ace-engines**: `input_form.yaml` → generated `{directory}/` (Engine, catalogs, optional Blueprint, basic mirror/publish scripts).
+This repository supports two input formats through one shared onboarding package:
 
-**Helm image discovery** runs in-repo (`discover_images.py`). **Wizard, Web UI, and MCP** delegate to **[tpe-onboarding-awc](https://github.com/kuldeepsahu1105/tpe-onboarding-awc/tree/kuldeepsahu1105-awc-engine-onboarding-toolkit)** (the repository root on branch `kuldeepsahu1105-awc-engine-onboarding-toolkit`) via `AWC_ONBOARDING_REPO` and Makefile wrappers — not vendored here. Typical flow: discover images / run the extended wizard, produce `input_form.yaml`, scaffold into ace-engines, then merge production-ready YAML.
+- The primary `awc` pipeline reads `examples/*.input.yaml` manifests and generates validated bundles with Jinja templates.
+- The compatible `engine-onboarding` CLI reads the separate `input_form` v1 schema and generates its Helm-first package layout. Its implementation is in `onboarding/form_generator.py`; `generate_engine.py` remains the CLI and import-compatibility entry point.
 
-**In-repo subset + Neo4j sample on GitHub:** [ace-inrepo-onboarding-tool](https://github.com/kuldeepsahu1105/tpe-onboarding-awc/tree/ace-inrepo-onboarding-tool) (`tools/engine-onboarding` + `neo4j/`).
+The schemas stay distinct, but both paths share current Blueprint construction, YAML/catalog rendering, and marketplace schema-version defaults. Do not copy fields between the two input formats without translating them.
+
+Helm image discovery, terminal wizard, Web UI, and MCP are all available in this repository. Start the workbench with `./awc ui`; no external `AWC_ONBOARDING_REPO` clone is required.
 
 Partner pipeline comparison: **[PARTNER_PIPELINE.md](PARTNER_PIPELINE.md)** · reference notes: **[partner-reference/](partner-reference/README.md)**
 
@@ -13,13 +16,11 @@ Partner pipeline comparison: **[PARTNER_PIPELINE.md](PARTNER_PIPELINE.md)** · r
 ## Quick start
 
 ```bash
-cd ace-engines
-
-make validate-form FORM=engine-onboarding/examples/input_form.minimal.example.yaml
-make scaffold-engine FORM=engine-onboarding/examples/input_form.minimal.example.yaml FORCE=1
+make validate-form FORM=engine-onboarding/examples/minimal.input_form.yaml
+make scaffold-engine FORM=engine-onboarding/examples/minimal.input_form.yaml FORCE=1
 ```
 
-Optional: **`make serve-engine-form`** (http://127.0.0.1:8766/web/) exports the same YAML shape as the CLI form.
+Optional: **`make serve-engine-form`** (http://127.0.0.1:8766/web/) edits the `input_form` v1 shape. For the primary workflow, use **`./awc ui`**.
 
 Neo4j example (includes generated `mirror.sh` / `publish.sh` when `publish.enabled: true` in form):
 
@@ -34,12 +35,12 @@ make publish-engine DIR=neo4j              # dry run
 make publish-engine DIR=neo4j PUSH=1 APPROVE_PUBLISH=1   # after review (VPN/registry)
 ```
 
-Extended toolkit (wizard / MCP) — clone once, then:
+Primary workflow (wizard / web UI / MCP):
 
 ```bash
-export AWC_ONBOARDING_REPO=$HOME/tpe-onboarding-awc   # repository root
-make onboarding-wizard
-make onboarding-mcp-config   # JSON for Cursor MCP settings
+./awc wizard
+./awc ui
+./awc mcp
 ```
 
 Requirements: Python 3.9+, PyYAML. Optional: `jsonschema` for schema validation.
@@ -77,19 +78,17 @@ Schema: [`input_form.schema.yaml`](input_form.schema.yaml). Examples: [`examples
 | `make serve-engine-form` | Simple JSON Schema HTML form |
 | `make build-ui-schema` | Refresh `web/input_form.ui.schema.json` |
 | `make discover-images REPO_URL=… CHART=… VERSION=…` | List chart images (`discover_images.py`); `FORM=… WRITE=1` merges into form |
-| `make onboarding-wizard` | Terminal Q&A (requires `AWC_ONBOARDING_REPO`) |
-| `make onboarding-ui` | Extended Web UI (`./awc ui`) |
+| `make onboarding-wizard` | Terminal Q&A from the primary onboarding pipeline |
+| `make onboarding-ui` | Primary onboarding Web UI (`./awc ui`) |
 | `make onboarding-mcp` | MCP server for AI assistants |
 | `make onboarding-mcp-config` | Print MCP client JSON |
 
-Use `FORCE=1` / `DRY_RUN=1` with `scaffold-engine` as needed. Optional: `VALUES=file.yaml` / `SET=key=val` on `discover-images`.
+Use `FORCE=1` / `DRY_RUN=1` with `scaffold-engine` as needed. Current v1alpha10 publish scripts default to marketplace schema version 2. Optional: `VALUES=file.yaml` / `SET=key=val` on `discover-images`.
 
 ---
 
-## Scope ( intentionally small )
+## Scope
 
-- Helm-first scaffold into ace-engines layout; not operator-first or multi-chart automation
-- In-repo **discover-images** only; wizard/MCP/ingest/agents live in **tpe-onboarding-awc** (wrappers above)
+- The `input_form` v1 generator remains Helm-first; use the primary `awc` pipeline for multi-template and operator workflows.
+- The two input schemas are intentionally separate; they share rendering helpers but have different fields and validation.
 - RBAC presets are minimal; production engines still need review (mesh, docs, e2e)
-
-When you outgrow this subset, use **tpe-onboarding-awc** for blueprint compose and multi-template bundles, then commit the result here.

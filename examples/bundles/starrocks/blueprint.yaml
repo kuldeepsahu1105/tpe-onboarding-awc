@@ -4,8 +4,7 @@ metadata:
   name: starrocks
 spec:
   owner: StarRocks
-  description: Blazing-fast OLAP analytics engine (FE + BE) via the kube-starrocks
-    chart.
+  description: Blazing-fast OLAP analytics engine (FE + BE) via the kube-starrocks chart.
   outcome: OLAP analytics
   instances:
   - name: starrocks

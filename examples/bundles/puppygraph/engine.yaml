@@ -11,12 +11,8 @@ spec:
   # Add/remove roles below and in configSchema/template to match your chart's
   # real values.yaml role keys (e.g. controlplane/compute, FE/BE, leader/worker).
 
-  versionCatalog:
-    - displayName: "1.1.0"
-      imageCatalog: puppygraph-images-1-1-0
-      chartCatalog: puppygraph-charts-1-0-0
-      metadata:
-        buildVersion: "1.1.0"
+  imageCatalog: puppygraph-images-1-1-0
+  chartCatalog: puppygraph-charts-1-0-0
 
   configSchema:
     type: object

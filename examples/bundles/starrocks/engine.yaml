@@ -11,12 +11,8 @@ spec:
   # Add/remove roles below and in configSchema/template to match your chart's
   # real values.yaml role keys (e.g. controlplane/compute, FE/BE, leader/worker).
 
-  versionCatalog:
-    - displayName: "1.11.4"
-      imageCatalog: starrocks-images-1-11-4
-      chartCatalog: starrocks-charts-1-11-4
-      metadata:
-        buildVersion: "1.11.4"
+  imageCatalog: starrocks-images-1-11-4
+  chartCatalog: starrocks-charts-1-11-4
 
   configSchema:
     type: object

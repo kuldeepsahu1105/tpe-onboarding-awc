@@ -96,7 +96,6 @@ spec:
   hardwareTiers:
     - name: default
       cluster:
-        kubernetesVersion: ">= v1.33.5"
         nodeGroups:
           - id: "stms-nodes"
             category: "worker"

@@ -45,7 +45,7 @@ verify it fits the actual application; successful generation is not deployment a
 | Marketplace tile | `blueprint.needed`, `blueprint.outcome`, `blueprint.name`, `blueprint.instanceName` | `needed` defaults to `true`; then `outcome` is required by file loading. Names default to `partner.id`. Set `needed: false` only for a hidden/internal engine; the multi-engine composer suppresses per-engine Blueprints itself. |
 | Publish destination | `publish.destinationRegistry`, `publish.namespace` | Review/defaulted: registry is **only a placeholder** (`<your-oci-registry.example.com>`), namespace defaults to `partner.id`. Supply the approved OCI registry hostname (not credentials or `oci://`) and repository namespace/path. |
 | Mirroring | `mirror.skip`, `mirror.chart.repoUrl`, `mirror.chart.name`, `mirror.chart.version` | Helm mirroring defaults on; optional chart overrides default from `helm.*`. Skip only when all required charts/images already exist at the exact catalog destinations. Native images also need a real destination and copying when not already present. |
-| Cluster sizing | `cluster.kubernetesVersion`, `cluster.workerCountDefault`, `cluster.workerCountMinimum`, `cluster.minCpu`, `cluster.minMemory`, `cluster.recommendedCpu`, `cluster.recommendedMemory`, `cluster.diskDefault`, `cluster.diskMinimum`, `cluster.hasGPU` | Review/defaulted: `>= 1.28.0`, 1/1 nodes, `4` CPU / `16Gi` minimum, normally `8` CPU / `32Gi` recommended, `100Gi`/`50Gi` disks, no GPU. File defaults derive recommended CPU from minimum CPU. Match real requirements; multi-role baseline is 8 CPU / 32Gi minimum. |
+| Cluster sizing | `cluster.kubernetesVersion`, `cluster.workerCountDefault`, `cluster.workerCountMinimum`, `cluster.minCpu`, `cluster.minMemory`, `cluster.recommendedCpu`, `cluster.recommendedMemory`, `cluster.diskDefault`, `cluster.diskMinimum`, `cluster.hasGPU` | Review/defaulted: 1/1 nodes, `4` CPU / `16Gi` minimum, normally `8` CPU / `32Gi` as a sizing hint, `100Gi`/`50Gi` disks, no GPU. Current v1alpha10 output omits `kubernetesVersion` and serializes recommendations as hints; the version constraint is retained only for explicit legacy output. Match real requirements; multi-role baseline is 8 CPU / 32Gi minimum. |
 
 ### Conditional and advanced input checklist
 
@@ -225,7 +225,7 @@ run each `engines/<id>/mirror.sh` first. Set `mirror: {skip: true}` if artifacts
 already in your registry.
 
 `publish.sh` supports invocation-time environment overrides: `AWC_MARKETPLACE`
-(executable path), `REGISTRY`, `NAMESPACE`, and `SCHEMA_VERSION` (default `1`).
+(executable path), `REGISTRY`, `NAMESPACE`, and `SCHEMA_VERSION` (default `2` for v1alpha10).
 These are shell variables, **not an env file**. Review all four before invoking
 the script; normal registry/namespace defaults come from your input. Overriding
 `REGISTRY`/`NAMESPACE` changes publishing only, not catalog or mirror targets:

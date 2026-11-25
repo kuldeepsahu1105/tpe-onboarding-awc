@@ -17,7 +17,6 @@ spec:
   hardwareTiers:
   - name: default
     cluster:
-      kubernetesVersion: '>= 1.28.0'
       nodeGroups:
       - id: tpe-onboarding-nodes
         category: worker
@@ -32,13 +31,7 @@ spec:
             cpu: '1'
             memory: 2Gi
             hasGPU: false
-          recommended:
-            cpu: '2'
-            memory: 4Gi
-            hasGPU: false
-          hint: 'Raise memory only if many people use the workbench at once.
-
-            '
+          hint: Raise memory only if many people use the workbench at once; 2 CPU and 4 Gi memory per node is a useful starting point.
         storage:
           disk:
             default: 20Gi

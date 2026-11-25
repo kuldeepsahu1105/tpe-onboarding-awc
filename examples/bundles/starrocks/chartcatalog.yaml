@@ -4,7 +4,7 @@ metadata:
   name: starrocks-charts-1-11-4
 spec:
   charts:
-    - id: kubeStarrocks
-      registry: registry.partner-corp.example.com
-      repository: starrocks/charts/kube-starrocks
-      version: "1.11.4"
+  - id: kubeStarrocks
+    registry: registry.partner-corp.example.com
+    repository: starrocks/charts/kube-starrocks
+    version: 1.11.4
